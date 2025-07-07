@@ -150,6 +150,8 @@ export interface Location {
     equipmentInfo?: Record<string, any>;
     hours?: Record<string, string>;
     active: boolean;
+    createdAt: string;
+    updatedAt: string;
 }
 
 export interface Employee {

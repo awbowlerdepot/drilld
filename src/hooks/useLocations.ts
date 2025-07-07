@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Location } from '../types';
-import { mockLocations } from '../data/mockData';
+import { mockLocations } from '../data/mockLocationData';
 
 export const useLocations = () => {
     const [locations, setLocations] = useState<Location[]>([]);
@@ -8,17 +8,19 @@ export const useLocations = () => {
     const [error] = useState<string | null>(null);
 
     useEffect(() => {
-        // Simulate API call
+        // Simulate API call delay like other hooks in the codebase
         setTimeout(() => {
             setLocations(mockLocations);
             setLoading(false);
         }, 500);
     }, []);
 
-    const addLocation = (location: Omit<Location, 'id'>) => {
+    const addLocation = (locationData: Omit<Location, 'id' | 'createdAt' | 'updatedAt'>) => {
         const newLocation: Location = {
-            ...location,
-            id: Date.now().toString()
+            ...locationData,
+            id: Date.now().toString(),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
         };
         setLocations(prev => [...prev, newLocation]);
         return newLocation;
@@ -27,21 +29,15 @@ export const useLocations = () => {
     const updateLocation = (id: string, updates: Partial<Location>) => {
         setLocations(prev =>
             prev.map(location =>
-                location.id === id ? { ...location, ...updates } : location
+                location.id === id
+                    ? { ...location, ...updates, updatedAt: new Date().toISOString() }
+                    : location
             )
         );
     };
 
     const deleteLocation = (id: string) => {
         setLocations(prev => prev.filter(location => location.id !== id));
-    };
-
-    const deactivateLocation = (id: string) => {
-        updateLocation(id, { active: false });
-    };
-
-    const activateLocation = (id: string) => {
-        updateLocation(id, { active: true });
     };
 
     const getLocationById = (id: string) => {
@@ -69,174 +65,113 @@ export const useLocations = () => {
         );
     };
 
+    const getLocationStats = (locationId: string) => {
+        // Mock stats generation based on location characteristics
+        const location = getLocationById(locationId);
+        if (!location) return { totalWorkOrders: 0, activeEmployees: 0 };
+
+        const equipmentCount = location.equipmentInfo?.equipment?.length || 0;
+        const isActive = location.active;
+
+        return {
+            totalWorkOrders: isActive ? Math.floor(Math.random() * 30) + equipmentCount * 5 : 0,
+            activeEmployees: isActive ? Math.floor(Math.random() * 5) + 1 : 0
+        };
+    };
+
     const getLocationsByEquipment = (equipmentType: string) => {
         return locations.filter(location =>
             location.active &&
-            location.equipmentInfo &&
-            Object.keys(location.equipmentInfo).some(key =>
-                key.toLowerCase().includes(equipmentType.toLowerCase()) ||
-                (typeof location.equipmentInfo![key] === 'string' &&
-                    location.equipmentInfo![key].toLowerCase().includes(equipmentType.toLowerCase()))
+            location.equipmentInfo?.equipment?.some(equipment =>
+                equipment.name.toLowerCase().includes(equipmentType.toLowerCase()) ||
+                equipment.model.toLowerCase().includes(equipmentType.toLowerCase())
             )
         );
     };
 
-    const getLocationCapacity = (locationId: string, employees: Array<{id: string, locations: string[], active: boolean}>) => {
+    const getLocationCapacity = (locationId: string) => {
         const location = getLocationById(locationId);
-        if (!location) return { capacity: 0, utilization: 0 };
+        if (!location) return null;
 
-        const assignedEmployees = employees.filter(emp =>
-            emp.active && emp.locations.includes(locationId)
-        ).length;
-
-        // Estimate capacity based on equipment and staff
-        const equipmentCount = location.equipmentInfo ? Object.keys(location.equipmentInfo).length : 1;
-        const baseCapacity = Math.min(equipmentCount * 8, assignedEmployees * 6); // 8 hours per equipment, 6 jobs per employee per day
+        // Calculate capacity based on equipment and hours
+        const equipmentCount = location.equipmentInfo?.equipment?.length || 0;
+        const hoursPerDay = location.hours ?
+            Object.values(location.hours).reduce((total, hours) => {
+                if (hours === 'Closed' || hours.includes('Appointment') || hours.includes('Schedule')) return total;
+                // Simple calculation - assumes 8 hour average for normal hours
+                return total + 8;
+            }, 0) / 7 : 8;
 
         return {
-            capacity: baseCapacity,
-            assignedEmployees,
-            equipmentCount
+            maxWorkOrdersPerDay: Math.floor(equipmentCount * hoursPerDay / 2), // 2 hours per work order average
+            equipmentCount,
+            averageHoursPerDay: hoursPerDay
         };
     };
 
-    const getLocationWorkload = (locationId: string, workOrders: Array<{locationID: string, workDate: string}>) => {
-        const today = new Date();
-        const thisMonth = workOrders.filter(wo => {
-            const workDate = new Date(wo.workDate);
-            return wo.locationID === locationId &&
-                workDate.getMonth() === today.getMonth() &&
-                workDate.getFullYear() === today.getFullYear();
-        });
-
-        const thisWeek = workOrders.filter(wo => {
-            const workDate = new Date(wo.workDate);
-            const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-            return wo.locationID === locationId && workDate >= weekAgo;
-        });
-
-        const today_orders = workOrders.filter(wo => {
-            const workDate = new Date(wo.workDate);
-            return wo.locationID === locationId &&
-                workDate.toDateString() === today.toDateString();
-        });
-
-        return {
-            today: today_orders.length,
-            thisWeek: thisWeek.length,
-            thisMonth: thisMonth.length,
-            total: workOrders.filter(wo => wo.locationID === locationId).length
-        };
-    };
-
-    const getLocationStats = (workOrders: Array<{locationID: string, totalCost?: number}> = []) => {
-        const activeCount = locations.filter(l => l.active).length;
-        const inactiveCount = locations.filter(l => !l.active).length;
-
-        const locationWorkload = locations.reduce((acc, location) => {
-            const orders = workOrders.filter(wo => wo.locationID === location.id);
-            acc[location.id] = {
-                name: location.name,
-                orderCount: orders.length,
-                revenue: orders.reduce((sum, wo) => sum + (wo.totalCost || 0), 0)
-            };
-            return acc;
-        }, {} as Record<string, {name: string, orderCount: number, revenue: number}>);
-
-        const equipmentInventory = locations.reduce((acc, location) => {
-            if (location.active && location.equipmentInfo) {
-                Object.keys(location.equipmentInfo).forEach(equipment => {
-                    acc[equipment] = (acc[equipment] || 0) + 1;
-                });
-            }
-            return acc;
-        }, {} as Record<string, number>);
-
-        const totalRevenue = Object.values(locationWorkload).reduce((sum, loc) => sum + loc.revenue, 0);
-        const totalOrders = Object.values(locationWorkload).reduce((sum, loc) => sum + loc.orderCount, 0);
-
-        return {
-            total: locations.length,
-            active: activeCount,
-            inactive: inactiveCount,
-            locationWorkload,
-            equipmentInventory,
-            totalRevenue,
-            totalOrders,
-            avgRevenuePerLocation: activeCount > 0 ? totalRevenue / activeCount : 0
-        };
-    };
-
-    const isLocationOpenToday = (locationId: string): boolean => {
+    const isLocationOpenNow = (locationId: string) => {
         const location = getLocationById(locationId);
-        if (!location || !location.hours) return false;
+        if (!location || !location.hours || !location.active) return false;
 
-        const today = new Date().getDay();
+        const now = new Date();
         const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-        const todayName = dayNames[today];
+        const currentDay = dayNames[now.getDay()];
 
-        const todayHours = location.hours[todayName];
-        return todayHours !== 'Closed' && todayHours !== undefined;
+        const todayHours = location.hours[currentDay];
+        if (!todayHours || todayHours === 'Closed') return false;
+
+        // For appointment-based or special schedules, assume closed for "now" check
+        if (todayHours.includes('Appointment') || todayHours.includes('Schedule')) return false;
+
+        // Simple check - in a real app you'd parse the time ranges
+        return true;
     };
 
-    const getCurrentLocationHours = (locationId: string): string => {
+    const getLocationWorkload = (locationId: string, days: number = 30) => {
+        // Mock workload data
         const location = getLocationById(locationId);
-        if (!location || !location.hours) return 'Hours not available';
+        if (!location) return null;
 
-        const today = new Date();
-        const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-        const todayName = dayNames[today.getDay()];
-
-        return location.hours[todayName] || 'Closed';
+        const workload = [];
+        for (let i = 0; i < days; i++) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            workload.push({
+                date: date.toISOString().split('T')[0],
+                workOrders: location.active ? Math.floor(Math.random() * 8) : 0,
+                revenue: location.active ? Math.floor(Math.random() * 1000) : 0
+            });
+        }
+        return workload.reverse();
     };
 
-    const getLocationsByDayOpen = (dayOfWeek: string) => {
-        return locations.filter(location =>
-            location.active &&
-            location.hours &&
-            location.hours[dayOfWeek.toLowerCase()] &&
-            location.hours[dayOfWeek.toLowerCase()] !== 'Closed'
-        );
-    };
-
-    const validateLocationHours = (hours: Record<string, string>): boolean => {
+    const validateLocationHours = (hours: Record<string, string>) => {
         const validDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-        const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]\s?(AM|PM)\s?-\s?([01]?[0-9]|2[0-3]):[0-5][0-9]\s?(AM|PM)$|^Closed$/i;
+        const timeRegex = /^(\d{1,2}:\d{2}\s?(AM|PM)\s?-\s?\d{1,2}:\d{2}\s?(AM|PM))$|^(By Appointment|Tournament Schedule|Closed)$/i;
 
         return Object.entries(hours).every(([day, time]) =>
             validDays.includes(day.toLowerCase()) &&
-            (time === 'Closed' || timeRegex.test(time))
+            timeRegex.test(time)
         );
     };
 
-    const getLocationDistance = (locationId: string, userLocation?: {lat: number, lng: number}): number | null => {
-        // This would typically integrate with a geocoding service
-        // For now, return null to indicate distance calculation not available
-        return null;
-    };
-
-    const getLocationsByProximity = (userLocation: {lat: number, lng: number}, maxDistance: number = 25) => {
-        // This would typically use actual coordinates and distance calculation
-        // For now, return all active locations as a placeholder
-        return getActiveLocations();
-    };
-
-    const hasLocationEquipment = (locationId: string, equipmentType: string): boolean => {
+    const getLocationEquipmentConditionSummary = (locationId: string) => {
         const location = getLocationById(locationId);
-        if (!location || !location.equipmentInfo) return false;
+        if (!location?.equipmentInfo?.equipment) return null;
 
-        return Object.keys(location.equipmentInfo).some(key =>
-            key.toLowerCase().includes(equipmentType.toLowerCase())
-        );
-    };
+        const summary = {
+            excellent: 0,
+            good: 0,
+            fair: 0,
+            needs_repair: 0,
+            total: location.equipmentInfo.equipment.length
+        };
 
-    const getLocationEquipmentList = (locationId: string): string[] => {
-        const location = getLocationById(locationId);
-        if (!location || !location.equipmentInfo) return [];
+        location.equipmentInfo.equipment.forEach(equipment => {
+            summary[equipment.condition as keyof typeof summary]++;
+        });
 
-        return Object.entries(location.equipmentInfo).map(([key, value]) =>
-            `${key}: ${value}`
-        );
+        return summary;
     };
 
     return {
@@ -246,24 +181,17 @@ export const useLocations = () => {
         addLocation,
         updateLocation,
         deleteLocation,
-        deactivateLocation,
-        activateLocation,
         getLocationById,
         getActiveLocations,
         getInactiveLocations,
         getLocationsByProShop,
         searchLocations,
+        getLocationStats,
         getLocationsByEquipment,
         getLocationCapacity,
+        isLocationOpenNow,
         getLocationWorkload,
-        getLocationStats,
-        isLocationOpenToday,
-        getCurrentLocationHours,
-        getLocationsByDayOpen,
         validateLocationHours,
-        getLocationDistance,
-        getLocationsByProximity,
-        hasLocationEquipment,
-        getLocationEquipmentList
+        getLocationEquipmentConditionSummary
     };
 };

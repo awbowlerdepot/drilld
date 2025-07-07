@@ -266,7 +266,7 @@ export const mockWorkOrders: WorkOrder[] = [
         id: '1',
         ballID: '1', // Links to Storm Phaze II
         drillSheetID: '1',
-        locationID: 'loc1',
+        locationID: '1',
         performedByEmployeeID: 'emp1',
         workType: 'INITIAL_DRILL',
         workDate: '2024-01-16',
@@ -288,7 +288,7 @@ export const mockWorkOrders: WorkOrder[] = [
         id: '2',
         ballID: '2', // Links to Brunswick Quantum Bias
         drillSheetID: '2',
-        locationID: 'loc1',
+        locationID: '1',
         performedByEmployeeID: 'emp2',
         workType: 'INITIAL_DRILL',
         workDate: '2024-01-21',
@@ -308,7 +308,7 @@ export const mockWorkOrders: WorkOrder[] = [
         id: '3',
         ballID: '3', // Links to Roto Grip Gem
         drillSheetID: '3',
-        locationID: 'loc2',
+        locationID: '2',
         performedByEmployeeID: 'emp1',
         workType: 'INITIAL_DRILL',
         workDate: '2024-02-02',
@@ -330,7 +330,7 @@ export const mockWorkOrders: WorkOrder[] = [
         id: '4',
         ballID: '1', // Maintenance on Storm Phaze II
         drillSheetID: '1',
-        locationID: 'loc1',
+        locationID: '1',
         performedByEmployeeID: 'emp1',
         workType: 'MAINTENANCE',
         workDate: '2024-02-15',
@@ -350,7 +350,7 @@ export const mockWorkOrders: WorkOrder[] = [
         id: '5',
         ballID: '2', // Plug and redrill on Brunswick
         drillSheetID: '2',
-        locationID: 'loc1',
+        locationID: '1',
         performedByEmployeeID: 'emp2',
         workType: 'PLUG_REDRILL',
         workDate: '2024-02-20',
@@ -372,7 +372,7 @@ export const mockWorkOrders: WorkOrder[] = [
         id: '6',
         ballID: '3', // Surface adjustment on Roto Grip
         drillSheetID: '3',
-        locationID: 'loc2',
+        locationID: '2',
         performedByEmployeeID: 'emp1',
         workType: 'SURFACE_ADJUSTMENT',
         workDate: '2024-02-25',
@@ -405,7 +405,7 @@ export const mockEmployees = [
         permissions: ['drill', 'quality_check', 'customer_service'],
         hireDate: '2020-03-15',
         hourlyRate: 25.00,
-        locations: ['loc1', 'loc2'],
+        locations: ['1', '2'],
         specialties: ['fingertip_drilling', 'two_handed_layouts'],
         active: true,
         createdAt: '2020-03-15T08:00:00Z'
@@ -423,56 +423,9 @@ export const mockEmployees = [
         permissions: ['drill', 'maintenance'],
         hireDate: '2021-06-01',
         hourlyRate: 20.00,
-        locations: ['loc1'],
+        locations: ['1'],
         specialties: ['conventional_drilling', 'surface_work'],
         active: true,
         createdAt: '2021-06-01T08:00:00Z'
-    }
-];
-
-export const mockLocations = [
-    {
-        id: 'loc1',
-        proshopID: 'proshop1',
-        name: 'Main Pro Shop',
-        address: '123 Bowling Lane, Sports City, SC 12345',
-        phone: '555-0100',
-        equipmentInfo: {
-            drillPress: 'Jayhawk EZ-1',
-            router: 'Switch Grip Router',
-            polisher: 'Innovative Polishing System'
-        },
-        hours: {
-            monday: '9:00 AM - 9:00 PM',
-            tuesday: '9:00 AM - 9:00 PM',
-            wednesday: '9:00 AM - 9:00 PM',
-            thursday: '9:00 AM - 9:00 PM',
-            friday: '9:00 AM - 10:00 PM',
-            saturday: '8:00 AM - 10:00 PM',
-            sunday: '10:00 AM - 8:00 PM'
-        },
-        active: true
-    },
-    {
-        id: 'loc2',
-        proshopID: 'proshop1',
-        name: 'Satellite Location',
-        address: '456 Strike Avenue, Bowl Town, BT 67890',
-        phone: '555-0101',
-        equipmentInfo: {
-            drillPress: 'Turbo 2000',
-            router: 'Standard Router',
-            polisher: 'Brunswick Polisher'
-        },
-        hours: {
-            monday: '12:00 PM - 8:00 PM',
-            tuesday: '12:00 PM - 8:00 PM',
-            wednesday: 'Closed',
-            thursday: '12:00 PM - 8:00 PM',
-            friday: '12:00 PM - 9:00 PM',
-            saturday: '10:00 AM - 9:00 PM',
-            sunday: '12:00 PM - 6:00 PM'
-        },
-        active: true
     }
 ];
