@@ -25,8 +25,6 @@ export const auth = defineAuth({
     },
   },
   groups: ['ProShopManagers', 'DrillTechs', 'Apprentices'],
-  access: (allow) => [
-    allow.resource(data).to(['query', 'mutate', 'subscribe']),
-    allow.resource(storage).to(['read', 'write']),
-  ],
+  // Note: access rules are defined in the data resource itself
+  // This prevents circular import issues
 });

@@ -58,6 +58,7 @@ const schema = /* GraphQL */ `
     active: Boolean!
     workOrders: [DrillWorkOrder] @hasMany(indexName: "byLocation", fields: ["id"])
     createdAt: AWSDateTime!
+    updatedAt: AWSDateTime!
   }
 
   type Customer @model @auth(rules: [{ allow: groups, groups: ["ProShopManagers", "DrillTechs"] }]) {
@@ -75,6 +76,7 @@ const schema = /* GraphQL */ `
     bowlingBalls: [BowlingBall] @hasMany(indexName: "byCustomer", fields: ["id"])
     drillSheets: [DrillSheet] @hasMany(indexName: "byCustomer", fields: ["id"])
     createdAt: AWSDateTime!
+    updatedAt: AWSDateTime!
   }
 
   type DrillSheet @model @auth(rules: [{ allow: groups, groups: ["ProShopManagers", "DrillTechs"] }]) {
@@ -83,48 +85,40 @@ const schema = /* GraphQL */ `
     customer: Customer @belongsTo(fields: ["customerID"])
     proshopID: ID! @index(name: "byProShop")
     proshop: ProShop @belongsTo(fields: ["proshopID"])
-    createdByEmployeeID: ID! @index(name: "byEmployee")
-    createdByEmployee: Employee @belongsTo(fields: ["createdByEmployeeID"])
+    employeeID: ID! @index(name: "byEmployee")
+    employee: Employee @belongsTo(fields: ["employeeID"])
     name: String!
+    isTemplate: Boolean!
     gripStyle: GripStyle!
+    handType: Hand!
+    usesThumb: Boolean!
     
     # Span measurements
-    thumbToMiddleCutToCut: Float
-    thumbToMiddleFull: Float
-    thumbToMiddleOuterToCut: Float
-    thumbToMiddleFit: Float
-    thumbToRingCutToCut: Float
-    thumbToRingFull: Float
-    thumbToRingOuterToCut: Float
-    thumbToRingFit: Float
-    middleToRingCutToCut: Float
-    middleToRingFull: Float
-    middleToRingOuterToCut: Float
-    middleToRingFit: Float
+    thumbToMiddleFitSpan: Float
+    thumbToRingFitSpan: Float
+    thumbToMiddleStretchSpan: Float
+    thumbToRingStretchSpan: Float
+    bridgeDistance: Float!
     
-    # Thumb specifications
-    thumbEnabled: Boolean!
+    # Hole specifications
+    thumbHoleSize: String
     thumbHoleType: HoleType
-    thumbPitchForward: Float
-    thumbPitchLateral: Float
-    thumbSizePrimary: String
-    thumbDrillingSequence: AWSJSON
+    thumbHolePitch: String
+    middleHoleSize: String!
+    middleHolePitch: String
+    ringHoleSize: String!
+    ringHolePitch: String
     
-    # Finger specifications
-    middleFingerPitchForward: Float
-    middleFingerPitchLateral: Float
-    ringFingerPitchForward: Float
-    ringFingerPitchLateral: Float
-    middleFingerSize: String
-    ringFingerSize: String
-    fingerDepthConventional: Float
-    fingerDepthFingertip: Float
-    
-    drillingAngles: AWSJSON
+    # Layout information
+    pinPosition: String
+    layoutNotes: String
     specialNotes: String
-    isTemplate: Boolean!
-    workOrders: [DrillWorkOrder] @hasMany(indexName: "byDrillSheet", fields: ["id"])
+    
+    # Metadata
+    dateCreated: AWSDateTime!
+    lastModified: AWSDateTime!
     createdAt: AWSDateTime!
+    updatedAt: AWSDateTime!
   }
 
   type BowlingBall @model @auth(rules: [{ allow: groups, groups: ["ProShopManagers", "DrillTechs"] }]) {
@@ -135,14 +129,12 @@ const schema = /* GraphQL */ `
     model: String!
     weight: Int!
     serialNumber: String
-    coverstockType: String
-    coreType: String
     purchaseDate: AWSDate
-    purchasePrice: Float
     status: BallStatus!
     notes: String
     workOrders: [DrillWorkOrder] @hasMany(indexName: "byBall", fields: ["id"])
     createdAt: AWSDateTime!
+    updatedAt: AWSDateTime!
   }
 
   type DrillWorkOrder @model @auth(rules: [{ allow: groups, groups: ["ProShopManagers", "DrillTechs"] }]) {
@@ -172,6 +164,7 @@ const schema = /* GraphQL */ `
     qualityCheck: Boolean
     qualityNotes: String
     createdAt: AWSDateTime!
+    updatedAt: AWSDateTime!
   }
 
   enum SubscriptionTier {

@@ -9,7 +9,11 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "amplify:dev": "npx ampx sandbox",
-    "amplify:deploy": "npx ampx deploy --branch main"
+    "amplify:deploy": "npx ampx deploy --branch main",
+    "amplify:deploy:prod": "npx ampx deploy --branch production",
+    "amplify:delete": "npx ampx delete",
+    "amplify:generate": "npx ampx generate outputs --app-id $AMPLIFY_APP_ID --branch $AMPLIFY_BRANCH",
+    "postinstall": "npm run amplify:generate"
   },
   "dependencies": {
     "@aws-amplify/ui-react": "^6.11.2",
@@ -20,6 +24,12 @@
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
+    "@aws-amplify/backend": "^1.16.1",
+    "@aws-amplify/backend-auth": "^1.7.1",
+    "@aws-amplify/backend-cli": "^1.8.0",
+    "@aws-amplify/backend-data": "^1.6.1",
+    "@aws-amplify/backend-function": "^1.14.1",
+    "@aws-amplify/backend-storage": "^1.4.1",
     "@eslint/js": "^9.29.0",
     "@types/node": "^24.0.10",
     "@types/react": "^19.1.8",
