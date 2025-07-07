@@ -6,15 +6,15 @@ import './index.css'
 
 // Function to configure Amplify
 async function configureAmplify() {
-    try {
-        // Try to dynamically import the outputs file
-        const outputs = await import('../amplify_outputs.json')
-        Amplify.configure(outputs.default)
-        console.log('✅ Amplify configured successfully')
-    } catch (error) {
-        console.warn('⚠️ amplify_outputs.json not found. App will run without backend connection.')
-        console.warn('To fix this: 1) Run "npx ampx sandbox" or "npx ampx deploy"')
-        console.warn('              2) Or manually configure Amplify for development')
+    // try {
+    //     // Try to dynamically import the outputs file
+    //     const outputs = await import('../amplify_outputs.json')
+    //     Amplify.configure(outputs.default)
+    //     console.log('✅ Amplify configured successfully')
+    // } catch (error) {
+    //     console.warn('⚠️ amplify_outputs.json not found. App will run without backend connection.')
+    //     console.warn('To fix this: 1) Run "npx ampx sandbox" or "npx ampx deploy"')
+    //     console.warn('              2) Or manually configure Amplify for development')
 
         // Optional: Configure for development/testing without backend
         // Uncomment and modify the following if you want to test without a backend:
