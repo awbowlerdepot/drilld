@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Header } from './components/layout/Header'
 import { Navigation } from './components/layout/Navigation'
 import { CustomerManagement } from './components/customers/CustomerManagement'
-// import { BowlingBallManagement } from './components/balls/BowlingBallManagement'
+import { BowlingBallManagement } from './components/balls/BowlingBallManagement'
 
 // Uncomment these imports when you have Amplify configured
 // import { AuthWrapper } from './components/auth/AuthWrapper'
@@ -19,8 +19,7 @@ function App() {
             case 'customers':
                 return <CustomerManagement searchTerm={searchTerm} />
             case 'balls':
-                return <div className="text-center py-12">Balls - Coming soon...</div>
-            //     return <BowlingBallManagement searchTerm={searchTerm} />
+                return <BowlingBallManagement searchTerm={searchTerm} />
             case 'workorders':
                 return <div className="text-center py-12">Work Orders - Coming soon...</div>
             case 'analytics':
