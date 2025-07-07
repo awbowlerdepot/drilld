@@ -3,6 +3,7 @@ import { Header } from './components/layout/Header'
 import { Navigation } from './components/layout/Navigation'
 import { CustomerManagement } from './components/customers/CustomerManagement'
 import { BowlingBallManagement } from './components/balls/BowlingBallManagement'
+import { WorkOrderManagement} from "@/components/workorders/WorkOrderManagement.tsx";
 
 // Uncomment these imports when you have Amplify configured
 // import { AuthWrapper } from './components/auth/AuthWrapper'
@@ -21,7 +22,7 @@ function App() {
             case 'balls':
                 return <BowlingBallManagement searchTerm={searchTerm} />
             case 'workorders':
-                return <div className="text-center py-12">Work Orders - Coming soon...</div>
+                return <WorkOrderManagement />
             case 'analytics':
                 return <div className="text-center py-12">Analytics Dashboard - Coming soon...</div>
             default:
