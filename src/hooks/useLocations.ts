@@ -5,7 +5,7 @@ import { mockLocations } from '../data/mockData';
 export const useLocations = () => {
     const [locations, setLocations] = useState<Location[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [error] = useState<string | null>(null);
 
     useEffect(() => {
         // Simulate API call
@@ -171,9 +171,9 @@ export const useLocations = () => {
         const location = getLocationById(locationId);
         if (!location || !location.hours) return false;
 
-        const today = new Date().toLocaleLowerCase();
+        const today = new Date().getDay();
         const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-        const todayName = dayNames[today.getDay()];
+        const todayName = dayNames[today];
 
         const todayHours = location.hours[todayName];
         return todayHours !== 'Closed' && todayHours !== undefined;
