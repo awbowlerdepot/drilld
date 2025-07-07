@@ -7,13 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview",
-    "amplify:dev": "npx ampx sandbox",
-    "amplify:deploy": "npx ampx deploy --branch main",
-    "amplify:deploy:prod": "npx ampx deploy --branch production",
-    "amplify:delete": "npx ampx delete",
-    "amplify:generate": "npx ampx generate outputs --app-id $AMPLIFY_APP_ID --branch $AMPLIFY_BRANCH",
-    "postinstall": "npm run amplify:generate"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@aws-amplify/ui-react": "^6.11.2",

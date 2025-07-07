@@ -18,8 +18,8 @@ export const Navigation: React.FC<NavigationProps> = ({
                                                       }) => {
     const tabs: Tab[] = [
         { id: 'customers', label: 'Customers', icon: <Users className="w-4 h-4" /> },
-        { id: 'balls', label: 'Bowling Balls', icon: <Target className="w-4 h-4" /> },
         { id: 'workorders', label: 'Work Orders', icon: <Wrench className="w-4 h-4" /> },
+        { id: 'balls', label: 'Bowling Balls', icon: <Target className="w-4 h-4" /> },
         { id: 'analytics', label: 'Analytics', icon: <BarChart3 className="w-4 h-4" /> },
     ];
 
