@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Filter, X } from 'lucide-react';
+import { Filter, X } from 'lucide-react';
 import { WorkOrder, Employee, Location } from '../../types';
 
 interface WorkOrderFiltersProps {

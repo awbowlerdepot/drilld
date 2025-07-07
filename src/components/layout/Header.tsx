@@ -4,11 +4,13 @@ import { Search, Settings, Target } from 'lucide-react';
 interface HeaderProps {
     searchTerm: string;
     onSearchChange: (term: string) => void;
+    onSettingsClick?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
                                                   searchTerm,
-                                                  onSearchChange
+                                                  onSearchChange,
+                                                  onSettingsClick
                                               }) => {
     return (
         <header className="bg-white shadow-sm border-b">
@@ -29,7 +31,11 @@ export const Header: React.FC<HeaderProps> = ({
                                 className="pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-64"
                             />
                         </div>
-                        <button className="p-2 text-gray-400 hover:text-gray-600">
+                        <button
+                            onClick={onSettingsClick}
+                            className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+                            title="Settings"
+                        >
                             <Settings className="w-5 h-5" />
                         </button>
                     </div>

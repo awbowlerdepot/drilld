@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, TrendingUp, DollarSign, Users, Clock, Award } from 'lucide-react';
+import { Calendar, TrendingUp, DollarSign, Clock, Award } from 'lucide-react';
 import { WorkOrder, BowlingBall, Customer } from '../../types';
 
 interface WorkOrderStatsProps {
