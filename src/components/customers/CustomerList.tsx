@@ -1,6 +1,7 @@
 import React from 'react';
-import { Edit, Eye, Trash2 } from 'lucide-react';
+import { Edit, Trash2, ArrowRight } from 'lucide-react';
 import { Customer } from '../../types';
+import { Button } from '../ui/Button';
 
 interface CustomerListProps {
     customers: Customer[];
@@ -63,20 +64,20 @@ export const CustomerList: React.FC<CustomerListProps> = ({
                             </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <div className="flex space-x-2">
+                            <div className="flex items-center space-x-2">
+                                <Button
+                                    size="sm"
+                                    onClick={() => onView(customer)}
+                                    icon={ArrowRight}
+                                >
+                                    View Details
+                                </Button>
                                 <button
                                     onClick={() => onEdit(customer)}
                                     className="text-blue-600 hover:text-blue-900"
                                     title="Edit customer"
                                 >
                                     <Edit className="w-4 h-4" />
-                                </button>
-                                <button
-                                    onClick={() => onView(customer)}
-                                    className="text-green-600 hover:text-green-900"
-                                    title="View details"
-                                >
-                                    <Eye className="w-4 h-4" />
                                 </button>
                                 <button
                                     onClick={() => onDelete(customer)}

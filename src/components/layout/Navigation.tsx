@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, FileText, Target, Wrench, BarChart3 } from 'lucide-react';
+import { Users, Target, Wrench, BarChart3 } from 'lucide-react';
 
 interface Tab {
     id: string;
@@ -18,7 +18,6 @@ export const Navigation: React.FC<NavigationProps> = ({
                                                       }) => {
     const tabs: Tab[] = [
         { id: 'customers', label: 'Customers', icon: <Users className="w-4 h-4" /> },
-        { id: 'drillsheets', label: 'Drill Sheets', icon: <FileText className="w-4 h-4" /> },
         { id: 'balls', label: 'Bowling Balls', icon: <Target className="w-4 h-4" /> },
         { id: 'workorders', label: 'Work Orders', icon: <Wrench className="w-4 h-4" /> },
         { id: 'analytics', label: 'Analytics', icon: <BarChart3 className="w-4 h-4" /> },

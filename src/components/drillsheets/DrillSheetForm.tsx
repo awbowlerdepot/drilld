@@ -9,16 +9,18 @@ interface DrillSheetFormProps {
     customers: Customer[];
     onSave: (drillSheet: Omit<DrillSheet, 'id' | 'createdAt'>) => void;
     onCancel: () => void;
+    preselectedCustomerId?: string;
 }
 
 export const DrillSheetForm: React.FC<DrillSheetFormProps> = ({
                                                                   drillSheet,
                                                                   customers,
                                                                   onSave,
-                                                                  onCancel
+                                                                  onCancel,
+                                                                  preselectedCustomerId
                                                               }) => {
     const [formData, setFormData] = useState({
-        customerID: drillSheet?.customerID || '',
+        customerID: drillSheet?.customerID || preselectedCustomerId || '',
         name: drillSheet?.name || '',
         gripStyle: drillSheet?.gripStyle || 'FINGERTIP' as const,
         thumbEnabled: drillSheet?.thumbEnabled ?? true,
@@ -27,10 +29,6 @@ export const DrillSheetForm: React.FC<DrillSheetFormProps> = ({
         middleToRingFit: drillSheet?.middleToRingFit?.toString() || '',
         thumbPitchForward: drillSheet?.thumbPitchForward?.toString() || '',
         thumbPitchLateral: drillSheet?.thumbPitchLateral?.toString() || '',
-        middleFingerPitchForward: drillSheet?.middleFingerPitchForward?.toString() || '',
-        middleFingerPitchLateral: drillSheet?.middleFingerPitchLateral?.toString() || '',
-        ringFingerPitchForward: drillSheet?.ringFingerPitchForward?.toString() || '',
-        ringFingerPitchLateral: drillSheet?.ringFingerPitchLateral?.toString() || '',
         specialNotes: drillSheet?.specialNotes || '',
         isTemplate: drillSheet?.isTemplate || false
     });

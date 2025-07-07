@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Header } from './components/layout/Header'
 import { Navigation } from './components/layout/Navigation'
 import { CustomerManagement } from './components/customers/CustomerManagement'
-import { DrillSheetManagement } from './components/drillsheets/DrillSheetManagement'
 // import { BowlingBallManagement } from './components/balls/BowlingBallManagement'
 
 // Uncomment these imports when you have Amplify configured
@@ -19,8 +18,6 @@ function App() {
         switch (activeTab) {
             case 'customers':
                 return <CustomerManagement searchTerm={searchTerm} />
-            case 'drillsheets':
-                return <DrillSheetManagement searchTerm={searchTerm} />
             case 'balls':
                 return <div className="text-center py-12">Balls - Coming soon...</div>
             //     return <BowlingBallManagement searchTerm={searchTerm} />

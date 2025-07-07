@@ -5,7 +5,7 @@ import { mockDrillSheets } from '../data/mockData';
 export const useDrillSheets = () => {
     const [drillSheets, setDrillSheets] = useState<DrillSheet[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [error] = useState<string | null>(null);
 
     useEffect(() => {
         setTimeout(() => {
