@@ -29,7 +29,7 @@ async function configureAmplify() {
           }
         })
         */
-    }
+    // }
 }
 
 // Configure Amplify before rendering
