@@ -1,4 +1,4 @@
-import { Customer, DrillSheet, BowlingBall } from '../types';
+import { Customer, DrillSheet, BowlingBall, WorkOrder } from '../types';
 
 export const mockCustomers: Customer[] = [
     {
@@ -258,5 +258,221 @@ export const mockBalls: BowlingBall[] = [
         purchasePrice: 149.99,
         notes: 'Two-handed bowler ball',
         drillSheetID: '3'
+    }
+];
+
+export const mockWorkOrders: WorkOrder[] = [
+    {
+        id: '1',
+        ballID: '1', // Links to Storm Phaze II
+        drillSheetID: '1',
+        locationID: 'loc1',
+        performedByEmployeeID: 'emp1',
+        workType: 'INITIAL_DRILL',
+        workDate: '2024-01-16',
+        startTime: '10:00',
+        endTime: '11:30',
+        laborHours: 1.5,
+        laborCost: 75.00,
+        materialsCost: 15.00,
+        totalCost: 90.00,
+        workNotes: 'Initial drilling completed. Customer satisfied with grip feel.',
+        specialNotes: 'Used premium finger grips per customer request.',
+        customerSatisfaction: 5,
+        qualityCheck: true,
+        qualityNotes: 'All measurements within tolerance. Excellent finish.',
+        warrantyPeriod: 90,
+        createdAt: '2024-01-16T10:00:00Z'
+    },
+    {
+        id: '2',
+        ballID: '2', // Links to Brunswick Quantum Bias
+        drillSheetID: '2',
+        locationID: 'loc1',
+        performedByEmployeeID: 'emp2',
+        workType: 'INITIAL_DRILL',
+        workDate: '2024-01-21',
+        startTime: '14:00',
+        endTime: '15:15',
+        laborHours: 1.25,
+        laborCost: 62.50,
+        materialsCost: 12.00,
+        totalCost: 74.50,
+        workNotes: 'Standard drilling for conventional grip.',
+        customerSatisfaction: 4,
+        qualityCheck: true,
+        warrantyPeriod: 90,
+        createdAt: '2024-01-21T14:00:00Z'
+    },
+    {
+        id: '3',
+        ballID: '3', // Links to Roto Grip Gem
+        drillSheetID: '3',
+        locationID: 'loc2',
+        performedByEmployeeID: 'emp1',
+        workType: 'INITIAL_DRILL',
+        workDate: '2024-02-02',
+        startTime: '09:30',
+        endTime: '10:45',
+        laborHours: 1.25,
+        laborCost: 62.50,
+        materialsCost: 10.00,
+        totalCost: 72.50,
+        workNotes: 'Two-handed layout with no thumb hole. Extra care taken with finger hole placement.',
+        specialNotes: 'Customer requested deeper finger holes for better grip.',
+        customerSatisfaction: 5,
+        qualityCheck: true,
+        qualityNotes: 'Perfect layout for two-handed style.',
+        warrantyPeriod: 90,
+        createdAt: '2024-02-02T09:30:00Z'
+    },
+    {
+        id: '4',
+        ballID: '1', // Maintenance on Storm Phaze II
+        drillSheetID: '1',
+        locationID: 'loc1',
+        performedByEmployeeID: 'emp1',
+        workType: 'MAINTENANCE',
+        workDate: '2024-02-15',
+        startTime: '11:00',
+        endTime: '11:30',
+        laborHours: 0.5,
+        laborCost: 25.00,
+        materialsCost: 5.00,
+        totalCost: 30.00,
+        workNotes: 'Resurfaced ball and cleaned finger holes.',
+        customerSatisfaction: 4,
+        qualityCheck: true,
+        warrantyPeriod: 30,
+        createdAt: '2024-02-15T11:00:00Z'
+    },
+    {
+        id: '5',
+        ballID: '2', // Plug and redrill on Brunswick
+        drillSheetID: '2',
+        locationID: 'loc1',
+        performedByEmployeeID: 'emp2',
+        workType: 'PLUG_REDRILL',
+        workDate: '2024-02-20',
+        startTime: '13:00',
+        endTime: '15:30',
+        laborHours: 2.5,
+        laborCost: 125.00,
+        materialsCost: 25.00,
+        totalCost: 150.00,
+        workNotes: 'Customer wanted to change from conventional to fingertip grip.',
+        deviationsFromSpec: 'Moved thumb hole 1/8" forward from original position.',
+        customerSatisfaction: 5,
+        qualityCheck: true,
+        qualityNotes: 'Excellent plugging work. New layout feels great.',
+        warrantyPeriod: 90,
+        createdAt: '2024-02-20T13:00:00Z'
+    },
+    {
+        id: '6',
+        ballID: '3', // Surface adjustment on Roto Grip
+        drillSheetID: '3',
+        locationID: 'loc2',
+        performedByEmployeeID: 'emp1',
+        workType: 'SURFACE_ADJUSTMENT',
+        workDate: '2024-02-25',
+        startTime: '16:00',
+        endTime: '16:45',
+        laborHours: 0.75,
+        laborCost: 37.50,
+        materialsCost: 8.00,
+        totalCost: 45.50,
+        workNotes: 'Changed surface from 4000 grit to 2000 grit for more hook.',
+        customerSatisfaction: 4,
+        qualityCheck: true,
+        warrantyPeriod: 30,
+        createdAt: '2024-02-25T16:00:00Z'
+    }
+];
+
+// Mock data for supporting entities (if not already present)
+export const mockEmployees = [
+    {
+        id: 'emp1',
+        proshopID: 'proshop1',
+        cognitoUserID: 'user1',
+        username: 'mike_tech',
+        email: 'mike@proshop.com',
+        firstName: 'Mike',
+        lastName: 'Rodriguez',
+        phone: '555-0123',
+        role: 'SENIOR_TECH' as const,
+        permissions: ['drill', 'quality_check', 'customer_service'],
+        hireDate: '2020-03-15',
+        hourlyRate: 25.00,
+        locations: ['loc1', 'loc2'],
+        specialties: ['fingertip_drilling', 'two_handed_layouts'],
+        active: true,
+        createdAt: '2020-03-15T08:00:00Z'
+    },
+    {
+        id: 'emp2',
+        proshopID: 'proshop1',
+        cognitoUserID: 'user2',
+        username: 'sarah_drill',
+        email: 'sarah@proshop.com',
+        firstName: 'Sarah',
+        lastName: 'Johnson',
+        phone: '555-0124',
+        role: 'TECHNICIAN' as const,
+        permissions: ['drill', 'maintenance'],
+        hireDate: '2021-06-01',
+        hourlyRate: 20.00,
+        locations: ['loc1'],
+        specialties: ['conventional_drilling', 'surface_work'],
+        active: true,
+        createdAt: '2021-06-01T08:00:00Z'
+    }
+];
+
+export const mockLocations = [
+    {
+        id: 'loc1',
+        proshopID: 'proshop1',
+        name: 'Main Pro Shop',
+        address: '123 Bowling Lane, Sports City, SC 12345',
+        phone: '555-0100',
+        equipmentInfo: {
+            drillPress: 'Jayhawk EZ-1',
+            router: 'Switch Grip Router',
+            polisher: 'Innovative Polishing System'
+        },
+        hours: {
+            monday: '9:00 AM - 9:00 PM',
+            tuesday: '9:00 AM - 9:00 PM',
+            wednesday: '9:00 AM - 9:00 PM',
+            thursday: '9:00 AM - 9:00 PM',
+            friday: '9:00 AM - 10:00 PM',
+            saturday: '8:00 AM - 10:00 PM',
+            sunday: '10:00 AM - 8:00 PM'
+        },
+        active: true
+    },
+    {
+        id: 'loc2',
+        proshopID: 'proshop1',
+        name: 'Satellite Location',
+        address: '456 Strike Avenue, Bowl Town, BT 67890',
+        phone: '555-0101',
+        equipmentInfo: {
+            drillPress: 'Turbo 2000',
+            router: 'Standard Router',
+            polisher: 'Brunswick Polisher'
+        },
+        hours: {
+            monday: '12:00 PM - 8:00 PM',
+            tuesday: '12:00 PM - 8:00 PM',
+            wednesday: 'Closed',
+            thursday: '12:00 PM - 8:00 PM',
+            friday: '12:00 PM - 9:00 PM',
+            saturday: '10:00 AM - 9:00 PM',
+            sunday: '12:00 PM - 6:00 PM'
+        },
+        active: true
     }
 ];

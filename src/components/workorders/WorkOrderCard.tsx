@@ -1,18 +1,6 @@
 import React from 'react';
+import { Edit, Eye, Calendar, MapPin, User, Wrench, Trash2, DollarSign, Clock } from 'lucide-react';
 import { WorkOrder, BowlingBall, Customer, Employee, Location } from '../../types';
-import {
-    Eye,
-    Edit,
-    Trash2,
-    Calendar,
-    User,
-    MapPin,
-    DollarSign,
-    Clock,
-    Star,
-    CheckCircle,
-    AlertCircle
-} from 'lucide-react';
 
 interface WorkOrderCardProps {
     workOrder: WorkOrder;
@@ -20,9 +8,10 @@ interface WorkOrderCardProps {
     customer?: Customer;
     employee?: Employee;
     location?: Location;
-    onView: (workOrder: WorkOrder) => void;
     onEdit: (workOrder: WorkOrder) => void;
+    onView: (workOrder: WorkOrder) => void;
     onDelete: (workOrder: WorkOrder) => void;
+    showCustomerName?: boolean;
 }
 
 export const WorkOrderCard: React.FC<WorkOrderCardProps> = ({
@@ -31,228 +20,166 @@ export const WorkOrderCard: React.FC<WorkOrderCardProps> = ({
                                                                 customer,
                                                                 employee,
                                                                 location,
-                                                                onView,
                                                                 onEdit,
-                                                                onDelete
+                                                                onView,
+                                                                onDelete,
+                                                                showCustomerName = true
                                                             }) => {
-    const getWorkTypeColor = (type: string) => {
-        switch (type) {
+    const getWorkTypeColor = (workType: WorkOrder['workType']) => {
+        switch (workType) {
             case 'INITIAL_DRILL':
-                return 'bg-blue-100 text-blue-800';
+                return 'bg-blue-100 text-blue-700';
             case 'PLUG_REDRILL':
-                return 'bg-orange-100 text-orange-800';
+                return 'bg-orange-100 text-orange-700';
             case 'MAINTENANCE':
-                return 'bg-green-100 text-green-800';
+                return 'bg-green-100 text-green-700';
+            case 'SURFACE_ADJUSTMENT':
+                return 'bg-purple-100 text-purple-700';
             default:
-                return 'bg-gray-100 text-gray-800';
+                return 'bg-gray-100 text-gray-700';
         }
     };
 
-    const getWorkTypeLabel = (type: string) => {
-        switch (type) {
-            case 'INITIAL_DRILL':
-                return 'Initial Drill';
-            case 'PLUG_REDRILL':
-                return 'Plug & Redrill';
-            case 'MAINTENANCE':
-                return 'Maintenance';
-            default:
-                return type;
-        }
+    const formatWorkType = (workType: WorkOrder['workType']) => {
+        return workType.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
     };
 
-    const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString();
+    const formatCurrency = (amount?: number) => {
+        return amount ? `$${amount.toFixed(2)}` : 'N/A';
     };
 
-    const formatTime = (timeString?: string) => {
-        if (!timeString) return '';
-        return new Date(`2000-01-01T${timeString}`).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit'
-        });
+    const formatDate = (date: string) => {
+        return new Date(date).toLocaleDateString();
     };
 
-    const getDuration = () => {
-        if (!workOrder.startTime || !workOrder.endTime) return null;
-
-        const start = new Date(`2000-01-01T${workOrder.startTime}`);
-        const end = new Date(`2000-01-01T${workOrder.endTime}`);
-        const diffMs = end.getTime() - start.getTime();
-        const diffHours = diffMs / (1000 * 60 * 60);
-
-        if (diffHours < 1) {
-            const diffMinutes = Math.round(diffMs / (1000 * 60));
-            return `${diffMinutes}m`;
-        } else {
-            return `${diffHours.toFixed(1)}h`;
-        }
+    const formatTime = (time?: string) => {
+        return time ? time : 'N/A';
     };
-
-    const getSatisfactionColor = (satisfaction?: number) => {
-        if (!satisfaction) return 'text-gray-400';
-        if (satisfaction >= 8) return 'text-green-600';
-        if (satisfaction >= 6) return 'text-yellow-600';
-        return 'text-red-600';
-    };
-
-    const isCompleted = workOrder.endTime && workOrder.qualityCheck;
-    const hasIssues = workOrder.deviationsFromSpec || (workOrder.customerSatisfaction && workOrder.customerSatisfaction < 6);
 
     return (
-        <div className="p-6 hover:bg-gray-50 transition-colors">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-                {/* Main Content */}
-                <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-3 mb-2">
-                        {/* Work Type Badge */}
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getWorkTypeColor(workOrder.workType)}`}>
-                            {getWorkTypeLabel(workOrder.workType)}
+        <div className="bg-white shadow rounded-lg p-6 hover:shadow-md transition-shadow border border-gray-200 card-hover">
+            <div className="flex justify-between items-start mb-4">
+                <div className="flex-1">
+                    <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-lg font-medium text-gray-900">
+                            {formatWorkType(workOrder.workType)}
+                        </h3>
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getWorkTypeColor(workOrder.workType)}`}>
+                            {formatWorkType(workOrder.workType)}
                         </span>
-
-                        {/* Status Indicators */}
-                        {isCompleted && (
-                            <CheckCircle className="w-4 h-4 text-green-500" />
-                        )}
-                        {hasIssues && (
-                            <AlertCircle className="w-4 h-4 text-yellow-500" />
-                        )}
                     </div>
 
                     {/* Ball and Customer Info */}
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 mb-3">
-                        <h3 className="text-lg font-semibold text-gray-900">
-                            {ball ? `${ball.manufacturer} ${ball.model}` : 'Unknown Ball'}
-                            {ball && <span className="text-sm font-normal text-gray-500 ml-2">({ball.weight}lbs)</span>}
-                        </h3>
-                        {customer && (
-                            <div className="flex items-center text-sm text-gray-600">
-                                <User className="w-4 h-4 mr-1" />
-                                {customer.firstName} {customer.lastName}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Work Details */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-                        {/* Date and Time */}
-                        <div className="flex items-center text-gray-600">
-                            <Calendar className="w-4 h-4 mr-2 flex-shrink-0" />
-                            <div>
-                                <div>{formatDate(workOrder.workDate)}</div>
-                                {workOrder.startTime && (
-                                    <div className="text-xs">
-                                        {formatTime(workOrder.startTime)}
-                                        {workOrder.endTime && ` - ${formatTime(workOrder.endTime)}`}
-                                        {getDuration() && (
-                                            <span className="ml-1 text-gray-500">({getDuration()})</span>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Location */}
-                        {location && (
-                            <div className="flex items-center text-gray-600">
-                                <MapPin className="w-4 h-4 mr-2 flex-shrink-0" />
-                                <span>{location.name}</span>
-                            </div>
-                        )}
-
-                        {/* Technician */}
-                        {employee && (
-                            <div className="flex items-center text-gray-600">
-                                <User className="w-4 h-4 mr-2 flex-shrink-0" />
-                                <span>{employee.firstName} {employee.lastName}</span>
-                            </div>
-                        )}
-
-                        {/* Cost */}
-                        {workOrder.totalCost && (
-                            <div className="flex items-center text-gray-600">
-                                <DollarSign className="w-4 h-4 mr-2 flex-shrink-0" />
-                                <span>${workOrder.totalCost.toFixed(2)}</span>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Additional Info Row */}
-                    <div className="mt-3 flex flex-wrap items-center gap-4 text-sm">
-                        {/* Labor Hours */}
-                        {workOrder.laborHours && (
-                            <div className="flex items-center text-gray-600">
-                                <Clock className="w-4 h-4 mr-1" />
-                                <span>{workOrder.laborHours}h labor</span>
-                            </div>
-                        )}
-
-                        {/* Customer Satisfaction */}
-                        {workOrder.customerSatisfaction && (
-                            <div className="flex items-center">
-                                <Star className={`w-4 h-4 mr-1 ${getSatisfactionColor(workOrder.customerSatisfaction)}`} />
-                                <span className={getSatisfactionColor(workOrder.customerSatisfaction)}>
-                                    {workOrder.customerSatisfaction}/10
-                                </span>
-                            </div>
-                        )}
-
-                        {/* Quality Check */}
-                        {workOrder.qualityCheck !== undefined && (
-                            <div className="flex items-center">
-                                <CheckCircle className={`w-4 h-4 mr-1 ${workOrder.qualityCheck ? 'text-green-600' : 'text-gray-400'}`} />
-                                <span className={workOrder.qualityCheck ? 'text-green-600' : 'text-gray-600'}>
-                                    Quality {workOrder.qualityCheck ? 'Passed' : 'Pending'}
-                                </span>
-                            </div>
-                        )}
-
-                        {/* Warranty */}
-                        {workOrder.warrantyPeriod && (
-                            <div className="text-gray-600">
-                                <span>{workOrder.warrantyPeriod} day warranty</span>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Work Notes Preview */}
-                    {workOrder.workNotes && (
-                        <div className="mt-3">
-                            <p className="text-sm text-gray-600 line-clamp-2">
-                                <span className="font-medium">Notes:</span> {workOrder.workNotes}
-                            </p>
+                    {ball && (
+                        <div className="text-sm text-gray-600 mb-1">
+                            <span className="font-medium">{ball.manufacturer} {ball.model}</span>
+                            {ball.weight && <span className="text-gray-400"> • {ball.weight}lbs</span>}
                         </div>
                     )}
 
-                    {/* Deviations Warning */}
-                    {workOrder.deviationsFromSpec && (
-                        <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
-                            <p className="text-sm text-yellow-800">
-                                <span className="font-medium">Deviations:</span> {workOrder.deviationsFromSpec}
-                            </p>
+                    {showCustomerName && customer && (
+                        <div className="flex items-center text-sm text-gray-500 mb-2">
+                            <User className="w-3 h-3 mr-1" />
+                            {customer.firstName} {customer.lastName}
+                        </div>
+                    )}
+
+                    {/* Work Details */}
+                    <div className="space-y-1 text-sm text-gray-600">
+                        <div className="flex items-center">
+                            <Calendar className="w-3 h-3 mr-1" />
+                            {formatDate(workOrder.workDate)}
+                            {workOrder.startTime && (
+                                <span className="ml-2 text-gray-400">
+                                    {formatTime(workOrder.startTime)}
+                                    {workOrder.endTime && ` - ${formatTime(workOrder.endTime)}`}
+                                </span>
+                            )}
+                        </div>
+
+                        {location && (
+                            <div className="flex items-center">
+                                <MapPin className="w-3 h-3 mr-1" />
+                                {location.name}
+                            </div>
+                        )}
+
+                        {employee && (
+                            <div className="flex items-center">
+                                <Wrench className="w-3 h-3 mr-1" />
+                                {employee.firstName} {employee.lastName}
+                            </div>
+                        )}
+
+                        {workOrder.laborHours && (
+                            <div className="flex items-center">
+                                <Clock className="w-3 h-3 mr-1" />
+                                {workOrder.laborHours} hours
+                            </div>
+                        )}
+
+                        {workOrder.totalCost && (
+                            <div className="flex items-center">
+                                <DollarSign className="w-3 h-3 mr-1" />
+                                {formatCurrency(workOrder.totalCost)}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Customer Satisfaction */}
+                    {workOrder.customerSatisfaction && (
+                        <div className="mt-2">
+                            <div className="flex items-center text-sm">
+                                <span className="text-gray-500 mr-2">Satisfaction:</span>
+                                <div className="flex items-center">
+                                    {[...Array(5)].map((_, i) => (
+                                        <span
+                                            key={i}
+                                            className={`text-sm ${i < workOrder.customerSatisfaction! ? 'text-yellow-400' : 'text-gray-300'}`}
+                                        >
+                                            ★
+                                        </span>
+                                    ))}
+                                    <span className="ml-1 text-gray-600">({workOrder.customerSatisfaction}/5)</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Quality Check Indicator */}
+                    {workOrder.qualityCheck && (
+                        <div className="mt-2">
+                            <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-700 rounded-full">
+                                ✓ Quality Checked
+                            </span>
                         </div>
                     )}
                 </div>
+            </div>
 
-                {/* Actions */}
-                <div className="mt-4 lg:mt-0 lg:ml-6 flex items-center space-x-2">
-                    <button
-                        onClick={() => onView(workOrder)}
-                        className="text-blue-600 hover:text-blue-800 transition-colors p-2 rounded-full hover:bg-blue-50"
-                        title="View details"
-                    >
-                        <Eye className="w-4 h-4" />
-                    </button>
+            {/* Action Buttons */}
+            <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                <div className="text-xs text-gray-400">
+                    Created {formatDate(workOrder.createdAt)}
+                </div>
+                <div className="flex space-x-2">
                     <button
                         onClick={() => onEdit(workOrder)}
-                        className="text-green-600 hover:text-green-800 transition-colors p-2 rounded-full hover:bg-green-50"
+                        className="text-blue-600 hover:text-blue-800 transition-colors p-1"
                         title="Edit work order"
                     >
                         <Edit className="w-4 h-4" />
                     </button>
                     <button
+                        onClick={() => onView(workOrder)}
+                        className="text-green-600 hover:text-green-800 transition-colors p-1"
+                        title="View details"
+                    >
+                        <Eye className="w-4 h-4" />
+                    </button>
+                    <button
                         onClick={() => onDelete(workOrder)}
-                        className="text-red-600 hover:text-red-800 transition-colors p-2 rounded-full hover:bg-red-50"
+                        className="text-red-600 hover:text-red-800 transition-colors p-1"
                         title="Delete work order"
                     >
                         <Trash2 className="w-4 h-4" />

@@ -5,7 +5,7 @@ import { mockCustomers } from '../data/mockData';
 export const useCustomers = () => {
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [error] = useState<string | null>(null);
 
     useEffect(() => {
         // Simulate API call

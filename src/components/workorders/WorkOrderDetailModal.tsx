@@ -5,17 +5,14 @@ import {
     X,
     Edit,
     Calendar,
-    Clock,
     User,
     MapPin,
-    DollarSign,
     Star,
     CheckCircle,
     AlertTriangle,
     Target,
     FileText,
-    Camera,
-    Wrench
+    Camera
 } from 'lucide-react';
 
 interface WorkOrderDetailModalProps {
@@ -80,21 +77,29 @@ export const WorkOrderDetailModal: React.FC<WorkOrderDetailModalProps> = ({
 
     const formatTime = (timeString?: string) => {
         if (!timeString) return 'Not specified';
-        return new Date(`2000-01-01T${timeString}`).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit'
-        });
+        try {
+            return new Date(`2000-01-01T${timeString}`).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch (error) {
+            return timeString;
+        }
     };
 
     const getDuration = () => {
         if (!workOrder.startTime || !workOrder.endTime) return null;
 
-        const start = new Date(`2000-01-01T${workOrder.startTime}`);
-        const end = new Date(`2000-01-01T${workOrder.endTime}`);
-        const diffMs = end.getTime() - start.getTime();
-        const diffHours = diffMs / (1000 * 60 * 60);
+        try {
+            const start = new Date(`2000-01-01T${workOrder.startTime}`);
+            const end = new Date(`2000-01-01T${workOrder.endTime}`);
+            const diffMs = end.getTime() - start.getTime();
+            const diffHours = diffMs / (1000 * 60 * 60);
 
-        return diffHours.toFixed(1);
+            return diffHours > 0 ? diffHours.toFixed(1) : null;
+        } catch (error) {
+            return null;
+        }
     };
 
     const getSatisfactionColor = (satisfaction?: number) => {
@@ -118,19 +123,25 @@ export const WorkOrderDetailModal: React.FC<WorkOrderDetailModalProps> = ({
         return stars;
     };
 
+    const formatCurrency = (amount?: number) => {
+        return amount ? `$${amount.toFixed(2)}` : 'N/A';
+    };
+
+    const formatRoleDisplay = (role?: string) => {
+        if (!role) return '';
+        return role.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+    };
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-200">
                     <div className="flex items-center space-x-3">
-                        <Wrench className="w-6 h-6 text-blue-600" />
-                        <div>
-                            <h2 className="text-xl font-semibold text-gray-900">Work Order Details</h2>
-                            <p className="text-sm text-gray-600">
-                                Created {new Date(workOrder.createdAt).toLocaleDateString()}
-                            </p>
-                        </div>
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getWorkTypeColor(workOrder.workType)}`}>
+                            {getWorkTypeLabel(workOrder.workType)}
+                        </span>
+                        <h2 className="text-2xl font-bold text-gray-900">Work Order Details</h2>
                     </div>
                     <div className="flex items-center space-x-2">
                         <Button variant="secondary" icon={Edit} onClick={onEdit}>
@@ -138,203 +149,114 @@ export const WorkOrderDetailModal: React.FC<WorkOrderDetailModalProps> = ({
                         </Button>
                         <button
                             onClick={onClose}
-                            className="text-gray-400 hover:text-gray-600 p-2"
+                            className="text-gray-400 hover:text-gray-600 transition-colors"
                         >
-                            <X className="w-5 h-5" />
+                            <X className="w-6 h-6" />
                         </button>
                     </div>
                 </div>
 
                 <div className="p-6 space-y-6">
-                    {/* Work Type and Status */}
-                    <div className="flex items-center space-x-4">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getWorkTypeColor(workOrder.workType)}`}>
-                            {getWorkTypeLabel(workOrder.workType)}
-                        </span>
-                        {workOrder.qualityCheck && (
-                            <div className="flex items-center text-green-600">
-                                <CheckCircle className="w-5 h-5 mr-1" />
-                                <span className="text-sm font-medium">Quality Approved</span>
-                            </div>
-                        )}
-                        {workOrder.deviationsFromSpec && (
-                            <div className="flex items-center text-yellow-600">
-                                <AlertTriangle className="w-5 h-5 mr-1" />
-                                <span className="text-sm font-medium">Has Deviations</span>
-                            </div>
-                        )}
-                    </div>
-
                     {/* Ball and Customer Information */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Bowling Ball Info */}
-                        {ball && (
-                            <div className="bg-blue-50 rounded-lg p-4">
-                                <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
-                                    <Target className="w-5 h-5 mr-2" />
-                                    Bowling Ball
-                                </h3>
-                                <div className="space-y-2">
-                                    <div className="flex justify-between">
-                                        <span className="font-medium">{ball.manufacturer} {ball.model}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-600">Weight:</span>
-                                        <span className="font-medium">{ball.weight} lbs</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-600">Status:</span>
-                                        <span className="font-medium">{ball.status}</span>
-                                    </div>
-                                    {ball.serialNumber && (
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-600">Serial:</span>
-                                            <span className="font-medium">{ball.serialNumber}</span>
+                    {(ball || customer) && (
+                        <div className="bg-blue-50 rounded-lg p-4">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                                <Target className="w-5 h-5 mr-2" />
+                                Ball & Customer Information
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {ball && (
+                                    <div>
+                                        <h4 className="font-medium text-gray-900 mb-2">Bowling Ball</h4>
+                                        <div className="space-y-1 text-sm">
+                                            <p><span className="font-medium">Ball:</span> {ball.manufacturer} {ball.model}</p>
+                                            <p><span className="font-medium">Weight:</span> {ball.weight} lbs</p>
+                                            {ball.serialNumber && (
+                                                <p><span className="font-medium">Serial:</span> {ball.serialNumber}</p>
+                                            )}
+                                            {ball.coverstockType && (
+                                                <p><span className="font-medium">Coverstock:</span> {ball.coverstockType}</p>
+                                            )}
+                                            <p><span className="font-medium">Status:</span> {ball.status}</p>
                                         </div>
-                                    )}
-                                    {ball.coverstockType && (
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-600">Coverstock:</span>
-                                            <span className="font-medium">{ball.coverstockType}</span>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
+                                    </div>
+                                )}
 
-                        {/* Customer Info */}
-                        {customer && (
-                            <div className="bg-green-50 rounded-lg p-4">
-                                <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
-                                    <User className="w-5 h-5 mr-2" />
-                                    Customer
-                                </h3>
-                                <div className="space-y-2">
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-600">Name:</span>
-                                        <span className="font-medium">{customer.firstName} {customer.lastName}</span>
-                                    </div>
-                                    {customer.email && (
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-600">Email:</span>
-                                            <span className="font-medium">{customer.email}</span>
+                                {customer && (
+                                    <div>
+                                        <h4 className="font-medium text-gray-900 mb-2">Customer</h4>
+                                        <div className="space-y-1 text-sm">
+                                            <p><span className="font-medium">Name:</span> {customer.firstName} {customer.lastName}</p>
+                                            {customer.email && (
+                                                <p><span className="font-medium">Email:</span> {customer.email}</p>
+                                            )}
+                                            {customer.phone && (
+                                                <p><span className="font-medium">Phone:</span> {customer.phone}</p>
+                                            )}
+                                            <p><span className="font-medium">Hand:</span> {customer.dominantHand}</p>
+                                            <p><span className="font-medium">Grip:</span> {customer.preferredGripStyle.replace('_', ' ')}</p>
                                         </div>
-                                    )}
-                                    {customer.phone && (
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-600">Phone:</span>
-                                            <span className="font-medium">{customer.phone}</span>
-                                        </div>
-                                    )}
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-600">Hand:</span>
-                                        <span className="font-medium">{customer.dominantHand}</span>
                                     </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-600">Grip Style:</span>
-                                        <span className="font-medium">{customer.preferredGripStyle.replace('_', ' ')}</span>
-                                    </div>
-                                </div>
+                                )}
                             </div>
-                        )}
-                    </div>
+                        </div>
+                    )}
 
                     {/* Drill Sheet Information */}
                     {drillSheet && (
-                        <div className="bg-purple-50 rounded-lg p-4">
+                        <div className="bg-gray-50 rounded-lg p-4">
                             <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
                                 <FileText className="w-5 h-5 mr-2" />
-                                Drill Sheet: {drillSheet.name}
+                                Drill Sheet Specifications
                             </h3>
-
-                            {/* Basic Info */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                                 <div>
-                                    <span className="text-gray-600">Grip Style:</span>
-                                    <p className="font-medium">{drillSheet.gripStyle}</p>
+                                    <p><span className="font-medium">Sheet Name:</span> {drillSheet.name}</p>
+                                    <p><span className="font-medium">Grip Style:</span> {drillSheet.gripStyle.replace('_', ' ')}</p>
+                                    {drillSheet.spans.thumbToMiddle.fitSpan && (
+                                        <p><span className="font-medium">Thumb to Middle:</span> {drillSheet.spans.thumbToMiddle.fitSpan}"</p>
+                                    )}
+                                    {drillSheet.spans.thumbToRing.fitSpan && (
+                                        <p><span className="font-medium">Thumb to Ring:</span> {drillSheet.spans.thumbToRing.fitSpan}"</p>
+                                    )}
                                 </div>
-                                <div>
-                                    <span className="text-gray-600">Thumb:</span>
-                                    <p className="font-medium">{drillSheet.holes.thumb?.enabled ? 'Enabled' : 'Disabled'}</p>
-                                </div>
-                                <div>
-                                    <span className="text-gray-600">Template:</span>
-                                    <p className="font-medium">{drillSheet.isTemplate ? 'Yes' : 'No'}</p>
-                                </div>
-                            </div>
 
-                            {/* Span Measurements */}
-                            <div className="mb-4">
-                                <h4 className="font-medium text-gray-900 mb-2">Span Measurements</h4>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                                    <div>
-                                        <span className="text-gray-600">Thumb to Middle:</span>
-                                        <p className="font-medium">
-                                            {drillSheet.spans.thumbToMiddle.fitSpan ? `${drillSheet.spans.thumbToMiddle.fitSpan}"` : 'Custom'}
-                                        </p>
+                                <div>
+                                    {/* Hole Information */}
+                                    <div className="space-y-2">
+                                        {drillSheet.holes.thumb?.enabled && (
+                                            <div className="bg-white p-2 rounded border">
+                                                <span className="font-medium">Thumb:</span> {drillSheet.holes.thumb.size.primary}
+                                                {drillSheet.holes.thumb.pitchForward && (
+                                                    <span className="ml-2 text-gray-600">Forward: {drillSheet.holes.thumb.pitchForward}"</span>
+                                                )}
+                                            </div>
+                                        )}
+                                        {drillSheet.holes.middle && (
+                                            <div className="bg-white p-2 rounded border">
+                                                <span className="font-medium">Middle:</span> {drillSheet.holes.middle.size.primary}
+                                                {drillSheet.holes.middle.pitchForward && (
+                                                    <span className="ml-2 text-gray-600">Forward: {drillSheet.holes.middle.pitchForward}"</span>
+                                                )}
+                                            </div>
+                                        )}
+                                        {drillSheet.holes.ring && (
+                                            <div className="bg-white p-2 rounded border">
+                                                <span className="font-medium">Ring:</span> {drillSheet.holes.ring.size.primary}
+                                                {drillSheet.holes.ring.pitchForward && (
+                                                    <span className="ml-2 text-gray-600">Forward: {drillSheet.holes.ring.pitchForward}"</span>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
-                                    <div>
-                                        <span className="text-gray-600">Thumb to Ring:</span>
-                                        <p className="font-medium">
-                                            {drillSheet.spans.thumbToRing.fitSpan ? `${drillSheet.spans.thumbToRing.fitSpan}"` : 'Custom'}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <span className="text-gray-600">Bridge:</span>
-                                        <p className="font-medium">{drillSheet.bridge.distance}"</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Hole Specifications */}
-                            <div className="mb-4">
-                                <h4 className="font-medium text-gray-900 mb-2">Hole Specifications</h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
-                                    {drillSheet.holes.thumb?.enabled && (
-                                        <div className="bg-white p-2 rounded border">
-                                            <span className="font-medium">Thumb</span>
-                                            <p>Size: {drillSheet.holes.thumb.size.primary}</p>
-                                            <p>Type: {drillSheet.holes.thumb.holeType}</p>
-                                            {drillSheet.holes.thumb.pitchForward && (
-                                                <p>Forward: {drillSheet.holes.thumb.pitchForward}"</p>
-                                            )}
-                                            {drillSheet.holes.thumb.pitchLateral && (
-                                                <p>Lateral: {drillSheet.holes.thumb.pitchLateral}"</p>
-                                            )}
-                                        </div>
-                                    )}
-                                    {drillSheet.holes.middle && (
-                                        <div className="bg-white p-2 rounded border">
-                                            <span className="font-medium">Middle</span>
-                                            <p>Size: {drillSheet.holes.middle.size.primary}</p>
-                                            {drillSheet.holes.middle.pitchForward && (
-                                                <p>Forward: {drillSheet.holes.middle.pitchForward}"</p>
-                                            )}
-                                            {drillSheet.holes.middle.pitchLateral && (
-                                                <p>Lateral: {drillSheet.holes.middle.pitchLateral}"</p>
-                                            )}
-                                        </div>
-                                    )}
-                                    {drillSheet.holes.ring && (
-                                        <div className="bg-white p-2 rounded border">
-                                            <span className="font-medium">Ring</span>
-                                            <p>Size: {drillSheet.holes.ring.size.primary}</p>
-                                            {drillSheet.holes.ring.pitchForward && (
-                                                <p>Forward: {drillSheet.holes.ring.pitchForward}"</p>
-                                            )}
-                                            {drillSheet.holes.ring.pitchLateral && (
-                                                <p>Lateral: {drillSheet.holes.ring.pitchLateral}"</p>
-                                            )}
-                                        </div>
-                                    )}
                                 </div>
                             </div>
 
                             {/* Special Notes */}
                             {drillSheet.specialNotes && (
-                                <div>
-                                    <span className="text-gray-600">Special Notes:</span>
-                                    <p className="font-medium text-sm mt-1">{drillSheet.specialNotes}</p>
+                                <div className="mt-3">
+                                    <span className="font-medium text-gray-700">Special Notes:</span>
+                                    <p className="text-gray-600 mt-1">{drillSheet.specialNotes}</p>
                                 </div>
                             )}
                         </div>
@@ -376,7 +298,7 @@ export const WorkOrderDetailModal: React.FC<WorkOrderDetailModalProps> = ({
                                         <User className="w-5 h-5 text-gray-400 mr-3" />
                                         <div>
                                             <p className="font-medium">{employee.firstName} {employee.lastName}</p>
-                                            <p className="text-sm text-gray-600">{employee.role}</p>
+                                            <p className="text-sm text-gray-600">{formatRoleDisplay(employee.role)}</p>
                                         </div>
                                     </div>
                                 )}
@@ -396,19 +318,19 @@ export const WorkOrderDetailModal: React.FC<WorkOrderDetailModalProps> = ({
                                 {workOrder.laborCost && (
                                     <div className="flex justify-between">
                                         <span className="text-gray-600">Labor Cost:</span>
-                                        <span className="font-medium">${workOrder.laborCost.toFixed(2)}</span>
+                                        <span className="font-medium">{formatCurrency(workOrder.laborCost)}</span>
                                     </div>
                                 )}
                                 {workOrder.materialsCost && (
                                     <div className="flex justify-between">
                                         <span className="text-gray-600">Materials:</span>
-                                        <span className="font-medium">${workOrder.materialsCost.toFixed(2)}</span>
+                                        <span className="font-medium">{formatCurrency(workOrder.materialsCost)}</span>
                                     </div>
                                 )}
                                 {workOrder.totalCost && (
                                     <div className="flex justify-between border-t pt-2">
-                                        <span className="text-gray-900 font-semibold">Total Cost:</span>
-                                        <span className="text-lg font-bold text-gray-900">${workOrder.totalCost.toFixed(2)}</span>
+                                        <span className="font-semibold text-gray-900">Total Cost:</span>
+                                        <span className="font-bold text-lg">{formatCurrency(workOrder.totalCost)}</span>
                                     </div>
                                 )}
                                 {workOrder.warrantyPeriod && (
@@ -463,69 +385,77 @@ export const WorkOrderDetailModal: React.FC<WorkOrderDetailModalProps> = ({
                                 <div className="flex items-center">
                                     <CheckCircle className={`w-5 h-5 mr-2 ${workOrder.qualityCheck ? 'text-green-600' : 'text-gray-400'}`} />
                                     <span className={workOrder.qualityCheck ? 'text-green-700 font-medium' : 'text-gray-600'}>
-                                        Quality Check {workOrder.qualityCheck ? 'Passed' : 'Pending'}
+                                        Quality Check {workOrder.qualityCheck ? 'Completed' : 'Pending'}
                                     </span>
                                 </div>
+
                                 {workOrder.qualityNotes && (
-                                    <div className="bg-gray-50 rounded p-3">
-                                        <p className="text-sm text-gray-700">{workOrder.qualityNotes}</p>
+                                    <div className="bg-green-50 rounded-lg p-3">
+                                        <p className="text-green-800 text-sm">{workOrder.qualityNotes}</p>
                                     </div>
                                 )}
                             </div>
                         </div>
 
                         {/* Customer Satisfaction */}
-                        {workOrder.customerSatisfaction && (
-                            <div>
-                                <h3 className="text-lg font-semibold text-gray-900 mb-3">Customer Feedback</h3>
-                                <div className="space-y-3">
-                                    <div className="flex items-center">
-                                        <span className="text-gray-600 mr-2">Rating:</span>
-                                        <span className={`text-lg font-bold ${getSatisfactionColor(workOrder.customerSatisfaction)}`}>
+                        <div>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-3">Customer Satisfaction</h3>
+                            {workOrder.customerSatisfaction ? (
+                                <div className="space-y-2">
+                                    <div className="flex items-center space-x-2">
+                                        <div className="flex">
+                                            {getSatisfactionStars(workOrder.customerSatisfaction)}
+                                        </div>
+                                        <span className={`font-bold ${getSatisfactionColor(workOrder.customerSatisfaction)}`}>
                                             {workOrder.customerSatisfaction}/10
                                         </span>
                                     </div>
-                                    <div className="flex space-x-1">
-                                        {getSatisfactionStars(workOrder.customerSatisfaction)}
-                                    </div>
+                                    <p className="text-sm text-gray-600">
+                                        {workOrder.customerSatisfaction >= 8 ? 'Excellent' :
+                                            workOrder.customerSatisfaction >= 6 ? 'Good' : 'Needs Improvement'}
+                                    </p>
                                 </div>
-                            </div>
-                        )}
+                            ) : (
+                                <p className="text-gray-500">Not rated yet</p>
+                            )}
+                        </div>
                     </div>
 
-                    {/* Photos */}
+                    {/* Photos Section */}
                     {(workOrder.beforePhotos?.length || workOrder.afterPhotos?.length) && (
                         <div>
                             <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
                                 <Camera className="w-5 h-5 mr-2" />
                                 Photos
                             </h3>
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                {/* Before Photos */}
-                                {workOrder.beforePhotos?.length > 0 && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {workOrder.beforePhotos?.length && (
                                     <div>
-                                        <h4 className="font-medium text-gray-700 mb-2">Before Work</h4>
+                                        <h4 className="font-medium text-gray-700 mb-2">Before</h4>
                                         <div className="grid grid-cols-2 gap-2">
                                             {workOrder.beforePhotos.map((photo, index) => (
-                                                <div key={index} className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
-                                                    <Camera className="w-8 h-8 text-gray-400" />
-                                                    <span className="sr-only">Before photo {index + 1}</span>
-                                                </div>
+                                                <img
+                                                    key={index}
+                                                    src={photo}
+                                                    alt={`Before photo ${index + 1}`}
+                                                    className="w-full h-32 object-cover rounded-lg border"
+                                                />
                                             ))}
                                         </div>
                                     </div>
                                 )}
 
-                                {/* After Photos */}
-                                {workOrder.afterPhotos?.length > 0 && (
+                                {workOrder.afterPhotos?.length && (
                                     <div>
-                                        <h4 className="font-medium text-gray-700 mb-2">After Work</h4>
+                                        <h4 className="font-medium text-gray-700 mb-2">After</h4>
                                         <div className="grid grid-cols-2 gap-2">
                                             {workOrder.afterPhotos.map((photo, index) => (
-                                                <div key={index} className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
-                                                    <Camera className="w-8 h-8 text-gray-400" />
-                                                    <span className="sr-only">After photo {index + 1}</span>
-                                                </div>
+                                                <img
+                                                    key={index}
+                                                    src={photo}
+                                                    alt={`After photo ${index + 1}`}
+                                                    className="w-full h-32 object-cover rounded-lg border"
+                                                />
                                             ))}
                                         </div>
                                     </div>
@@ -533,16 +463,21 @@ export const WorkOrderDetailModal: React.FC<WorkOrderDetailModalProps> = ({
                             </div>
                         </div>
                     )}
-                </div>
 
-                {/* Footer */}
-                <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 bg-gray-50">
-                    <Button variant="secondary" onClick={onClose}>
-                        Close
-                    </Button>
-                    <Button icon={Edit} onClick={onEdit}>
-                        Edit Work Order
-                    </Button>
+                    {/* Metadata */}
+                    <div className="border-t pt-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-3">Work Order Information</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+                            <div>
+                                <p><span className="font-medium">Work Order ID:</span> {workOrder.id}</p>
+                                <p><span className="font-medium">Created:</span> {formatDate(workOrder.createdAt)}</p>
+                            </div>
+                            <div>
+                                {ball && <p><span className="font-medium">Ball ID:</span> {workOrder.ballID}</p>}
+                                {drillSheet && <p><span className="font-medium">Drill Sheet ID:</span> {workOrder.drillSheetID}</p>}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

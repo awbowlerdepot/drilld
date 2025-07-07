@@ -22,7 +22,7 @@ function App() {
             case 'balls':
                 return <BowlingBallManagement searchTerm={searchTerm} />
             case 'workorders':
-                return <WorkOrderManagement />
+                return <WorkOrderManagement searchTerm={searchTerm} />
             case 'analytics':
                 return <div className="text-center py-12">Analytics Dashboard - Coming soon...</div>
             default:
