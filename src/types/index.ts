@@ -17,6 +17,11 @@ export interface SpanMeasurement {
     cutToCutSpan?: number;   // Cut to cut measurement
 }
 
+// NEW: Bridge measurement interface - simpler than span measurements
+export interface BridgeMeasurement {
+    distance: number;        // Bridge distance in inches, default 1/4"
+}
+
 export interface FingerConfiguration {
     finger1: 'thumb' | 'index' | 'middle' | 'ring' | 'pinky';
     finger2: 'thumb' | 'index' | 'middle' | 'ring' | 'pinky';
@@ -48,19 +53,21 @@ export interface DrillSheet {
     name: string;
     gripStyle: 'CONVENTIONAL' | 'FINGERTIP' | 'TWO_HANDED_NO_THUMB';
 
-    // Span measurements - now organized by measurement type
+    // REFACTORED: Separated spans from bridge measurement
     spans: {
-        // Default spans (thumb-middle, thumb-ring, middle-ring)
+        // True span measurements (thumb to fingers only)
         thumbToMiddle: SpanMeasurement;
         thumbToRing: SpanMeasurement;
-        middleToRing: SpanMeasurement;
-        // Additional custom spans
+        // Additional custom spans if needed
         customSpans?: Array<{
             name: string;
             configuration: FingerConfiguration;
             measurements: SpanMeasurement;
         }>;
     };
+
+    // NEW: Bridge measurement (middle to ring finger)
+    bridge: BridgeMeasurement;
 
     // Hole specifications
     holes: {
@@ -165,3 +172,23 @@ export interface Employee {
     createdAt: string;
     updatedAt?: string;
 }
+
+// Utility function to migrate existing data
+export const migrateDrillSheetData = (oldDrillSheet: any): DrillSheet => {
+    return {
+        ...oldDrillSheet,
+        // Remove middleToRing from spans
+        spans: {
+            thumbToMiddle: oldDrillSheet.spans.thumbToMiddle,
+            thumbToRing: oldDrillSheet.spans.thumbToRing,
+            // customSpans remains if it exists
+            ...(oldDrillSheet.spans.customSpans && {
+                customSpans: oldDrillSheet.spans.customSpans
+            })
+        },
+        // Convert middleToRing span to bridge measurement
+        bridge: {
+            distance: oldDrillSheet.spans.middleToRing?.fitSpan || 0.25
+        }
+    };
+};

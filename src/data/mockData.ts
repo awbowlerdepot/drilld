@@ -1,41 +1,41 @@
-import { Customer, DrillSheet, BowlingBall, WorkOrder } from '../types';
+import { Customer, DrillSheet, BowlingBall } from '../types';
 
 export const mockCustomers: Customer[] = [
     {
         id: '1',
         firstName: 'John',
         lastName: 'Smith',
-        email: 'john@email.com',
-        phone: '555-1234',
+        email: 'john.smith@email.com',
+        phone: '555-0123',
         dominantHand: 'RIGHT',
         preferredGripStyle: 'FINGERTIP',
         usesThumb: true,
-        notes: 'Prefers aggressive drilling, high rev rate',
+        notes: 'Regular customer, prefers aggressive layouts',
         createdAt: '2024-01-15T10:30:00Z'
     },
     {
         id: '2',
         firstName: 'Sarah',
         lastName: 'Johnson',
-        email: 'sarah@email.com',
-        phone: '555-5678',
+        email: 'sarah.j@email.com',
+        phone: '555-0456',
         dominantHand: 'LEFT',
         preferredGripStyle: 'CONVENTIONAL',
         usesThumb: true,
-        notes: 'League bowler, consistent approach',
-        createdAt: '2024-01-20T14:20:00Z'
+        notes: 'Left-handed bowler, tends to have sweaty hands',
+        createdAt: '2024-01-20T14:15:00Z'
     },
     {
         id: '3',
         firstName: 'Mike',
-        lastName: 'Davis',
-        email: 'mike@email.com',
-        phone: '555-9012',
+        lastName: 'Wilson',
+        email: 'mike.wilson@email.com',
+        phone: '555-0789',
         dominantHand: 'RIGHT',
         preferredGripStyle: 'TWO_HANDED_NO_THUMB',
         usesThumb: false,
-        notes: 'Two-handed bowler, no thumb hole',
-        createdAt: '2024-02-01T09:15:00Z'
+        notes: 'Two-handed bowler, high rev rate',
+        createdAt: '2024-02-01T09:45:00Z'
     }
 ];
 
@@ -45,176 +45,171 @@ export const mockDrillSheets: DrillSheet[] = [
         customerID: '1',
         proshopID: 'proshop1',
         createdByEmployeeID: 'emp1',
-        name: "John's Fingertip Spec #1",
+        name: 'John Smith - Storm Phaze II',
         gripStyle: 'FINGERTIP',
         spans: {
-            thumbToMiddle: {
-                fitSpan: 4.40,
-                fullSpan: 4.65,
-                cutToCutSpan: 4.25
-            },
-            thumbToRing: {
-                fitSpan: 4.90,
-                fullSpan: 5.15,
-                cutToCutSpan: 4.75
-            },
-            middleToRing: {
-                fitSpan: 0.85,
-                fullSpan: 1.00,
-                cutToCutSpan: 0.75
-            }
+            thumbToMiddle: { fitSpan: 4.5, fullSpan: 4.75, cutToCutSpan: 4.25 },
+            thumbToRing: { fitSpan: 4.75, fullSpan: 5.0, cutToCutSpan: 4.5 }
         },
+        bridge: { distance: 0.25 }, // Standard 1/4" bridge
         holes: {
             thumb: {
                 enabled: true,
-                holeType: 'oval',
-                size: {
-                    primary: '31/64',
-                    depth: 2.25
+                holeType: 'round',
+                size: { primary: '1', depth: 2.5 },
+                    pitchForward: 0.125,
+                    pitchLateral: 0.25
                 },
-                pitchForward: 0.125,
-                pitchLateral: 0.25,
-                drillingSequence: [
-                    { step: 1, bitSize: '1/2', depth: 2.0 },
-                    { step: 2, bitSize: '31/64', depth: 2.25 }
-                ]
+                middle: {
+                    size: { primary: '31/64', depth: 2.75 },
+                    pitchForward: 0.375,
+                    pitchLateral: 0.125
+                },
+                ring: {
+                    size: { primary: '31/64', depth: 2.75 },
+                    pitchForward: 0.375,
+                    pitchLateral: 0.125
+                }
             },
-            middle: {
-                size: {
-                    primary: '31/64',
-                    depth: 1.25
-                },
-                pitchForward: 0.375,
-                pitchLateral: 0.125
-            },
-            ring: {
-                size: {
-                    primary: '31/64',
-                    depth: 1.25
-                },
-                pitchForward: 0.375,
-                pitchLateral: 0.125
-            }
+            specialNotes: 'Customer prefers slightly forward pitch on fingers',
+            isTemplate: false,
+            createdAt: '2024-01-15T11:00:00Z'
         },
-        specialNotes: 'Customer prefers slightly more forward pitch for better rev rate',
-        isTemplate: false,
-        createdAt: '2024-02-01T14:30:00Z'
-    },
     {
         id: '2',
         customerID: '2',
         proshopID: 'proshop1',
         createdByEmployeeID: 'emp1',
-        name: "Sarah's Conventional Setup",
+        name: 'Sarah Johnson - Brunswick Quantum Bias',
         gripStyle: 'CONVENTIONAL',
         spans: {
-            thumbToMiddle: {
-                fitSpan: 4.60,
-                fullSpan: 4.85,
-                cutToCutSpan: 4.45
-            },
-            thumbToRing: {
-                fitSpan: 5.10,
-                fullSpan: 5.35,
-                cutToCutSpan: 4.95
-            },
-            middleToRing: {
-                fitSpan: 0.75,
-                fullSpan: 0.90,
-                cutToCutSpan: 0.65
-            }
+            thumbToMiddle: { fitSpan: 4.25, fullSpan: 4.5, cutToCutSpan: 4.0 },
+            thumbToRing: { fitSpan: 4.5, fullSpan: 4.75, cutToCutSpan: 4.25 }
         },
+        bridge: { distance: 0.1875 }, // 3/16" bridge (tighter than standard)
         holes: {
             thumb: {
                 enabled: true,
-                holeType: 'round',
-                size: {
-                    primary: '1/2',
-                    depth: 2.75
-                },
+                holeType: 'oval',
+                size: { primary: '63/64', depth: 2.25 },
                 pitchForward: 0.0,
-                pitchLateral: 0.125
+                pitchLateral: -0.125
             },
             middle: {
-                size: {
-                    primary: '31/64',
-                    depth: 2.75
-                },
+                size: { primary: '29/64', depth: 2.25 },
                 pitchForward: 0.25,
                 pitchLateral: 0.0
             },
             ring: {
-                size: {
-                    primary: '31/64',
-                    depth: 2.75
-                },
+                size: { primary: '29/64', depth: 2.25 },
                 pitchForward: 0.25,
                 pitchLateral: 0.0
             }
         },
-        specialNotes: 'Standard conventional drilling, comfortable fit',
-        isTemplate: true,
-        createdAt: '2024-02-05T11:15:00Z'
+        specialNotes: 'Left-handed bowler, oval thumb hole for comfort. Uses rosin due to sweaty hands.',
+        isTemplate: false,
+        createdAt: '2024-01-20T15:30:00Z'
     },
     {
         id: '3',
         customerID: '3',
         proshopID: 'proshop1',
-        createdByEmployeeID: 'emp1',
-        name: "Mike's Two-Handed Layout",
+        createdByEmployeeID: 'emp2',
+        name: 'Mike Wilson - Roto Grip Gem',
         gripStyle: 'TWO_HANDED_NO_THUMB',
         spans: {
-            thumbToMiddle: {
-                fitSpan: 0, // No thumb
-                fullSpan: 0,
-                cutToCutSpan: 0
-            },
-            thumbToRing: {
-                fitSpan: 0,
-                fullSpan: 0,
-                cutToCutSpan: 0
-            },
-            middleToRing: {
-                fitSpan: 0.85,
-                fullSpan: 1.00,
-                cutToCutSpan: 0.75
-            }
+            thumbToMiddle: { fitSpan: undefined, fullSpan: undefined, cutToCutSpan: undefined },
+            thumbToRing: { fitSpan: undefined, fullSpan: undefined, cutToCutSpan: undefined }
         },
+        bridge: { distance: 0.3125 }, // 5/16" bridge (wider for two-handed style)
         holes: {
             thumb: {
                 enabled: false,
                 holeType: 'round',
-                size: { primary: '', depth: 0 }
+                size: { primary: '', depth: undefined }
             },
             middle: {
-                size: {
-                    primary: '31/64',
-                    depth: 1.50
-                },
-                pitchForward: 0.50,
+                size: { primary: '1/2', depth: 3.0 },
+                pitchForward: 0.5,
+                pitchLateral: 0.0
+            },
+            ring: {
+                size: { primary: '1/2', depth: 3.0 },
+                pitchForward: 0.5,
+                pitchLateral: 0.0
+            }
+        },
+        specialNotes: 'Two-handed bowler - no thumb hole. Deeper finger holes for better grip.',
+        isTemplate: false,
+        createdAt: '2024-02-01T10:15:00Z'
+    },
+    {
+        id: '4',
+        customerID: '', // Template has no customer
+        proshopID: 'proshop1',
+        createdByEmployeeID: 'emp1',
+        name: 'Standard Fingertip Template',
+        gripStyle: 'FINGERTIP',
+        spans: {
+            thumbToMiddle: { fitSpan: 4.5, fullSpan: 4.75, cutToCutSpan: 4.25 },
+            thumbToRing: { fitSpan: 4.75, fullSpan: 5.0, cutToCutSpan: 4.5 }
+        },
+        bridge: { distance: 0.25 }, // Standard 1/4" bridge
+        holes: {
+            thumb: {
+                enabled: true,
+                holeType: 'round',
+                size: { primary: '1', depth: 2.5 },
+                pitchForward: 0.125,
+                pitchLateral: 0.25
+            },
+            middle: {
+                size: { primary: '31/64', depth: 2.75 },
+                pitchForward: 0.375,
                 pitchLateral: 0.125
             },
             ring: {
-                size: {
-                    primary: '31/64',
-                    depth: 1.50
-                },
-                pitchForward: 0.50,
+                size: { primary: '31/64', depth: 2.75 },
+                pitchForward: 0.375,
                 pitchLateral: 0.125
-            },
-            additionalHoles: [
-                {
-                    name: 'Balance Hole',
-                    type: 'balance',
-                    size: { primary: '1/2', depth: 1.0 },
-                    position: { x: 2.5, y: -1.0 },
-                    notes: 'For static weight adjustment'
-                }
-            ]
+            }
         },
-        specialNotes: 'Two-handed style, aggressive finger pitches for rev rate',
-        isTemplate: false,
-        createdAt: '2024-02-10T16:45:00Z'
+        specialNotes: 'Standard fingertip template for right-handed bowlers',
+        isTemplate: true,
+        createdAt: '2024-01-10T08:00:00Z'
+    },
+    {
+        id: '5',
+        customerID: '', // Template has no customer
+        proshopID: 'proshop1',
+        createdByEmployeeID: 'emp1',
+        name: 'Two-Handed Template',
+        gripStyle: 'TWO_HANDED_NO_THUMB',
+        spans: {
+            thumbToMiddle: { fitSpan: undefined, fullSpan: undefined, cutToCutSpan: undefined },
+            thumbToRing: { fitSpan: undefined, fullSpan: undefined, cutToCutSpan: undefined }
+        },
+        bridge: { distance: 0.3125 }, // Wider 5/16" bridge for two-handed
+        holes: {
+            thumb: {
+                enabled: false,
+                holeType: 'round',
+                size: { primary: '', depth: undefined }
+            },
+            middle: {
+                size: { primary: '1/2', depth: 3.0 },
+                pitchForward: 0.5,
+                pitchLateral: 0.0
+            },
+            ring: {
+                size: { primary: '1/2', depth: 3.0 },
+                pitchForward: 0.5,
+                pitchLateral: 0.0
+            }
+        },
+        specialNotes: 'Template for two-handed bowlers - no thumb, deeper finger holes',
+        isTemplate: true,
+        createdAt: '2024-01-10T08:30:00Z'
     }
 ];
 
@@ -227,110 +222,41 @@ export const mockBalls: BowlingBall[] = [
         weight: 15,
         status: 'ACTIVE',
         serialNumber: 'ST123456789',
-        coverstockType: 'Solid Reactive',
-        coreType: 'Asymmetrical',
+        coverstockType: 'Reactive Resin',
+        coreType: 'Asymmetric',
         purchaseDate: '2024-01-15',
         purchasePrice: 189.99,
-        notes: "Customer's main strike ball",
+        notes: 'Customer\'s strike ball',
         drillSheetID: '1'
     },
     {
         id: '2',
-        customerID: '1',
-        manufacturer: 'Hammer',
-        model: 'Black Widow',
-        weight: 15,
-        status: 'ACTIVE',
-        serialNumber: 'HM987654321',
-        coverstockType: 'Pearl Reactive',
-        coreType: 'Symmetric',
-        purchaseDate: '2024-02-01',
-        purchasePrice: 165.00,
-        notes: 'Spare ball setup',
-        drillSheetID: '1'
-    },
-    {
-        id: '3',
         customerID: '2',
         manufacturer: 'Brunswick',
-        model: 'Quantum Evo',
+        model: 'Quantum Bias',
         weight: 14,
         status: 'ACTIVE',
-        coverstockType: 'Solid Reactive',
-        purchaseDate: '2024-01-25',
-        purchasePrice: 175.00,
+        serialNumber: 'BR987654321',
+        coverstockType: 'Reactive Resin',
+        coreType: 'Symmetric',
+        purchaseDate: '2024-01-20',
+        purchasePrice: 159.99,
+        notes: 'Good for medium oil conditions',
         drillSheetID: '2'
     },
     {
-        id: '4',
+        id: '3',
         customerID: '3',
-        manufacturer: 'Motiv',
-        model: 'Venom Shock',
+        manufacturer: 'Roto Grip',
+        model: 'Gem',
         weight: 16,
         status: 'ACTIVE',
-        coverstockType: 'Solid Reactive',
-        purchaseDate: '2024-02-10',
-        purchasePrice: 155.00,
-        notes: 'Two-handed drilling',
+        serialNumber: 'RG456789123',
+        coverstockType: 'Reactive Resin',
+        coreType: 'Symmetric',
+        purchaseDate: '2024-02-01',
+        purchasePrice: 149.99,
+        notes: 'Two-handed bowler ball',
         drillSheetID: '3'
-    }
-];
-
-export const mockWorkOrders: WorkOrder[] = [
-    {
-        id: '1',
-        ballID: '1',
-        drillSheetID: '1',
-        locationID: '1',
-        performedByEmployeeID: 'emp1',
-        workType: 'INITIAL_DRILL',
-        workDate: '2024-02-15T10:00:00Z',
-        startTime: '2024-02-15T10:00:00Z',
-        endTime: '2024-02-15T11:30:00Z',
-        laborHours: 1.5,
-        laborCost: 37.50,
-        materialsCost: 12.00,
-        totalCost: 49.50,
-        customerSatisfaction: 5,
-        qualityCheck: true,
-        workNotes: 'Drilled to spec, customer satisfied with fit',
-        warrantyPeriod: 30,
-        createdAt: '2024-02-15T10:00:00Z'
-    },
-    {
-        id: '2',
-        ballID: '2',
-        drillSheetID: '1',
-        locationID: '1',
-        performedByEmployeeID: 'emp1',
-        workType: 'INITIAL_DRILL',
-        workDate: '2024-02-20T14:30:00Z',
-        laborHours: 1.0,
-        laborCost: 25.00,
-        materialsCost: 8.00,
-        totalCost: 33.00,
-        customerSatisfaction: 4,
-        qualityCheck: true,
-        workNotes: 'Standard drilling, minor adjustment needed',
-        createdAt: '2024-02-20T14:30:00Z'
-    },
-    {
-        id: '3',
-        ballID: '4',
-        drillSheetID: '3',
-        locationID: '1',
-        performedByEmployeeID: 'emp2',
-        workType: 'INITIAL_DRILL',
-        workDate: '2024-02-25T09:00:00Z',
-        laborHours: 2.0,
-        laborCost: 50.00,
-        materialsCost: 15.00,
-        totalCost: 65.00,
-        customerSatisfaction: 5,
-        qualityCheck: true,
-        workNotes: 'Two-handed drilling with balance hole, excellent fit',
-        specialNotes: 'Customer very happy with rev rate increase',
-        warrantyPeriod: 30,
-        createdAt: '2024-02-25T09:00:00Z'
     }
 ];

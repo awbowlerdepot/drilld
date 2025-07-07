@@ -1,4 +1,4 @@
-// src/components/customers/CustomerDetailView.tsx (Fixed - Clean Version)
+// src/components/customers/CustomerDetailView.tsx
 import React, { useState } from 'react';
 import { ArrowLeft, Plus, FileText, Target, Edit, Eye } from 'lucide-react';
 import { Customer, DrillSheet, BowlingBall } from '../../types';
@@ -15,12 +15,14 @@ interface CustomerDetailViewProps {
     customer: Customer;
     onBack: () => void;
     onEditCustomer: (customer: Customer) => void;
+    customers: Customer[]; // For forms that need customer list
 }
 
 export const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({
                                                                           customer,
                                                                           onBack,
-                                                                          onEditCustomer
+                                                                          onEditCustomer,
+                                                                          customers
                                                                       }) => {
     const { addDrillSheet, updateDrillSheet, deleteDrillSheet, getDrillSheetsByCustomer } = useDrillSheets();
     const { addBall, updateBall, deleteBall, getBallsByCustomer } = useBalls();
@@ -41,7 +43,9 @@ export const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({
         } else {
             addDrillSheet({
                 ...drillSheetData,
-                customerID: customer.id
+                customerID: customer.id,
+                // Ensure bridge has default value
+                bridge: drillSheetData.bridge || { distance: 0.25 }
             });
         }
         setShowDrillSheetForm(false);
@@ -54,15 +58,26 @@ export const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({
     };
 
     const handleViewDrillSheet = (drillSheet: DrillSheet) => {
-        // TODO: Implement drill sheet detail modal or navigate to detail view
-        console.log('View drill sheet:', drillSheet);
-        alert(`Viewing drill sheet: ${drillSheet.name}\nGrip: ${drillSheet.gripStyle}\nNotes: ${drillSheet.specialNotes || 'None'}`);
+        // Create a detailed view showing all measurements including bridge
+        const spanInfo = drillSheet.holes.thumb?.enabled ?
+            `Thumb-Middle: ${drillSheet.spans.thumbToMiddle.fitSpan || 'N/A'}", Thumb-Ring: ${drillSheet.spans.thumbToRing.fitSpan || 'N/A'}"` :
+            'No thumb measurements (Two-handed style)';
+
+        const bridgeInfo = `Bridge: ${drillSheet.bridge.distance}"`;
+
+        const holeInfo = [
+            drillSheet.holes.thumb?.enabled ? `Thumb: ${drillSheet.holes.thumb.size.primary} (${drillSheet.holes.thumb.holeType})` : '',
+            drillSheet.holes.middle ? `Middle: ${drillSheet.holes.middle.size.primary}` : '',
+            drillSheet.holes.ring ? `Ring: ${drillSheet.holes.ring.size.primary}` : ''
+        ].filter(Boolean).join(', ');
+
+        alert(`Drill Sheet: ${drillSheet.name}\n\nMeasurements:\n${spanInfo}\n${bridgeInfo}\n\nHoles:\n${holeInfo}\n\nNotes: ${drillSheet.specialNotes || 'None'}`);
     };
 
     const handlePrintDrillSheet = (drillSheet: DrillSheet) => {
         // TODO: Implement print functionality
         console.log('Print drill sheet:', drillSheet);
-        alert(`Printing drill sheet: ${drillSheet.name}`);
+        alert(`Printing drill sheet: ${drillSheet.name}\n\nThis would generate a formatted drill sheet with:\n- Span measurements\n- Bridge measurement: ${drillSheet.bridge.distance}"\n- Hole specifications\n- Pitch information`);
     };
 
     const handleDeleteDrillSheet = (drillSheet: DrillSheet) => {
@@ -220,8 +235,8 @@ export const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({
                                             ? 'bg-blue-100 text-blue-600'
                                             : 'bg-gray-100 text-gray-600'
                                     }`}>
-                    {tab.count}
-                  </span>
+                                        {tab.count}
+                                    </span>
                                 )}
                             </button>
                         ))}
@@ -265,7 +280,7 @@ export const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({
                                 <div className="animate-fade-in">
                                     <DrillSheetForm
                                         drillSheet={editingDrillSheet || undefined}
-                                        customers={[customer]} // Only this customer
+                                        customers={customers}
                                         onSave={handleSaveDrillSheet}
                                         onCancel={handleCancelDrillSheetForm}
                                         preselectedCustomerId={customer.id}
@@ -274,11 +289,11 @@ export const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({
                             )}
 
                             {customerDrillSheets.length === 0 && !showDrillSheetForm ? (
-                                <div className="text-center py-12">
-                                    <FileText className="mx-auto h-12 w-12 text-gray-400" />
-                                    <h3 className="mt-2 text-sm font-medium text-gray-900">No drill sheets</h3>
-                                    <p className="mt-1 text-sm text-gray-500">
-                                        Get started by creating a drill sheet for {customer.firstName}.
+                                <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
+                                    <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                                    <h4 className="text-lg font-medium text-gray-900 mb-2">No drill sheets yet</h4>
+                                    <p className="text-gray-500 mb-6">
+                                        Create the first drill sheet for {customer.firstName} to get started.
                                     </p>
                                     <div className="mt-6">
                                         <Button
@@ -326,7 +341,7 @@ export const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({
                                 <div className="animate-fade-in">
                                     <BallForm
                                         ball={editingBall || undefined}
-                                        customers={[customer]} // Only this customer
+                                        customers={customers}
                                         onSave={handleSaveBall}
                                         onCancel={handleCancelBallForm}
                                     />
@@ -334,11 +349,11 @@ export const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({
                             )}
 
                             {customerBalls.length === 0 && !showBallForm ? (
-                                <div className="text-center py-12">
-                                    <Target className="mx-auto h-12 w-12 text-gray-400" />
-                                    <h3 className="mt-2 text-sm font-medium text-gray-900">No bowling balls</h3>
-                                    <p className="mt-1 text-sm text-gray-500">
-                                        Add {customer.firstName}'s first bowling ball to get started.
+                                <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
+                                    <Target className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                                    <h4 className="text-lg font-medium text-gray-900 mb-2">No bowling balls yet</h4>
+                                    <p className="text-gray-500 mb-6">
+                                        Add the first bowling ball for {customer.firstName} to track their equipment.
                                     </p>
                                     <div className="mt-6">
                                         <Button
@@ -360,6 +375,7 @@ export const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({
                                             onView={handleViewBall}
                                             onCreateWorkOrder={handleCreateWorkOrder}
                                             onDelete={handleDeleteBall}
+                                            showCustomerName={false} // Don't show customer name since we're in customer context
                                         />
                                     ))}
                                 </div>

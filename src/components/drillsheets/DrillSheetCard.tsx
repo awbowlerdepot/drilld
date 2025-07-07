@@ -46,8 +46,8 @@ export const DrillSheetCard: React.FC<DrillSheetCardProps> = ({
                         ? 'bg-purple-100 text-purple-700'
                         : 'bg-green-100 text-green-700'
                 }`}>
-          {drillSheet.isTemplate ? 'Template' : 'Active'}
-        </span>
+                    {drillSheet.isTemplate ? 'Template' : 'Active'}
+                </span>
             </div>
 
             {/* Grip Style */}
@@ -58,10 +58,11 @@ export const DrillSheetCard: React.FC<DrillSheetCardProps> = ({
                 </div>
             </div>
 
-            {/* Span Measurements */}
+            {/* UPDATED: Measurements section - separated spans from bridge */}
             <div className="space-y-2 text-sm mb-4">
-                <h4 className="font-medium text-gray-700 text-xs uppercase tracking-wider">Span Measurements</h4>
+                <h4 className="font-medium text-gray-700 text-xs uppercase tracking-wider">Measurements</h4>
 
+                {/* Span Measurements (only thumb-related) */}
                 {hasThumb && drillSheet.spans.thumbToMiddle.fitSpan && (
                     <div className="flex justify-between">
                         <span className="text-gray-500">Thumb-Middle (Fit):</span>
@@ -76,12 +77,11 @@ export const DrillSheetCard: React.FC<DrillSheetCardProps> = ({
                     </div>
                 )}
 
-                {drillSheet.spans.middleToRing.fitSpan && (
-                    <div className="flex justify-between">
-                        <span className="text-gray-500">Middle-Ring (Fit):</span>
-                        <span className="font-medium">{drillSheet.spans.middleToRing.fitSpan}"</span>
-                    </div>
-                )}
+                {/* UPDATED: Display bridge measurement separately */}
+                <div className="flex justify-between">
+                    <span className="text-gray-500">Bridge:</span>
+                    <span className="font-medium">{drillSheet.bridge.distance}"</span>
+                </div>
             </div>
 
             {/* Hole Sizes */}
