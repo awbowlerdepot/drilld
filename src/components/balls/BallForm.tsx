@@ -6,19 +6,19 @@ import { Select } from '../ui/Select';
 
 interface BallFormProps {
     ball?: BowlingBall;
-    customers: Customer[];
+    customer?: Customer; // SIMPLIFIED: Just pass the current customer
     onSave: (ball: Omit<BowlingBall, 'id'>) => void;
     onCancel: () => void;
 }
 
 export const BallForm: React.FC<BallFormProps> = ({
                                                       ball,
-                                                      customers,
+                                                      customer, // SIMPLIFIED: Use the customer we're in context with
                                                       onSave,
                                                       onCancel
                                                   }) => {
     const [formData, setFormData] = useState({
-        customerID: ball?.customerID || '',
+        customerID: ball?.customerID || customer?.id || '',
         manufacturer: ball?.manufacturer || '',
         model: ball?.model || '',
         weight: ball?.weight?.toString() || '',
@@ -36,6 +36,7 @@ export const BallForm: React.FC<BallFormProps> = ({
     const validate = () => {
         const newErrors: Record<string, string> = {};
 
+        // SIMPLIFIED: Customer is always required
         if (!formData.customerID.trim()) {
             newErrors.customerID = 'Customer is required';
         }
@@ -71,6 +72,7 @@ export const BallForm: React.FC<BallFormProps> = ({
         if (validate()) {
             const submitData = {
                 ...formData,
+                customerID: formData.customerID, // Already set from customer context
                 weight: parseInt(formData.weight),
                 purchasePrice: formData.purchasePrice ? parseFloat(formData.purchasePrice) : undefined,
                 // Remove empty strings
@@ -92,11 +94,6 @@ export const BallForm: React.FC<BallFormProps> = ({
             setErrors(prev => ({ ...prev, [field]: '' }));
         }
     };
-
-    const customerOptions = customers.map(customer => ({
-        value: customer.id,
-        label: `${customer.firstName} ${customer.lastName}`
-    }));
 
     const manufacturerOptions = [
         { value: 'Storm', label: 'Storm' },
@@ -135,143 +132,160 @@ export const BallForm: React.FC<BallFormProps> = ({
     }));
 
     return (
-        <div className="bg-white shadow rounded-lg p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-6">
-                {ball ? 'Edit Bowling Ball' : 'Add New Bowling Ball'}
-            </h3>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="p-6">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                        {ball ? 'Edit Bowling Ball' : 'Add New Bowling Ball'}
+                    </h2>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Select
-                        label="Customer"
-                        value={formData.customerID}
-                        onChange={(value) => updateField('customerID', value)}
-                        options={customerOptions}
-                        placeholder="Select Customer"
-                        required
-                        error={errors.customerID}
-                    />
-                    <Select
-                        label="Weight"
-                        value={formData.weight}
-                        onChange={(value) => updateField('weight', value)}
-                        options={weightOptions}
-                        placeholder="Select Weight"
-                        required
-                        error={errors.weight}
-                    />
-                </div>
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        {/* Customer Info Section */}
+                        <div className="space-y-4">
+                            <h3 className="text-lg font-medium text-gray-900">Ball Information</h3>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <Select
-                            label="Manufacturer"
-                            value={formData.manufacturer}
-                            onChange={(value) => updateField('manufacturer', value)}
-                            options={manufacturerOptions}
-                            placeholder="Select Manufacturer"
-                            required
-                            error={errors.manufacturer}
-                        />
-                        {formData.manufacturer === 'Other' && (
+                            {/* SIMPLIFIED: Show customer info when available */}
+                            {customer && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Customer
+                                    </label>
+                                    <div className="p-3 bg-gray-50 border border-gray-300 rounded-md text-sm text-gray-900">
+                                        {customer.firstName} {customer.lastName}
+                                        <span className="text-gray-500 ml-2">({customer.email})</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <Select
+                                        label="Manufacturer"
+                                        value={formData.manufacturer}
+                                        onChange={(value) => updateField('manufacturer', value)}
+                                        options={manufacturerOptions}
+                                        placeholder="Select Manufacturer"
+                                        required
+                                        error={errors.manufacturer}
+                                    />
+                                    {formData.manufacturer === 'Other' && (
+                                        <Input
+                                            label=""
+                                            value={formData.manufacturer === 'Other' ? '' : formData.manufacturer}
+                                            onChange={(value) => updateField('manufacturer', value)}
+                                            placeholder="Enter manufacturer name"
+                                            className="mt-2"
+                                            required
+                                        />
+                                    )}
+                                </div>
+                                <Input
+                                    label="Model"
+                                    value={formData.model}
+                                    onChange={(value) => updateField('model', value)}
+                                    placeholder="e.g., Phaze II, Black Widow"
+                                    required
+                                    error={errors.model}
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Select
+                                    label="Weight"
+                                    value={formData.weight}
+                                    onChange={(value) => updateField('weight', value)}
+                                    options={weightOptions}
+                                    placeholder="Select Weight"
+                                    required
+                                    error={errors.weight}
+                                />
+                                <Input
+                                    label="Serial Number"
+                                    value={formData.serialNumber}
+                                    onChange={(value) => updateField('serialNumber', value)}
+                                    placeholder="Optional"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Select
+                                    label="Status"
+                                    value={formData.status}
+                                    onChange={(value) => updateField('status', value)}
+                                    options={[
+                                        { value: 'ACTIVE', label: 'Active' },
+                                        { value: 'RETIRED', label: 'Retired' },
+                                        { value: 'DAMAGED', label: 'Damaged' }
+                                    ]}
+                                    required
+                                />
+                                <Select
+                                    label="Coverstock Type"
+                                    value={formData.coverstockType}
+                                    onChange={(value) => updateField('coverstockType', value)}
+                                    options={coverstockOptions}
+                                    placeholder="Select Coverstock"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Select
+                                    label="Core Type"
+                                    value={formData.coreType}
+                                    onChange={(value) => updateField('coreType', value)}
+                                    options={coreOptions}
+                                    placeholder="Select Core Type"
+                                />
+                                <Input
+                                    label="Purchase Date"
+                                    type="text"
+                                    value={formData.purchaseDate}
+                                    onChange={(value) => updateField('purchaseDate', value)}
+                                    placeholder="YYYY-MM-DD or MM/DD/YYYY"
+                                />
+                            </div>
+
                             <Input
-                                label="Custom Manufacturer"
-                                value={formData.manufacturer}
-                                onChange={(value) => updateField('manufacturer', value)}
-                                placeholder="Enter manufacturer name"
-                                className="mt-2"
-                                required
+                                label="Purchase Price"
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={formData.purchasePrice}
+                                onChange={(value) => updateField('purchasePrice', value)}
+                                placeholder="0.00"
+                                error={errors.purchasePrice}
                             />
-                        )}
-                    </div>
-                    <Input
-                        label="Model"
-                        value={formData.model}
-                        onChange={(value) => updateField('model', value)}
-                        placeholder="e.g., Phaze II, Black Widow"
-                        required
-                        error={errors.model}
-                    />
-                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input
-                        label="Serial Number"
-                        value={formData.serialNumber}
-                        onChange={(value) => updateField('serialNumber', value)}
-                        placeholder="Optional"
-                    />
-                    <Select
-                        label="Status"
-                        value={formData.status}
-                        onChange={(value) => updateField('status', value)}
-                        options={[
-                            { value: 'ACTIVE', label: 'Active' },
-                            { value: 'RETIRED', label: 'Retired' },
-                            { value: 'DAMAGED', label: 'Damaged' }
-                        ]}
-                        required
-                    />
-                </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Notes
+                                </label>
+                                <textarea
+                                    rows={4}
+                                    value={formData.notes}
+                                    onChange={(e) => updateField('notes', e.target.value)}
+                                    className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="Any additional notes about this ball..."
+                                />
+                            </div>
+                        </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Select
-                        label="Coverstock Type"
-                        value={formData.coverstockType}
-                        onChange={(value) => updateField('coverstockType', value)}
-                        options={coverstockOptions}
-                        placeholder="Select Coverstock"
-                    />
-                    <Select
-                        label="Core Type"
-                        value={formData.coreType}
-                        onChange={(value) => updateField('coreType', value)}
-                        options={coreOptions}
-                        placeholder="Select Core Type"
-                    />
+                        {/* Form Actions */}
+                        <div className="flex justify-end space-x-4 pt-6 border-t">
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={onCancel}
+                            >
+                                Cancel
+                            </Button>
+                            <Button type="submit">
+                                {ball ? 'Update Ball' : 'Add Ball'}
+                            </Button>
+                        </div>
+                    </form>
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input
-                        label="Purchase Date"
-                        type="number"
-                        value={formData.purchaseDate}
-                        onChange={(value) => updateField('purchaseDate', value)}
-                    />
-                    <Input
-                        label="Purchase Price"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={formData.purchasePrice}
-                        onChange={(value) => updateField('purchasePrice', value)}
-                        placeholder="0.00"
-                        error={errors.purchasePrice}
-                    />
-                </div>
-
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Notes
-                    </label>
-                    <textarea
-                        rows={3}
-                        value={formData.notes}
-                        onChange={(e) => updateField('notes', e.target.value)}
-                        className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="Any special notes about this ball..."
-                    />
-                </div>
-
-                <div className="flex justify-end space-x-3">
-                    <Button variant="secondary" onClick={onCancel}>
-                        Cancel
-                    </Button>
-                    <Button type="submit">
-                        {ball ? 'Update Ball' : 'Save Ball'}
-                    </Button>
-                </div>
-            </form>
+            </div>
         </div>
     );
 };

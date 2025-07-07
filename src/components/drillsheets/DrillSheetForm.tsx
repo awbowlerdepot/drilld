@@ -1,4 +1,3 @@
-// src/components/drillsheets/DrillSheetForm.tsx
 import React, { useState } from 'react';
 import { DrillSheet, Customer, SpanMeasurement, HoleSize, BridgeMeasurement } from '../../types';
 import { Button } from '../ui/Button';
@@ -10,21 +9,19 @@ import { HoleSizeInput } from './HoleSizeInput';
 
 interface DrillSheetFormProps {
     drillSheet?: DrillSheet;
-    customers: Customer[];
+    customer?: Customer; // SIMPLIFIED: Just pass the current customer
     onSave: (drillSheet: Omit<DrillSheet, 'id' | 'createdAt'>) => void;
     onCancel: () => void;
-    preselectedCustomerId?: string;
 }
 
 export const DrillSheetForm: React.FC<DrillSheetFormProps> = ({
                                                                   drillSheet,
-                                                                  customers,
+                                                                  customer, // SIMPLIFIED: Use the customer we're in context with
                                                                   onSave,
-                                                                  onCancel,
-                                                                  preselectedCustomerId
+                                                                  onCancel
                                                               }) => {
     const [formData, setFormData] = useState({
-        customerID: drillSheet?.customerID || preselectedCustomerId || '',
+        customerID: drillSheet?.customerID || customer?.id || '',
         proshopID: drillSheet?.proshopID || 'proshop1',
         createdByEmployeeID: drillSheet?.createdByEmployeeID || 'emp1',
         name: drillSheet?.name || '',
@@ -194,11 +191,6 @@ export const DrillSheetForm: React.FC<DrillSheetFormProps> = ({
         }
     };
 
-    const customerOptions = customers.map(customer => ({
-        value: customer.id,
-        label: `${customer.firstName} ${customer.lastName}`
-    }));
-
     const gripStyleOptions = [
         { value: 'CONVENTIONAL', label: 'Conventional' },
         { value: 'FINGERTIP', label: 'Fingertip' },
@@ -233,26 +225,15 @@ export const DrillSheetForm: React.FC<DrillSheetFormProps> = ({
                                     placeholder="Customer Name - Ball Model"
                                 />
 
-                                {!formData.isTemplate && !preselectedCustomerId && (
-                                    <Select
-                                        label="Customer"
-                                        value={formData.customerID}
-                                        onChange={(value) => updateField('customerID', value)}
-                                        options={customerOptions}
-                                        required
-                                        error={errors.customerID}
-                                        placeholder="Select a customer"
-                                    />
-                                )}
-
-                                {!formData.isTemplate && preselectedCustomerId && (
+                                {/* SIMPLIFIED: Show customer info when available */}
+                                {!formData.isTemplate && customer && (
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                             Customer
                                         </label>
                                         <div className="p-3 bg-gray-50 border border-gray-300 rounded-md text-sm text-gray-900">
-                                            {customers.find(c => c.id === preselectedCustomerId)?.firstName} {customers.find(c => c.id === preselectedCustomerId)?.lastName}
-                                            <span className="text-gray-500 ml-2">(Current customer)</span>
+                                            {customer.firstName} {customer.lastName}
+                                            <span className="text-gray-500 ml-2">({customer.email})</span>
                                         </div>
                                     </div>
                                 )}

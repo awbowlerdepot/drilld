@@ -15,14 +15,12 @@ interface CustomerDetailViewProps {
     customer: Customer;
     onBack: () => void;
     onEditCustomer: (customer: Customer) => void;
-    customers: Customer[]; // For forms that need customer list
 }
 
 export const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({
                                                                           customer,
                                                                           onBack,
-                                                                          onEditCustomer,
-                                                                          customers
+                                                                          onEditCustomer
                                                                       }) => {
     const { addDrillSheet, updateDrillSheet, deleteDrillSheet, getDrillSheetsByCustomer } = useDrillSheets();
     const { addBall, updateBall, deleteBall, getBallsByCustomer } = useBalls();
@@ -280,10 +278,9 @@ export const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({
                                 <div className="animate-fade-in">
                                     <DrillSheetForm
                                         drillSheet={editingDrillSheet || undefined}
-                                        customers={customers}
+                                        customer={customer}
                                         onSave={handleSaveDrillSheet}
                                         onCancel={handleCancelDrillSheetForm}
-                                        preselectedCustomerId={customer.id}
                                     />
                                 </div>
                             )}
@@ -341,7 +338,7 @@ export const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({
                                 <div className="animate-fade-in">
                                     <BallForm
                                         ball={editingBall || undefined}
-                                        customers={customers}
+                                        customer={customer}
                                         onSave={handleSaveBall}
                                         onCancel={handleCancelBallForm}
                                     />
