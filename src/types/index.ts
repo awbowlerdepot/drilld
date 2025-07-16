@@ -1,3 +1,19 @@
+// Main types index - imports and re-exports all type definitions
+// This file serves as the central hub for all application types
+
+// Re-export drillsheet types from dedicated file
+export * from './drillsheet';
+
+// Re-export employee types from dedicated file
+export * from './employee';
+
+// Import specific types that we need to reference in this file
+import type { Employee } from './employee';
+
+// ==========================================
+// CUSTOMER TYPES
+// ==========================================
+
 export interface Customer {
     id: string;
     firstName: string;
@@ -11,91 +27,9 @@ export interface Customer {
     createdAt: string;
 }
 
-export interface SpanMeasurement {
-    fitSpan?: number;        // Fit measurement (most common)
-    fullSpan?: number;       // Full measurement
-    cutToCutSpan?: number;   // Cut to cut measurement
-}
-
-// NEW: Bridge measurement interface - simpler than span measurements
-export interface BridgeMeasurement {
-    distance: number;        // Bridge distance in inches, default 1/4"
-}
-
-export interface FingerConfiguration {
-    finger1: 'thumb' | 'index' | 'middle' | 'ring' | 'pinky';
-    finger2: 'thumb' | 'index' | 'middle' | 'ring' | 'pinky';
-}
-
-export interface HoleSize {
-    primary: string;         // Primary hole size (e.g., "31/64", "1/2")
-    secondary?: string;      // Secondary size if needed
-    depth?: number;          // Hole depth
-}
-
-export interface FingerHole {
-    size: HoleSize;
-    pitchForward?: number;   // Forward pitch
-    pitchLateral?: number;   // Lateral pitch
-    drillingSequence?: Array<{
-        step: number;
-        bitSize: string;
-        depth: number;
-        notes?: string;
-    }>;
-}
-
-export interface DrillSheet {
-    id: string;
-    customerID: string;
-    proshopID: string;
-    createdByEmployeeID: string;
-    name: string;
-    gripStyle: 'CONVENTIONAL' | 'FINGERTIP' | 'TWO_HANDED_NO_THUMB';
-
-    // REFACTORED: Separated spans from bridge measurement
-    spans: {
-        // True span measurements (thumb to fingers only)
-        thumbToMiddle: SpanMeasurement;
-        thumbToRing: SpanMeasurement;
-        // Additional custom spans if needed
-        customSpans?: Array<{
-            name: string;
-            configuration: FingerConfiguration;
-            measurements: SpanMeasurement;
-        }>;
-    };
-
-    // NEW: Bridge measurement (middle to ring finger)
-    bridge: BridgeMeasurement;
-
-    // Hole specifications
-    holes: {
-        thumb?: FingerHole & {
-            enabled: boolean;
-            holeType: 'round' | 'oval';
-        };
-        index?: FingerHole;
-        middle?: FingerHole;
-        ring?: FingerHole;
-        pinky?: FingerHole;
-        // Support for additional holes (balance, weight, etc.)
-        additionalHoles?: Array<{
-            name: string;
-            type: 'balance' | 'weight' | 'vent' | 'custom';
-            size: HoleSize;
-            position?: { x: number; y: number };
-            notes?: string;
-        }>;
-    };
-
-    // General drilling information
-    drillingAngles?: Record<string, number>;
-    specialNotes?: string;
-    isTemplate: boolean;
-    createdAt: string;
-    updatedAt?: string;
-}
+// ==========================================
+// BOWLING BALL TYPES
+// ==========================================
 
 export interface BowlingBall {
     id: string;
@@ -113,6 +47,10 @@ export interface BowlingBall {
     // Link to drill sheet used
     drillSheetID?: string;
 }
+
+// ==========================================
+// WORK ORDER TYPES
+// ==========================================
 
 export interface WorkOrder {
     id: string;
@@ -140,7 +78,10 @@ export interface WorkOrder {
     createdAt: string;
 }
 
-// Additional types for the enhanced system
+// ==========================================
+// LOCATION TYPES
+// ==========================================
+
 export interface Location {
     id: string;
     proshopID: string;
@@ -154,43 +95,82 @@ export interface Location {
     updatedAt: string;
 }
 
-export interface Employee {
-    id: string;
-    proshopID: string;
-    cognitoUserID: string;
-    username: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    phone?: string;
-    role: 'MANAGER' | 'SENIOR_TECH' | 'TECHNICIAN' | 'APPRENTICE';
-    permissions: string[];
-    certifications?: Record<string, any>;
-    hireDate?: string;
-    hourlyRate?: number;
-    locations: string[];
-    specialties: string[];
-    active: boolean;
-    createdAt: string;
-    updatedAt?: string;
+// ==========================================
+// UTILITY TYPES
+// ==========================================
+
+/**
+ * Generic API response wrapper
+ */
+export interface ApiResponse<T> {
+    data: T;
+    success: boolean;
+    message?: string;
+    errors?: string[];
 }
 
-// Utility function to migrate existing data
-export const migrateDrillSheetData = (oldDrillSheet: any): DrillSheet => {
-    return {
-        ...oldDrillSheet,
-        // Remove middleToRing from spans
-        spans: {
-            thumbToMiddle: oldDrillSheet.spans.thumbToMiddle,
-            thumbToRing: oldDrillSheet.spans.thumbToRing,
-            // customSpans remains if it exists
-            ...(oldDrillSheet.spans.customSpans && {
-                customSpans: oldDrillSheet.spans.customSpans
-            })
-        },
-        // Convert middleToRing span to bridge measurement
-        bridge: {
-            distance: oldDrillSheet.spans.middleToRing?.fitSpan || 0.25
-        }
+/**
+ * Pagination metadata
+ */
+export interface PaginationMeta {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+}
+
+/**
+ * Paginated response wrapper
+ */
+export interface PaginatedResponse<T> extends ApiResponse<T[]> {
+    meta: PaginationMeta;
+}
+
+/**
+ * Filter options for various list views
+ */
+export interface FilterOptions {
+    search?: string;
+    status?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+}
+
+/**
+ * Application state management types
+ */
+export interface AppState {
+    user?: Employee;
+    currentProshop?: string;
+    currentLocation?: string;
+    loading: boolean;
+    error?: string;
+}
+
+// ==========================================
+// LEGACY SUPPORT
+// ==========================================
+
+/**
+ * @deprecated Use the new DrillSheet type from './drillsheet'
+ * This is kept for backward compatibility during migration
+ */
+export interface LegacyDrillSheet {
+    id: string;
+    customerID: string;
+    name: string;
+    spans: {
+        thumbToMiddle: { fitSpan?: number; fullSpan?: number };
+        thumbToRing: { fitSpan?: number; fullSpan?: number };
+        middleToRing: { fitSpan?: number; fullSpan?: number }; // This will be migrated to bridge
     };
-};
+    holes: {
+        thumb?: { enabled: boolean; size: string };
+        middle?: { size: string };
+        ring?: { size: string };
+    };
+    isTemplate: boolean;
+    createdAt: string;
+}
