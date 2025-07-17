@@ -52,11 +52,14 @@ export interface CustomSpanMeasurement {
  * Hole size specification with primary/secondary sizes and depth
  */
 export interface HoleSize {
-    primary: string;         // Primary hole size (e.g., "31/64", "1/2")
-    secondary?: string;      // Secondary size if needed (for stepped holes)
-    depth?: number;          // Hole depth in inches
-    tolerance?: number;      // Acceptable size variance
+    primary: string;           // Primary hole size (e.g., "31/64", "1/2")
+    secondary?: string;        // Secondary size if needed (for stepped holes)
+    depth?: number;            // Hole depth in inches
+    tolerance?: number;        // Acceptable size variance
+    hasInsert?: boolean;       // WHETHER THIS HOLE USES AN INSERT (NEW)
+    insert?: FingerInsert;     // INSERT DETAILS IF hasInsert IS TRUE (NEW)
 }
+
 
 /**
  * Pitch specifications for hole angles
@@ -96,6 +99,106 @@ export interface FingerHole {
     };
     notes?: string;                     // Additional hole-specific notes
 }
+
+export interface FingerInsert {
+    manufacturer: 'VISE' | 'Turbo' | 'JoPo' | 'Other';
+    insertSize: string;        // Insert size (17/32" to 29/32" in 1/64" increments)
+    outsideHoleSize: '7/8' | '31/32' | '1-1/32';  // Outside hole size
+    type?: string;             // Insert type/model (varies by manufacturer)
+    model?: string;            // Specific insert model/part number
+    color?: string;            // Insert color if applicable
+    notes?: string;            // Any special notes about the insert
+}
+
+/**
+ * NEW: Insert size ranges and compatibility
+ */
+export const INSERT_SIZE_RANGES = {
+    '7/8': {
+        minSize: '17/32',
+        maxSize: '49/64',
+        availableSizes: [
+            '17/32', '35/64', '9/16', '37/64', '19/32', '39/64',
+            '5/8', '41/64', '21/32', '43/64', '11/16', '45/64',
+            '23/32', '47/64', '3/4', '49/64'
+        ]
+    },
+    '31/32': {
+        minSize: '9/16',
+        maxSize: '13/16',
+        availableSizes: [
+            '9/16', '37/64', '19/32', '39/64', '5/8', '41/64',
+            '21/32', '43/64', '11/16', '45/64', '23/32', '47/64',
+            '3/4', '49/64', '25/32', '51/64', '13/16'
+        ]
+    },
+    '1-1/32': {
+        minSize: '53/64',
+        maxSize: '29/32',
+        availableSizes: [
+            '53/64', '27/32', '55/64', '7/8', '57/64', '29/32'
+        ]
+    }
+} as const;
+
+/**
+ * NEW: Insert manufacturers and their product lines
+ */
+export const INSERT_MANUFACTURERS = {
+    VISE: {
+        name: 'VISE',
+        commonColors: ['Black', 'White', 'Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
+        notes: 'Popular for durability and grip',
+        types: [
+            'IT (Inner Thread)',
+            'Turbo Switch',
+            'Turbo Switch Grip',
+            'Power Lift',
+            'Power Oval',
+            'Easy Out',
+            'Thumb Solid',
+            'Thumb IT'
+        ]
+    },
+    Turbo: {
+        name: 'Turbo',
+        commonColors: ['Black', 'White', 'Red', 'Blue', 'Clear', 'Yellow'],
+        notes: 'Known for smooth release',
+        types: [
+            'Turbo Grips',
+            'Turbo Switch Grips',
+            'Quad Grips',
+            'Finger Inserts',
+            'Thumb Slugs',
+            'Switch Grip',
+            'Finger Tip Grips'
+        ]
+    },
+    JoPo: {
+        name: 'JoPo',
+        commonColors: ['Black', 'White', 'Clear', 'Red', 'Blue'],
+        notes: 'Precision fit and feel',
+        types: [
+            'Standard Inserts',
+            'Textured Inserts',
+            'Grip Inserts',
+            'Power Inserts',
+            'Comfort Inserts',
+            'Pro Series'
+        ]
+    },
+    Other: {
+        name: 'Other',
+        commonColors: ['Black', 'White'],
+        notes: 'Various manufacturers',
+        types: [
+            'Standard Insert',
+            'Textured Insert',
+            'Grip Insert',
+            'Custom Insert'
+        ]
+    }
+} as const;
 
 /**
  * Thumb hole specification with additional thumb-specific options
@@ -345,6 +448,28 @@ export const DRILL_BIT_SIZES = {
         '7/8', '29/32', '15/16', '31/32', '1'
     ]
 } as const;
+
+// ==========================================
+// NEW UTILITY FUNCTIONS TO ADD
+// ==========================================
+
+/**
+ * NEW: Helper function to validate insert compatibility
+ */
+export const isInsertCompatible = (insertSize: string, outsideHole: string): boolean => {
+    const range = INSERT_SIZE_RANGES[outsideHole as keyof typeof INSERT_SIZE_RANGES];
+    if (!range) return false;
+
+    return (range.availableSizes as readonly string[]).includes(insertSize);
+};
+
+/**
+ * NEW: Helper function to get available insert sizes for a given outside hole
+ */
+export const getAvailableInsertSizes = (outsideHole: string): string[] => {
+    const range = INSERT_SIZE_RANGES[outsideHole as keyof typeof INSERT_SIZE_RANGES];
+    return range ? [...range.availableSizes] : [];
+};
 
 /**
  * Standard grip measurements for different hand sizes
