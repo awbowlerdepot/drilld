@@ -1,12 +1,12 @@
 import React from 'react';
 import { Shield, Key, Clock, Database, HardDrive } from 'lucide-react';
-import { ProShopSecuritySettings } from '../../../types/proshopSettings';
+import { CompanySecuritySettings } from '../../../types/settings';
 import { Input } from '../../ui/Input';
 import { Select } from '../../ui/Select';
 
 interface SecuritySettingsTabProps {
-    settings: ProShopSecuritySettings;
-    onUpdate: (updates: Partial<ProShopSecuritySettings>) => void;
+    settings: CompanySecuritySettings;
+    onUpdate: (updates: Partial<CompanySecuritySettings>) => void;
 }
 
 export const SecuritySettingsTab: React.FC<SecuritySettingsTabProps> = ({

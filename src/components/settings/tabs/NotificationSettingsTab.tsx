@@ -1,11 +1,11 @@
 import React from 'react';
 import { Mail, MessageSquare, Bell, Phone } from 'lucide-react';
-import { ProShopNotificationSettings } from '../../../types/proshopSettings';
+import { CompanyNotificationSettings } from '../../../types/settings';
 import { Input } from '../../ui/Input';
 
 interface NotificationSettingsTabProps {
-    settings: ProShopNotificationSettings;
-    onUpdate: (updates: Partial<ProShopNotificationSettings>) => void;
+    settings: CompanyNotificationSettings;
+    onUpdate: (updates: Partial<CompanyNotificationSettings>) => void;
 }
 
 export const NotificationSettingsTab: React.FC<NotificationSettingsTabProps> = ({

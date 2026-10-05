@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { ProShopSettings, ProShopSettingsSection } from '../types/proshopSettings';
-import { mockProShopSettings } from '../data/mockProShopSettings';
+import { CompanySettings, CompanySettingsSection } from '../types/settings';
+import { mockCompanySettings } from '../data/mockCompanySettings';
 
-export const useProShopSettings = () => {
-    const [settings, setSettings] = useState<ProShopSettings>(mockProShopSettings);
+export const useCompanySettings = () => {
+    const [settings, setSettings] = useState<CompanySettings>(mockCompanySettings);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -16,14 +16,14 @@ export const useProShopSettings = () => {
         try {
             // TODO: Replace with actual API call
             // const response = await API.graphql({
-            //   query: getProShop,
+            //   query: getCompany,
             //   variables: { id: currentCompanyId }
             // });
-            // setSettings(JSON.parse(response.data.getProShop.settings) || mockProShopSettings);
+            // setSettings(JSON.parse(response.data.getCompany.settings) || mockCompanySettings);
 
             // Simulate API delay
             await new Promise(resolve => setTimeout(resolve, 500));
-            setSettings(mockProShopSettings);
+            setSettings(mockCompanySettings);
         } catch (err) {
             setError('Failed to load settings');
             console.error('Error loading settings:', err);
@@ -33,7 +33,7 @@ export const useProShopSettings = () => {
     };
 
     // Update a specific section of settings
-    const updateSection = (section: ProShopSettingsSection, data: any) => {
+    const updateSection = <S extends CompanySettingsSection>(section: S, data: Partial<CompanySettings[S]>) => {
         setSettings(prev => ({
             ...prev,
             [section]: {
@@ -52,7 +52,7 @@ export const useProShopSettings = () => {
         try {
             // TODO: Replace with actual API call
             // await API.graphql({
-            //   query: updateProShop,
+            //   query: updateCompany,
             //   variables: {
             //     input: {
             //       id: currentCompanyId,
@@ -76,7 +76,7 @@ export const useProShopSettings = () => {
 
     // Reset settings to last saved state
     const resetSettings = () => {
-        setSettings(mockProShopSettings);
+        setSettings(mockCompanySettings);
         setHasUnsavedChanges(false);
     };
 

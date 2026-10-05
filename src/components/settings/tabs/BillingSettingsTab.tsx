@@ -1,6 +1,6 @@
 import React from 'react';
 import { MapPin, FileText, Crown, Building } from 'lucide-react';
-import { ProShopBillingSettings } from '../../../types/proshopSettings';
+import { CompanyBillingSettings } from '../../../types/settings';
 import { Input } from '../../ui/Input';
 import { Select } from '../../ui/Select';
 
@@ -13,8 +13,8 @@ const emptyBillingAddress = {
 };
 
 interface BillingSettingsTabProps {
-    settings: ProShopBillingSettings;
-    onUpdate: (updates: Partial<ProShopBillingSettings>) => void;
+    settings: CompanyBillingSettings;
+    onUpdate: (updates: Partial<CompanyBillingSettings>) => void;
 }
 
 export const BillingSettingsTab: React.FC<BillingSettingsTabProps> = ({
@@ -121,14 +121,14 @@ export const BillingSettingsTab: React.FC<BillingSettingsTabProps> = ({
                         <Select
                             label="Subscription Tier"
                             value={settings.subscriptionTier}
-                            onChange={(value) => onUpdate({ subscriptionTier: value as ProShopBillingSettings['subscriptionTier'] })}
+                            onChange={(value) => onUpdate({ subscriptionTier: value as CompanyBillingSettings['subscriptionTier'] })}
                             options={subscriptionTierOptions}
                         />
 
                         <Select
                             label="Billing Cycle"
                             value={settings.billingCycle}
-                            onChange={(value) => onUpdate({ billingCycle: value as ProShopBillingSettings['billingCycle'] })}
+                            onChange={(value) => onUpdate({ billingCycle: value as CompanyBillingSettings['billingCycle'] })}
                             options={billingCycleOptions}
                         />
                     </div>

@@ -13,8 +13,8 @@ import {
     CheckCircle,
     Loader2
 } from 'lucide-react';
-import { useProShopSettings } from '../../hooks/useProShopSettings';
-import { ProShopSettingsSection } from '../../types/proshopSettings';
+import { useCompanySettings } from '../../hooks/useCompanySettings';
+import { CompanySettingsSection } from '../../types/settings';
 import { Button } from '../ui/Button';
 import { GeneralSettingsTab } from './tabs/GeneralSettingsTab';
 import { BillingSettingsTab } from './tabs/BillingSettingsTab';
@@ -24,14 +24,14 @@ import { NotificationSettingsTab } from './tabs/NotificationSettingsTab';
 import { IntegrationSettingsTab } from './tabs/IntegrationSettingsTab';
 
 interface Tab {
-    id: ProShopSettingsSection;
+    id: CompanySettingsSection;
     label: string;
     icon: React.ReactNode;
     description: string;
 }
 
-export const ProShopSettingsManagement: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<ProShopSettingsSection>('general');
+export const CompanySettingsManagement: React.FC = () => {
+    const [activeTab, setActiveTab] = useState<CompanySettingsSection>('general');
     const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
     const {
@@ -43,14 +43,14 @@ export const ProShopSettingsManagement: React.FC = () => {
         saveSettings,
         resetSettings,
         validateSettings
-    } = useProShopSettings();
+    } = useCompanySettings();
 
     const tabs: Tab[] = [
         {
             id: 'general',
             label: 'General',
             icon: <Building2 className="w-4 h-4" />,
-            description: 'Business information and basic settings'
+            description: 'Company information and regional defaults'
         },
         {
             id: 'billing',
@@ -174,8 +174,8 @@ export const ProShopSettingsManagement: React.FC = () => {
                 <div className="flex items-center space-x-3">
                     <Settings className="w-8 h-8 text-blue-600" />
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Pro Shop Settings</h1>
-                        <p className="text-gray-600">Manage your pro shop configuration and preferences</p>
+                        <h1 className="text-2xl font-bold text-gray-900">Company Settings</h1>
+                        <p className="text-gray-600">Company-wide defaults. Individual locations can override some of these.</p>
                     </div>
                 </div>
 

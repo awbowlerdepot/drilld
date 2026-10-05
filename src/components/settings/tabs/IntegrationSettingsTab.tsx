@@ -1,6 +1,6 @@
 import React from 'react';
 import { Plug, CreditCard, Package, Mail, ShoppingCart, TestTube } from 'lucide-react';
-import { ProShopIntegrationSettings } from '../../../types/proshopSettings';
+import { CompanyIntegrationSettings } from '../../../types/settings';
 import { Input } from '../../ui/Input';
 import { Select } from '../../ui/Select';
 
@@ -12,8 +12,8 @@ const integrationDefaults = {
 };
 
 interface IntegrationSettingsTabProps {
-    settings: ProShopIntegrationSettings;
-    onUpdate: (updates: Partial<ProShopIntegrationSettings>) => void;
+    settings: CompanyIntegrationSettings;
+    onUpdate: (updates: Partial<CompanyIntegrationSettings>) => void;
 }
 
 export const IntegrationSettingsTab: React.FC<IntegrationSettingsTabProps> = ({

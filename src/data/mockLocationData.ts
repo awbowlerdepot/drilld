@@ -95,6 +95,11 @@ export const mockLocations: Location[] = [
             saturday: '10:00 AM - 9:00 PM',
             sunday: '1:00 PM - 7:00 PM'
         },
+        settingsOverrides: {
+            taxRate: 7.25,
+            workflow: { defaultLaborRate: 45 },
+            notifications: { notificationEmail: 'westside@strikezoneproshop.com' }
+        },
         active: true,
         createdAt: '2023-06-01T00:00:00Z',
         updatedAt: '2024-01-10T14:30:00Z'

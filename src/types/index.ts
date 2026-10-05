@@ -7,8 +7,12 @@ export * from './drillsheet';
 // Re-export employee types from dedicated file
 export * from './employee';
 
+// Re-export company and location settings types
+export * from './settings';
+
 // Import specific types that we need to reference in this file
 import type { Employee } from './employee';
+import type { LocationSettingsOverrides } from './settings';
 
 // ==========================================
 // CUSTOMER TYPES
@@ -105,6 +109,7 @@ export interface Location {
     phone?: string;
     equipmentInfo?: LocationEquipmentInfo;
     hours?: Record<string, string>;
+    settingsOverrides?: LocationSettingsOverrides;
     active: boolean;
     createdAt: string;
     updatedAt: string;
