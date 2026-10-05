@@ -1,6 +1,6 @@
 # Drilld data model
 
-Status: agreed design, not implemented yet. Target is PostgreSQL. Last updated 2026-10-05.
+Status: agreed design. The PostgreSQL schema is implemented in `db/migrations/` and tested by `db/test.sh`; where this doc and the migrations differ, the migrations win. The API and services are not built yet. Last updated 2026-10-05.
 
 ## Decisions
 
@@ -92,7 +92,7 @@ create table location (
 create table app_user (
     id            uuid primary key default gen_random_uuid(),
     company_id    uuid not null references company(id),
-    cognito_sub   text not null unique,
+    cognito_sub   text unique,                -- null until the person first signs in
     email         text not null unique,               -- one company per person
     first_name    text not null,
     last_name     text not null,
@@ -119,7 +119,7 @@ create table location_membership (
 );
 ```
 
-**Location limit.** Creating or re-activating a location locks the company row (`select ... for update`), counts active locations and rejects the change if the count would exceed `plan.included_locations`. This runs in the backend service, inside the same transaction.
+**Location limit.** A trigger on `location` enforces it in the database. Creating or re-activating a location locks the company row (`select ... for update`), counts active locations and rejects the change if the count would exceed `plan.included_locations`.
 
 ### Customers
 
@@ -409,7 +409,7 @@ Defer until productizing (it can be added without migrating data):
    create policy tenant_isolation on customer
        using (company_id = current_setting('app.company_id')::uuid);
    ```
-2. **The company comes from the server, never the client.** For each request, the backend resolves `app_user` from the verified Cognito `sub` and runs `set_config('app.company_id', ..., true)` inside the transaction.
+2. **The company comes from the server, never the client.** For each request, the backend calls `resolve_app_user(cognito_sub)`, a narrow `SECURITY DEFINER` lookup that works before any company is set. It then runs `set_config('app.company_id', ..., true)` inside the transaction.
 3. **Composite foreign keys** `(company_id, x_id)` make it impossible for one company's row to reference another company's row, even through a bug.
 4. **Location scope** is checked in the backend against `location_membership`. `OWNER` and `ADMIN` users have every location in their company.
 5. The app's database role does **not** bypass RLS. Migrations use a separate owner role.
