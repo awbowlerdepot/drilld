@@ -12,7 +12,7 @@ Status: agreed design, not implemented yet. Target is PostgreSQL. Last updated 2
 | Billing | **Company level**. A plan includes up to **4 locations**; more locations means a bigger plan (to be designed later). |
 | Rollout | Used **internally first**, as the first company, then productized. Multi-tenancy is built in from day one so productizing needs no data migration. |
 | Customers (bowlers) | Company level, with a home location. Shared across the company's locations. |
-| Ball products | Come from the existing external **ball catalog** system. Drilld stores a reference and a snapshot. |
+| Ball products | Come from the **BowlerIQ Partner API** (v1). Drilld keeps a local copy, synced from its change feed, and references it by BowlerIQ ball id + weight. |
 | Physical balls | **Platform-wide registry** keyed on manufacturer + serial, so a ball can move between companies. |
 | Cross-company ball info | **Option 2**: another company sees only anonymous facts (drill count, plug count, month last worked). |
 | Drill sheets | The bowler's **fit**. Revisions are append-only, and work orders point at a specific revision. |
@@ -23,7 +23,8 @@ Status: agreed design, not implemented yet. Target is PostgreSQL. Last updated 2
 
 ```
 Platform
-├── ball                          registry: identity only (catalog ref, manufacturer, serial)
+├── catalog_ball                  local copy of the BowlerIQ catalog (synced)
+├── ball                          registry: identity only (catalog ref, weight, brand, serial)
 ├── ball_service_summary()        the only cross-company read path
 └── company                       TENANT
     ├── location                  physical pro shop (plan includes up to 4)
@@ -142,21 +143,67 @@ create table customer (
 );
 ```
 
+### Ball catalog (BowlerIQ)
+
+Ball products come from the **BowlerIQ Partner API v1**. The API docs and OpenAPI schema live in the `brunswick-scraper` repo: `docs/partner-api-v1.md` and `tests/fixtures/partner_api_v1_openapi.json`.
+
+What matters for Drilld:
+
+- **Base URL** `https://api.bowleriq.io/partner/`. Auth is `Authorization: Bearer <partner key>`.
+  - The key is **server-side only**. It goes in AWS Secrets Manager, never in a `VITE_*` env var or the browser.
+- **One ball id per colorway**, stable UUID. **Weights are not separate ids**: each ball has a `weights[]` list with RG, differential and mass bias per weight. So a ball product in Drilld is identified by **ball id + weight**.
+- **Brands** have stable ids. A brand id is the "manufacturer" for serial-number uniqueness.
+- **No per-serial data.** Pin distance, top weight and other per-ball measurements stay on `company_ball`.
+- **No search endpoint.** Drilld searches its own copy when staff pick a ball.
+- **v1 only grows.** New optional fields may appear, so store the whole object and ignore unknown fields.
+- **Sync** uses `GET /v1/changes?cursor=…`:
+  - Page until `has_more` is false, and save `next_cursor` after applying each page.
+  - Each item is either `upsert` (replace our copy with the ball) or `remove` (no longer published).
+  - Applying a page twice is safe.
+  - The first run, with no cursor, returns every ball.
+  - Run it every 15–60 minutes from a scheduled backend job (EventBridge + Lambda). The rate limit is about 10 requests/second.
+- **Plotter data** (`/v1/plotter`, oil 1–16 and motion 1–18, plus similar balls) is available for future ball recommendation features. It's not used in v1 of Drilld.
+
+```sql
+-- Local copy of the BowlerIQ catalog. Platform data, not tenant data. Written only by the sync job.
+create table catalog_ball (
+    id                  uuid primary key,          -- BowlerIQ ball id (one per colorway)
+    brand_id            uuid not null,             -- BowlerIQ brand id
+    brand_name          text not null,
+    name                text not null,
+    color               text,
+    status              text not null,             -- 'current' | 'retired' (retired is still valid)
+    data                jsonb not null,            -- full BowlerIQ Ball object: weights, coverstock, core, plotter, urls
+    content_changed_at  timestamptz not null,
+    removed_at          timestamptz,               -- set on a 'remove' change; cleared by a later 'upsert'
+    synced_at           timestamptz not null default now()
+);
+create index catalog_ball_search_idx on catalog_ball (brand_name, name);
+
+-- Single row: where the change feed left off.
+create table catalog_sync_state (
+    id          smallint primary key default 1 check (id = 1),
+    cursor      text,
+    last_run_at timestamptz
+);
+```
+
+A `remove` **never deletes** a `catalog_ball` row. It only sets `removed_at`. Physical balls and work orders may still reference the ball, and their history must stay intact. Removed balls are hidden when picking a new ball.
+
 ### Balls
 
 ```sql
--- Platform-wide registry. NOT tenant data. Identity only.
+-- Platform-wide registry of physical balls. NOT tenant data. Identity only.
 create table ball (
     id               uuid primary key default gen_random_uuid(),
-    catalog_ball_id  text not null,        -- ID in the external ball catalog
-    manufacturer     text not null,        -- snapshot from catalog
-    model            text not null,        -- snapshot from catalog
-    weight_lb        numeric(5,2) not null,
+    catalog_ball_id  uuid not null references catalog_ball(id),
+    weight_lbs       smallint not null,    -- picks the entry in catalog_ball.data.weights
+    brand_id         uuid not null,        -- copied from catalog_ball for the serial constraint
     serial_number    text,                 -- normalized: trimmed, upper-cased
     created_at       timestamptz not null default now()
 );
-create unique index ball_manufacturer_serial_uq
-    on ball (manufacturer, serial_number) where serial_number is not null;
+create unique index ball_brand_serial_uq
+    on ball (brand_id, serial_number) where serial_number is not null;
 
 -- A company's record of a physical ball.
 create table company_ball (
@@ -190,7 +237,14 @@ create unique index ball_ownership_current_uq
     on ball_ownership (company_ball_id) where to_date is null;
 ```
 
-**Registering a ball** goes through one backend path. It looks up the ball in the catalog, normalizes the serial, upserts into `ball` on (manufacturer, serial), then creates the `company_ball` and `ball_ownership` rows. A ball without a serial always gets a new registry row.
+**Registering a ball** goes through one backend path:
+
+1. Staff pick a ball and a weight from `catalog_ball`.
+2. The backend normalizes the serial.
+3. It upserts into `ball` on (brand_id, serial).
+4. It creates the `company_ball` and `ball_ownership` rows.
+
+A ball without a serial always gets a new registry row.
 
 ### Drill sheets
 
@@ -397,7 +451,7 @@ Tenant-scoped Prisma queries run in an interactive transaction that sets `app.co
 | `ProShopSettings` | `CompanySettings` (`company.settings`) + location overrides; billing moves to `company` |
 | `Location` (with `proshopID`) | `Location` with `companyID`; `equipmentInfo.equipment` → `equipment` |
 | `Employee` (single `role`, `locations[]`) | `AppUser` + `LocationMembership[]` (role per location) |
-| `BowlingBall` (manufacturer/model/coverstock/core) | `Ball` (registry + catalog snapshot) + `CompanyBall` + `BallOwnership` |
+| `BowlingBall` (manufacturer/model/coverstock/core) | `CatalogBall` (BowlerIQ) + `Ball` (registry: catalog id, weight, serial) + `CompanyBall` + `BallOwnership` |
 | `BowlingBall.drillSheetID` | removed; derived from the ball's latest work order |
 | `DrillSheet` | `DrillSheet` + `DrillSheetRevision` (`spec` jsonb) |
 | `DrillSheet.layout`, `additionalHoles`, `surface` | move to `WorkOrder.layout` |
@@ -407,9 +461,8 @@ Tenant-scoped Prisma queries run in an interactive transaction that sets `app.co
 
 ## Open items
 
-1. **Ball catalog API.** How it identifies a product (per model, or per model + weight), what a record returns, search, auth and hosting. Do per-serial factory specs exist there?
-2. **Reusable layouts.** Should a bowler's go-to layout or a shop's standard layouts be saved and reused? If so, add a `layout_template` table.
-3. **Revision semantics.** Should every save create a revision, or should drafts be editable until approved or drilled?
-4. **Pitch units.** Inches, degrees, or both (stored with an explicit unit)?
-5. **Drill sheet status.** The current `DrillSheetStatus` mixes sheet states with work states (`IN_PROGRESS`, `COMPLETED`). Proposal: the sheet is active or archived, approval belongs to the revision, and progress belongs to the work order.
-6. **Customer sharing setting.** Do customers stay shared across all of a company's locations, or should there be a company-level toggle for chains that run locations independently?
+1. **Reusable layouts.** Should a bowler's go-to layout or a shop's standard layouts be saved and reused? If so, add a `layout_template` table.
+2. **Revision semantics.** Should every save create a revision, or should drafts be editable until approved or drilled?
+3. **Pitch units.** Inches, degrees, or both (stored with an explicit unit)?
+4. **Drill sheet status.** The current `DrillSheetStatus` mixes sheet states with work states (`IN_PROGRESS`, `COMPLETED`). Proposal: the sheet is active or archived, approval belongs to the revision, and progress belongs to the work order.
+5. **Customer sharing setting.** Do customers stay shared across all of a company's locations, or should there be a company-level toggle for chains that run locations independently?
