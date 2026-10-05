@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Employee } from '../types';
+import { Employee, EmployeeFormData } from '../types';
 import { mockEmployees } from '../data/mockData';
 
 export const useEmployees = () => {
@@ -15,11 +15,17 @@ export const useEmployees = () => {
         }, 500);
     }, []);
 
-    const addEmployee = (employee: Omit<Employee, 'id' | 'createdAt'>) => {
+    const addEmployee = (employee: EmployeeFormData) => {
+        const now = new Date().toISOString();
+        // System-managed fields; the real API will assign these server-side
         const newEmployee: Employee = {
             ...employee,
             id: Date.now().toString(),
-            createdAt: new Date().toISOString()
+            proshopID: 'proshop1',
+            cognitoUserID: '',
+            active: true,
+            createdAt: now,
+            updatedAt: now
         };
         setEmployees(prev => [...prev, newEmployee]);
         return newEmployee;
@@ -28,7 +34,7 @@ export const useEmployees = () => {
     const updateEmployee = (id: string, updates: Partial<Employee>) => {
         setEmployees(prev =>
             prev.map(employee =>
-                employee.id === id ? { ...employee, ...updates } : employee
+                employee.id === id ? { ...employee, ...updates, updatedAt: new Date().toISOString() } : employee
             )
         );
     };

@@ -13,7 +13,6 @@ interface EmployeeCardProps {
 export const EmployeeCard: React.FC<EmployeeCardProps> = ({
                                                               employee,
                                                               onEdit,
-                                                              onDelete,
                                                               onToggleStatus,
                                                               onClick
                                                           }) => {

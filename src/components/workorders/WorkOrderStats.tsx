@@ -1,14 +1,12 @@
 import React from 'react';
 import { Calendar, TrendingUp, DollarSign, Clock, Award } from 'lucide-react';
-import { WorkOrder, BowlingBall, Customer } from '../../types';
+import { WorkOrder } from '../../types';
 
 interface WorkOrderStatsProps {
     workOrders: WorkOrder[];
-    balls: BowlingBall[];
-    customers: Customer[];
 }
 
-export const WorkOrderStats: React.FC<WorkOrderStatsProps> = ({ workOrders, balls, customers }) => {
+export const WorkOrderStats: React.FC<WorkOrderStatsProps> = ({ workOrders }) => {
     const today = new Date();
     const thisMonth = workOrders.filter(wo => {
         const workDate = new Date(wo.workDate);

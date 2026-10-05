@@ -4,6 +4,13 @@ import { ProShopIntegrationSettings } from '../../../types/proshopSettings';
 import { Input } from '../../ui/Input';
 import { Select } from '../../ui/Select';
 
+const integrationDefaults = {
+    posIntegration: { enabled: false, provider: '', syncInterval: 300 },
+    inventoryIntegration: { enabled: false, provider: '', autoOrderLowStock: false },
+    paymentProcessing: { enabled: false, provider: '', testMode: true },
+    emailProvider: { provider: 'SENDGRID' as const, fromEmail: '', fromName: '' }
+};
+
 interface IntegrationSettingsTabProps {
     settings: ProShopIntegrationSettings;
     onUpdate: (updates: Partial<ProShopIntegrationSettings>) => void;
@@ -45,6 +52,7 @@ export const IntegrationSettingsTab: React.FC<IntegrationSettingsTabProps> = ({
     const updatePosIntegration = (field: string, value: any) => {
         onUpdate({
             posIntegration: {
+                ...integrationDefaults.posIntegration,
                 ...settings.posIntegration,
                 [field]: value
             }
@@ -54,6 +62,7 @@ export const IntegrationSettingsTab: React.FC<IntegrationSettingsTabProps> = ({
     const updateInventoryIntegration = (field: string, value: any) => {
         onUpdate({
             inventoryIntegration: {
+                ...integrationDefaults.inventoryIntegration,
                 ...settings.inventoryIntegration,
                 [field]: value
             }
@@ -63,6 +72,7 @@ export const IntegrationSettingsTab: React.FC<IntegrationSettingsTabProps> = ({
     const updatePaymentProcessing = (field: string, value: any) => {
         onUpdate({
             paymentProcessing: {
+                ...integrationDefaults.paymentProcessing,
                 ...settings.paymentProcessing,
                 [field]: value
             }
@@ -72,6 +82,7 @@ export const IntegrationSettingsTab: React.FC<IntegrationSettingsTabProps> = ({
     const updateEmailProvider = (field: string, value: any) => {
         onUpdate({
             emailProvider: {
+                ...integrationDefaults.emailProvider,
                 ...settings.emailProvider,
                 [field]: value
             }

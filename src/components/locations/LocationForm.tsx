@@ -1,23 +1,15 @@
 import React, { useState } from 'react';
-import { Location } from '../../types';
+import { Location, EquipmentItem } from '../../types';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Textarea } from '../ui/Textarea';
-import { X, MapPin, Phone, Clock, Wrench } from 'lucide-react';
+import { X, MapPin, Clock, Wrench } from 'lucide-react';
 
 interface LocationFormProps {
     location?: Location;
     onSave: (location: Omit<Location, 'id' | 'createdAt' | 'updatedAt'>) => void;
     onCancel: () => void;
     proshopID: string;
-}
-
-interface EquipmentItem {
-    name: string;
-    model: string;
-    manufacturer?: string;
-    serialNumber?: string;
-    condition: 'excellent' | 'good' | 'fair' | 'needs_repair';
 }
 
 interface HoursData {

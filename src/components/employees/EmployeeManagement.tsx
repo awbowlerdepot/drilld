@@ -113,7 +113,7 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = ({ searchTe
     if (error) {
         return (
             <div className="bg-red-50 border border-red-200 rounded-md p-4">
-                <p className="text-red-800">Error loading employees: {error.message}</p>
+                <p className="text-red-800">Error loading employees: {error}</p>
             </div>
         );
     }

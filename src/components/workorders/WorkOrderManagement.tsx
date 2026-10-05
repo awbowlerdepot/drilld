@@ -165,11 +165,7 @@ export const WorkOrderManagement: React.FC<WorkOrderManagementProps> = ({
             </div>
 
             {/* Stats Overview */}
-            <WorkOrderStats
-                workOrders={workOrders}
-                balls={balls}
-                customers={customers}
-            />
+            <WorkOrderStats workOrders={workOrders} />
 
             {/* Filters */}
             <WorkOrderFilters

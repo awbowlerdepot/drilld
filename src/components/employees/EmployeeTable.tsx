@@ -13,7 +13,6 @@ interface EmployeeTableProps {
 export const EmployeeTable: React.FC<EmployeeTableProps> = ({
                                                                 employees,
                                                                 onEdit,
-                                                                onDelete,
                                                                 onToggleStatus,
                                                                 onRowClick
                                                             }) => {

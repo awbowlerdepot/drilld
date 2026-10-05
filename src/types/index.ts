@@ -82,13 +82,28 @@ export interface WorkOrder {
 // LOCATION TYPES
 // ==========================================
 
+export type EquipmentCondition = 'excellent' | 'good' | 'fair' | 'needs_repair';
+
+export interface EquipmentItem {
+    name: string;
+    model: string;
+    manufacturer?: string;
+    serialNumber?: string;
+    condition: EquipmentCondition;
+}
+
+export interface LocationEquipmentInfo {
+    equipment: EquipmentItem[];
+    lastUpdated?: string;
+}
+
 export interface Location {
     id: string;
     proshopID: string;
     name: string;
     address?: string;
     phone?: string;
-    equipmentInfo?: Record<string, any>;
+    equipmentInfo?: LocationEquipmentInfo;
     hours?: Record<string, string>;
     active: boolean;
     createdAt: string;
