@@ -401,6 +401,24 @@ Defer until productizing (it can be added without migrating data):
 - additional plans above 4 locations
 - a platform admin console
 
+## Sign-in (Cognito)
+
+Defined in `amplify/auth/resource.ts` and `amplify/backend.ts`.
+
+- **Email and password**, with optional authenticator-app (TOTP) MFA and email-only password recovery.
+- **No self sign-up.** Accounts are created by invitation (Cognito `AdminCreateUser`), which emails a temporary password.
+- **Cognito holds identity only.** Company, roles and permissions live in the database and are looked up by the Cognito `sub` through `resolve_app_user`. Nothing about tenancy is stored in Cognito attributes or groups.
+
+**Invitation flow** (API work, not built yet):
+
+1. An owner or admin adds an employee. The API creates the `app_user` row (with `cognito_sub` null) and calls `AdminCreateUser` with their email.
+2. On first sign-in, `resolve_app_user(sub)` finds nothing. The API then matches the token's **verified** email to the `app_user` row, case-insensitively, and saves the `sub`.
+3. That match needs a second narrow `SECURITY DEFINER` function, because no company is set yet.
+
+The first company and its owner are created by a platform seed/admin script.
+
+**Frontend:** `src/main.tsx` wraps the app in `AuthWrapper` (the Amplify `Authenticator` with sign-up hidden) when `amplify_outputs.json` has an `auth` section. Without it, the app runs without sign-in on mock data. Once hooks read real data, production must refuse to run without auth.
+
 ## Tenant isolation
 
 1. **Row-level security** on every tenant table:
