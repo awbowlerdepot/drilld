@@ -26,7 +26,7 @@ export const DrillSheetForm: React.FC<DrillSheetFormProps> = ({
                                                               }) => {
     const [formData, setFormData] = useState({
         customerID: drillSheet?.customerID || customer?.id || '',
-        proshopID: drillSheet?.proshopID || 'proshop1',
+        companyID: drillSheet?.companyID || 'company1',
         createdByEmployeeID: drillSheet?.createdByEmployeeID || 'emp1',
         name: drillSheet?.name || '',
         gripStyle: drillSheet?.gripStyle || 'FINGERTIP' as const,
@@ -167,7 +167,7 @@ export const DrillSheetForm: React.FC<DrillSheetFormProps> = ({
         if (validate()) {
             const submitData: Omit<DrillSheet, 'id' | 'createdAt'> = {
                 customerID: formData.customerID,
-                proshopID: formData.proshopID,
+                companyID: formData.companyID,
                 createdByEmployeeID: formData.createdByEmployeeID,
                 name: formData.name,
                 status: 'DRAFT',

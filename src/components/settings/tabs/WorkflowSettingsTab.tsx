@@ -1,11 +1,11 @@
 import React from 'react';
 import { Settings, DollarSign, FileText, Users, CheckSquare } from 'lucide-react';
-import { ProShopWorkflowSettings } from '../../../types/proshopSettings';
+import { CompanyWorkflowSettings } from '../../../types/settings';
 import { Input } from '../../ui/Input';
 
 interface WorkflowSettingsTabProps {
-    settings: ProShopWorkflowSettings;
-    onUpdate: (updates: Partial<ProShopWorkflowSettings>) => void;
+    settings: CompanyWorkflowSettings;
+    onUpdate: (updates: Partial<CompanyWorkflowSettings>) => void;
 }
 
 export const WorkflowSettingsTab: React.FC<WorkflowSettingsTabProps> = ({

@@ -1,6 +1,7 @@
 import React from 'react';
 import { User, Edit, UserCheck, UserX } from 'lucide-react';
 import { Employee } from '../../types/employee';
+import { EmployeeRoleBadges } from './EmployeeRoleBadges';
 
 interface EmployeeTableProps {
     employees: Employee[];
@@ -8,14 +9,15 @@ interface EmployeeTableProps {
     onDelete: (employeeId: string) => void;
     onToggleStatus: (employee: Employee) => void;
     onRowClick: (employee: Employee) => void;
+    locationNames: Record<string, string>;
 }
 
 export const EmployeeTable: React.FC<EmployeeTableProps> = ({
                                                                 employees,
                                                                 onEdit,
-                                                                onDelete,
                                                                 onToggleStatus,
-                                                                onRowClick
+                                                                onRowClick,
+                                                                locationNames
                                                             }) => {
     return (
         <div className="overflow-x-auto">
@@ -26,7 +28,7 @@ export const EmployeeTable: React.FC<EmployeeTableProps> = ({
                         Employee
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Role
+                        Roles
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Contact
@@ -68,8 +70,8 @@ export const EmployeeTable: React.FC<EmployeeTableProps> = ({
                                 </div>
                             </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {employee.role.replace('_', ' ')}
+                        <td className="px-6 py-4 text-sm text-gray-900">
+                            <EmployeeRoleBadges employee={employee} locationNames={locationNames} />
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             <div>{employee.email}</div>

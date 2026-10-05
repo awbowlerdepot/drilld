@@ -1,12 +1,20 @@
 import React from 'react';
-import { CreditCard, MapPin, FileText, Calendar, Crown, Building } from 'lucide-react';
-import { ProShopBillingSettings } from '../../../types/proshopSettings';
+import { MapPin, FileText, Crown, Building } from 'lucide-react';
+import { CompanyBillingSettings } from '../../../types/settings';
 import { Input } from '../../ui/Input';
 import { Select } from '../../ui/Select';
 
+const emptyBillingAddress = {
+    street: '',
+    city: '',
+    state: '',
+    zipCode: '',
+    country: ''
+};
+
 interface BillingSettingsTabProps {
-    settings: ProShopBillingSettings;
-    onUpdate: (updates: Partial<ProShopBillingSettings>) => void;
+    settings: CompanyBillingSettings;
+    onUpdate: (updates: Partial<CompanyBillingSettings>) => void;
 }
 
 export const BillingSettingsTab: React.FC<BillingSettingsTabProps> = ({
@@ -27,6 +35,7 @@ export const BillingSettingsTab: React.FC<BillingSettingsTabProps> = ({
     const updateBillingAddress = (field: string, value: string) => {
         onUpdate({
             billingAddress: {
+                ...emptyBillingAddress,
                 ...settings.billingAddress,
                 [field]: value
             }
@@ -107,6 +116,45 @@ export const BillingSettingsTab: React.FC<BillingSettingsTabProps> = ({
                             </p>
                         </div>
                     </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                        <Select
+                            label="Subscription Tier"
+                            value={settings.subscriptionTier}
+                            onChange={(value) => onUpdate({ subscriptionTier: value as CompanyBillingSettings['subscriptionTier'] })}
+                            options={subscriptionTierOptions}
+                        />
+
+                        <Select
+                            label="Billing Cycle"
+                            value={settings.billingCycle}
+                            onChange={(value) => onUpdate({ billingCycle: value as CompanyBillingSettings['billingCycle'] })}
+                            options={billingCycleOptions}
+                        />
+                    </div>
+
+                    <ul className="grid grid-cols-1 md:grid-cols-2 gap-1 text-sm text-gray-700">
+                        {getTierFeatures(settings.subscriptionTier).map((feature) => (
+                            <li key={feature}>• {feature}</li>
+                        ))}
+                    </ul>
+                </div>
+            </div>
+
+            {/* Billing Address */}
+            <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                    <MapPin className="w-5 h-5 mr-2 text-blue-600" />
+                    Billing Address
+                </h3>
+
+                <div className="space-y-6">
+                    <Input
+                        label="Street Address"
+                        value={settings.billingAddress?.street || ''}
+                        onChange={(value) => updateBillingAddress('street', value)}
+                        placeholder="123 Main St"
+                    />
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <Input

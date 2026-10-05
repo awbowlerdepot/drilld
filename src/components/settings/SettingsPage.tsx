@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Settings, Users, MapPin, Building, Bell, Shield, Database, Palette } from 'lucide-react';
 import { EmployeeManagement } from '../employees/EmployeeManagement';
-import { ProShopSettingsManagement } from "@/components/settings/ProShopSettingsManagment.tsx";
+import { CompanySettingsManagement } from "@/components/settings/CompanySettingsManagement.tsx";
 import { LocationManagement } from "@/components/locations/LocationManagment.tsx";
 
 interface SettingsPageProps {
@@ -11,7 +11,7 @@ interface SettingsPageProps {
 type SettingsTab =
     | 'employees'
     | 'locations'
-    | 'proshop'
+    | 'company'
     | 'notifications'
     | 'security'
     | 'data'
@@ -26,10 +26,10 @@ interface SettingsTabConfig {
 
 const SETTINGS_TABS: SettingsTabConfig[] = [
     {
-        id: 'proshop',
-        label: 'Pro Shop Settings',
+        id: 'company',
+        label: 'Company Settings',
         icon: <Building className="w-5 h-5" />,
-        description: 'Business information and preferences'
+        description: 'Company-wide information and defaults'
     },{
         id: 'employees',
         label: 'Employee Management',
@@ -69,16 +69,16 @@ const SETTINGS_TABS: SettingsTabConfig[] = [
 ];
 
 export const SettingsPage: React.FC<SettingsPageProps> = ({ searchTerm }) => {
-    const [activeTab, setActiveTab] = useState<SettingsTab>('proshop');
+    const [activeTab, setActiveTab] = useState<SettingsTab>('company');
 
     const renderActiveTabContent = () => {
         switch (activeTab) {
             case 'employees':
                 return <EmployeeManagement searchTerm={searchTerm} />;
             case 'locations':
-                return <LocationManagement searchTerm={searchTerm} proshopID="proshop1" />;
-            case 'proshop':
-                return <ProShopSettingsManagement />;
+                return <LocationManagement searchTerm={searchTerm} companyID="company1" />;
+            case 'company':
+                return <CompanySettingsManagement />;
             case 'notifications':
                 return <NotificationSettings />;
             case 'security':
@@ -171,7 +171,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ searchTerm }) => {
 //     );
 // };
 
-// const ProShopSettings: React.FC = () => {
+// const CompanySettings: React.FC = () => {
 //     return (
 //         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
 //             <h2 className="text-xl font-semibold text-gray-900 mb-4">Pro Shop Settings</h2>

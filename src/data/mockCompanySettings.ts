@@ -1,25 +1,14 @@
-import { ProShopSettings } from '../types/proshopSettings';
+import { CompanySettings } from '../types/settings';
 
-export const mockProShopSettings: ProShopSettings = {
+export const mockCompanySettings: CompanySettings = {
     general: {
         businessName: 'Strike Zone Pro Shop',
         ownerName: 'John Smith',
-        phone: '555-0123',
-        address: '123 Bowling Lane, Sports City, SC 12345',
         billingEmail: 'billing@strikezoneproshop.com',
         timezone: 'America/New_York',
         currency: 'USD',
         taxRate: 8.5,
-        defaultWarrantyPeriod: 90,
-        businessHours: {
-            monday: { open: '09:00', close: '21:00' },
-            tuesday: { open: '09:00', close: '21:00' },
-            wednesday: { open: '09:00', close: '21:00' },
-            thursday: { open: '09:00', close: '21:00' },
-            friday: { open: '09:00', close: '22:00' },
-            saturday: { open: '08:00', close: '22:00' },
-            sunday: { open: '10:00', close: '20:00' }
-        }
+        defaultWarrantyPeriod: 90
     },
     billing: {
         subscriptionTier: 'PRO',
@@ -107,26 +96,15 @@ export const mockProShopSettings: ProShopSettings = {
 };
 
 // Additional mock data for different pro shop scenarios
-export const mockProShopSettingsBasic: ProShopSettings = {
+export const mockCompanySettingsBasic: CompanySettings = {
     general: {
         businessName: 'Lucky Strikes Pro Shop',
         ownerName: 'Sarah Johnson',
-        phone: '555-0456',
-        address: '456 Pin Street, Bowl City, BC 67890',
         billingEmail: 'sarah@luckystrikes.com',
         timezone: 'America/Chicago',
         currency: 'USD',
         taxRate: 7.25,
-        defaultWarrantyPeriod: 60,
-        businessHours: {
-            monday: { open: '10:00', close: '20:00' },
-            tuesday: { open: '10:00', close: '20:00' },
-            wednesday: { closed: true },
-            thursday: { open: '10:00', close: '20:00' },
-            friday: { open: '10:00', close: '21:00' },
-            saturday: { open: '09:00', close: '21:00' },
-            sunday: { open: '12:00', close: '18:00' }
-        }
+        defaultWarrantyPeriod: 60
     },
     billing: {
         subscriptionTier: 'BASIC',
@@ -210,26 +188,15 @@ export const mockProShopSettingsBasic: ProShopSettings = {
     }
 };
 
-export const mockProShopSettingsEnterprise: ProShopSettings = {
+export const mockCompanySettingsEnterprise: CompanySettings = {
     general: {
         businessName: 'Championship Lanes Pro Shop Network',
         ownerName: 'Michael Rodriguez',
-        phone: '555-0789',
-        address: '789 Strike Avenue, Pro City, PC 13579',
         billingEmail: 'billing@championshiplanes.com',
         timezone: 'America/Los_Angeles',
         currency: 'USD',
         taxRate: 9.75,
-        defaultWarrantyPeriod: 120,
-        businessHours: {
-            monday: { open: '08:00', close: '22:00' },
-            tuesday: { open: '08:00', close: '22:00' },
-            wednesday: { open: '08:00', close: '22:00' },
-            thursday: { open: '08:00', close: '22:00' },
-            friday: { open: '08:00', close: '23:00' },
-            saturday: { open: '07:00', close: '23:00' },
-            sunday: { open: '09:00', close: '21:00' }
-        }
+        defaultWarrantyPeriod: 120
     },
     billing: {
         subscriptionTier: 'ENTERPRISE',

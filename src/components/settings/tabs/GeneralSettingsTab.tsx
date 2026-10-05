@@ -1,12 +1,12 @@
 import React from 'react';
-import { Clock, MapPin, DollarSign, Calendar } from 'lucide-react';
-import { ProShopGeneralSettings } from '../../../types/proshopSettings';
+import { Building2, Clock, DollarSign } from 'lucide-react';
+import { CompanyGeneralSettings } from '../../../types/settings';
 import { Input } from '../../ui/Input';
 import { Select } from '../../ui/Select';
 
 interface GeneralSettingsTabProps {
-    settings: ProShopGeneralSettings;
-    onUpdate: (updates: Partial<ProShopGeneralSettings>) => void;
+    settings: CompanyGeneralSettings;
+    onUpdate: (updates: Partial<CompanyGeneralSettings>) => void;
 }
 
 export const GeneralSettingsTab: React.FC<GeneralSettingsTabProps> = ({
@@ -30,30 +30,13 @@ export const GeneralSettingsTab: React.FC<GeneralSettingsTabProps> = ({
         { value: 'GBP', label: 'British Pound (£)' }
     ];
 
-    const daysOfWeek = [
-        'monday', 'tuesday', 'wednesday', 'thursday',
-        'friday', 'saturday', 'sunday'
-    ];
-
-    const updateBusinessHours = (day: string, field: 'open' | 'close' | 'closed', value: string | boolean) => {
-        onUpdate({
-            businessHours: {
-                ...settings.businessHours,
-                [day]: {
-                    ...settings.businessHours[day],
-                    [field]: value
-                }
-            }
-        });
-    };
-
     return (
         <div className="space-y-8">
-            {/* Business Information */}
+            {/* Company Information */}
             <div>
                 <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                    <MapPin className="w-5 h-5 mr-2 text-blue-600" />
-                    Business Information
+                    <Building2 className="w-5 h-5 mr-2 text-blue-600" />
+                    Company Information
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <Input
@@ -73,13 +56,6 @@ export const GeneralSettingsTab: React.FC<GeneralSettingsTabProps> = ({
                     />
 
                     <Input
-                        label="Phone Number"
-                        value={settings.phone || ''}
-                        onChange={(value) => onUpdate({ phone: value })}
-                        placeholder="(555) 123-4567"
-                    />
-
-                    <Input
                         label="Billing Email"
                         type="email"
                         value={settings.billingEmail}
@@ -88,16 +64,9 @@ export const GeneralSettingsTab: React.FC<GeneralSettingsTabProps> = ({
                         placeholder="billing@yourproshop.com"
                     />
                 </div>
-
-                <div className="mt-6">
-                    <Input
-                        label="Business Address"
-                        value={settings.address || ''}
-                        onChange={(value) => onUpdate({ address: value })}
-                        placeholder="123 Main St, City, State 12345"
-                        className="w-full"
-                    />
-                </div>
+                <p className="mt-4 text-sm text-gray-500">
+                    Address, phone and hours are set per location under Locations.
+                </p>
             </div>
 
             {/* Regional Settings */}
@@ -124,7 +93,7 @@ export const GeneralSettingsTab: React.FC<GeneralSettingsTabProps> = ({
                     />
 
                     <Input
-                        label="Tax Rate (%)"
+                        label="Default Tax Rate (%)"
                         type="number"
                         value={settings.taxRate?.toString() || ''}
                         onChange={(value) => onUpdate({ taxRate: parseFloat(value) || 0 })}
@@ -155,67 +124,6 @@ export const GeneralSettingsTab: React.FC<GeneralSettingsTabProps> = ({
                 </div>
             </div>
 
-            {/* Business Hours */}
-            <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                    <Calendar className="w-5 h-5 mr-2 text-blue-600" />
-                    Business Hours
-                </h3>
-                <div className="space-y-4">
-                    {daysOfWeek.map((day) => {
-                        const dayHours = settings.businessHours[day] || {};
-                        const isClosed = dayHours.closed;
-
-                        return (
-                            <div key={day} className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
-                                <div className="w-24">
-                  <span className="text-sm font-medium text-gray-900 capitalize">
-                    {day}
-                  </span>
-                                </div>
-
-                                <div className="flex items-center space-x-2">
-                                    <input
-                                        type="checkbox"
-                                        checked={!isClosed}
-                                        onChange={(e) => updateBusinessHours(day, 'closed', !e.target.checked)}
-                                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                                    />
-                                    <span className="text-sm text-gray-600">Open</span>
-                                </div>
-
-                                {!isClosed && (
-                                    <>
-                                        <div className="flex items-center space-x-2">
-                                            <label className="text-sm text-gray-600">From:</label>
-                                            <input
-                                                type="time"
-                                                value={dayHours.open || '09:00'}
-                                                onChange={(e) => updateBusinessHours(day, 'open', e.target.value)}
-                                                className="px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                                            />
-                                        </div>
-
-                                        <div className="flex items-center space-x-2">
-                                            <label className="text-sm text-gray-600">To:</label>
-                                            <input
-                                                type="time"
-                                                value={dayHours.close || '21:00'}
-                                                onChange={(e) => updateBusinessHours(day, 'close', e.target.value)}
-                                                className="px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                                            />
-                                        </div>
-                                    </>
-                                )}
-
-                                {isClosed && (
-                                    <span className="text-sm text-gray-500 italic">Closed</span>
-                                )}
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
         </div>
     );
 };

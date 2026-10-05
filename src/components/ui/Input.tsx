@@ -9,6 +9,7 @@ interface InputProps {
     required?: boolean;
     disabled?: boolean;
     error?: string;
+    helpText?: string;
     step?: string;
     min?: string;
     max?: string;
@@ -24,6 +25,7 @@ export const Input: React.FC<InputProps> = ({
                                                 required = false,
                                                 disabled = false,
                                                 error,
+                                                helpText,
                                                 step,
                                                 min,
                                                 max,
@@ -52,8 +54,10 @@ export const Input: React.FC<InputProps> = ({
                 max={max}
                 className={`${baseClasses} ${errorClasses}`}
             />
-            {error && (
+            {error ? (
                 <p className="mt-1 text-sm text-red-600">{error}</p>
+            ) : helpText && (
+                <p className="mt-1 text-xs text-gray-500">{helpText}</p>
             )}
         </div>
     );

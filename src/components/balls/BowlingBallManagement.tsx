@@ -127,7 +127,7 @@ export const BowlingBallManagement: React.FC<BowlingBallManagementProps> = ({
             {showForm && (
                 <BallForm
                     ball={editingBall || undefined}
-                    customers={customers}
+                    customer={editingBall ? customers.find(c => c.id === editingBall.customerID) : undefined}
                     onSave={handleSave}
                     onCancel={handleCancel}
                 />

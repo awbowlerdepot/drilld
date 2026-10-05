@@ -15,7 +15,7 @@ export const DrillSheetManagement: React.FC<DrillSheetManagementProps> = ({
                                                                               searchTerm
                                                                           }) => {
     const { drillSheets, loading, addDrillSheet, updateDrillSheet } = useDrillSheets();
-    const { customers, getCustomerById } = useCustomers();
+    const { getCustomerById } = useCustomers();
     const [showForm, setShowForm] = useState(false);
     const [editingDrillSheet, setEditingDrillSheet] = useState<DrillSheet | null>(null);
 
@@ -70,7 +70,7 @@ export const DrillSheetManagement: React.FC<DrillSheetManagementProps> = ({
             {showForm && (
                 <DrillSheetForm
                     drillSheet={editingDrillSheet || undefined}
-                    customers={customers}
+                    customer={editingDrillSheet ? getCustomerById(editingDrillSheet.customerID) : undefined}
                     onSave={handleSave}
                     onCancel={handleCancel}
                 />

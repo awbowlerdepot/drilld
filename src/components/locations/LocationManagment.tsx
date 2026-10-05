@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Plus, Filter } from 'lucide-react';
 import { Location } from '../../types';
 import { useLocations } from '../../hooks/useLocations';
+import { useCompanySettings } from '../../hooks/useCompanySettings';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { LocationForm } from './LocationForm';
@@ -10,12 +11,12 @@ import { LocationStats } from './LocationStats';
 
 interface LocationManagementProps {
     searchTerm: string;
-    proshopID: string;
+    companyID: string;
 }
 
 export const LocationManagement: React.FC<LocationManagementProps> = ({
                                                                           searchTerm,
-                                                                          proshopID
+                                                                          companyID
                                                                       }) => {
     const {
         locations,
@@ -25,6 +26,7 @@ export const LocationManagement: React.FC<LocationManagementProps> = ({
         deleteLocation,
         getLocationStats
     } = useLocations();
+    const { settings: companySettings } = useCompanySettings();
 
     const [showForm, setShowForm] = useState(false);
     const [editingLocation, setEditingLocation] = useState<Location | null>(null);
@@ -220,6 +222,7 @@ export const LocationManagement: React.FC<LocationManagementProps> = ({
                 onDelete={handleDelete}
                 onToggleActive={handleToggleActive}
                 getLocationStats={getLocationStatistics}
+                companySettings={companySettings}
             />
 
             {/* Location Form Modal */}
@@ -231,7 +234,8 @@ export const LocationManagement: React.FC<LocationManagementProps> = ({
                         setShowForm(false);
                         setEditingLocation(null);
                     }}
-                    proshopID={proshopID}
+                    companyID={companyID}
+                    companySettings={companySettings}
                 />
             )}
         </div>

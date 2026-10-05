@@ -151,18 +151,18 @@ export const CustomerOverview: React.FC<CustomerOverviewProps> = ({
                             </div>
 
                             {/* Measurements */}
-                            {(recentDrillSheet.thumbToMiddleFit || recentDrillSheet.thumbToRingFit) && (
+                            {(recentDrillSheet.spans.thumbToMiddle.fitSpan || recentDrillSheet.spans.thumbToRing.fitSpan) && (
                                 <div className="bg-gray-50 rounded p-3 space-y-1">
-                                    {recentDrillSheet.thumbToMiddleFit && (
+                                    {recentDrillSheet.spans.thumbToMiddle.fitSpan && (
                                         <div className="flex justify-between text-sm">
-                                            <span className="text-gray-500">Thumb-Middle:</span>
-                                            <span className="font-medium">{recentDrillSheet.thumbToMiddleFit}"</span>
+                                            <span className="text-gray-500">Thumb-Middle (fit):</span>
+                                            <span className="font-medium">{recentDrillSheet.spans.thumbToMiddle.fitSpan}"</span>
                                         </div>
                                     )}
-                                    {recentDrillSheet.thumbToRingFit && (
+                                    {recentDrillSheet.spans.thumbToRing.fitSpan && (
                                         <div className="flex justify-between text-sm">
-                                            <span className="text-gray-500">Thumb-Ring:</span>
-                                            <span className="font-medium">{recentDrillSheet.thumbToRingFit}"</span>
+                                            <span className="text-gray-500">Thumb-Ring (fit):</span>
+                                            <span className="font-medium">{recentDrillSheet.spans.thumbToRing.fitSpan}"</span>
                                         </div>
                                     )}
                                 </div>

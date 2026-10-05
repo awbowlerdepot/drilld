@@ -1,5 +1,5 @@
 import React from 'react';
-import { Location } from '../../types';
+import { CompanySettings, Location } from '../../types';
 import {
     MapPin,
     Phone,
@@ -12,6 +12,8 @@ import {
     Users
 } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { LocationOverridesSummary } from './LocationOverridesSummary';
+import { getHoursForDay, isClosedHours } from '../../utils/LocationHours';
 
 interface LocationListProps {
     locations: Location[];
@@ -22,6 +24,7 @@ interface LocationListProps {
         totalWorkOrders: number;
         activeEmployees: number;
     };
+    companySettings: CompanySettings;
 }
 
 export const LocationList: React.FC<LocationListProps> = ({
@@ -29,24 +32,14 @@ export const LocationList: React.FC<LocationListProps> = ({
                                                               onEdit,
                                                               onDelete,
                                                               onToggleActive,
-                                                              getLocationStats
+                                                              getLocationStats,
+                                                              companySettings
                                                           }) => {
-    const formatHours = (hours?: Record<string, string>) => {
-        if (!hours) return 'Hours not set';
+    const formatTodayHours = (location: Location) => {
+        if (!location.hours) return 'Hours not set';
 
-        const today = new Date().toLocaleString().toLocaleLowerCase().slice(0, 3);
-        const dayMap: Record<string, string> = {
-            sun: 'sunday',
-            mon: 'monday',
-            tue: 'tuesday',
-            wed: 'wednesday',
-            thu: 'thursday',
-            fri: 'friday',
-            sat: 'saturday'
-        };
-
-        const currentDay = dayMap[today];
-        return currentDay && hours[currentDay] ? hours[currentDay] : 'Closed';
+        const todayHours = getHoursForDay(location);
+        return isClosedHours(todayHours) ? 'Closed' : todayHours;
     };
 
     const getConditionColor = (condition: string) => {
@@ -149,7 +142,7 @@ export const LocationList: React.FC<LocationListProps> = ({
                             )}
                             <p className="text-gray-600 flex items-center">
                                 <Clock className="w-4 h-4 mr-2" />
-                                Today: {formatHours(location.hours)}
+                                Today: {formatTodayHours(location)}
                             </p>
                         </div>
 
@@ -174,6 +167,11 @@ export const LocationList: React.FC<LocationListProps> = ({
                                 <div className="text-xs text-gray-600">Active Staff</div>
                             </div>
                         </div>
+
+                        <LocationOverridesSummary
+                            overrides={location.settingsOverrides}
+                            companySettings={companySettings}
+                        />
 
                         {/* Equipment Summary */}
                         {equipmentList.length > 0 && (

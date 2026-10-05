@@ -2,7 +2,7 @@
 // ADD this import at the top
 
 import React from 'react';
-import { WorkOrder, DrillSheet, BowlingBall, Customer } from '../../types';
+import { WorkOrder, DrillSheet, BowlingBall, Customer, Employee, Location } from '../../types';
 import { HoleSpecificationDisplay, DrillSheetInsertSummary } from '../drillsheets/InsertDisplay'; // ADD THIS IMPORT
 import { Button } from '../ui/Button';
 import { X, FileText, Settings, User } from 'lucide-react';
@@ -12,6 +12,8 @@ interface WorkOrderDetailModalProps {
     drillSheet?: DrillSheet;
     ball?: BowlingBall;
     customer?: Customer;
+    employee?: Employee;
+    location?: Location;
     onClose: () => void;
     onEdit?: () => void;
 }
@@ -21,6 +23,8 @@ export const WorkOrderDetailModal: React.FC<WorkOrderDetailModalProps> = ({
                                                                               drillSheet,
                                                                               ball,
                                                                               customer,
+                                                                              employee,
+                                                                              location,
                                                                               onClose,
                                                                               onEdit
                                                                           }) => {
@@ -52,6 +56,12 @@ export const WorkOrderDetailModal: React.FC<WorkOrderDetailModalProps> = ({
                             <div className="space-y-2 text-sm">
                                 <p><span className="font-medium">Work Type:</span> {workOrder.workType.replace('_', ' ')}</p>
                                 <p><span className="font-medium">Date:</span> {new Date(workOrder.workDate).toLocaleDateString()}</p>
+                                {location && (
+                                    <p><span className="font-medium">Location:</span> {location.name}</p>
+                                )}
+                                {employee && (
+                                    <p><span className="font-medium">Performed By:</span> {employee.firstName} {employee.lastName}</p>
+                                )}
                                 {workOrder.startTime && (
                                     <p><span className="font-medium">Start Time:</span> {workOrder.startTime}</p>
                                 )}

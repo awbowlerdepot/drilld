@@ -1,25 +1,20 @@
-// src/types/proshopSettings.ts
+// src/types/settings.ts
 
-export interface ProShopGeneralSettings {
+// Company-wide settings. Address, phone and hours are per location (see Location).
+// Billing and security are company-only; some other sections can be
+// overridden per location (see LocationSettingsOverrides).
+
+export interface CompanyGeneralSettings {
     businessName: string;
     ownerName: string;
-    phone?: string;
-    address?: string;
     billingEmail: string;
     timezone: string;
     currency: string;
     taxRate?: number;
     defaultWarrantyPeriod: number; // days
-    businessHours: {
-        [key: string]: {
-            open?: string;
-            close?: string;
-            closed?: boolean;
-        };
-    };
 }
 
-export interface ProShopBillingSettings {
+export interface CompanyBillingSettings {
     subscriptionTier: 'BASIC' | 'PRO' | 'ENTERPRISE';
     billingCycle: 'MONTHLY' | 'YEARLY';
     paymentMethod?: string;
@@ -36,7 +31,7 @@ export interface ProShopBillingSettings {
     };
 }
 
-export interface ProShopWorkflowSettings {
+export interface CompanyWorkflowSettings {
     requireCustomerApproval: boolean;
     enableQualityChecks: boolean;
     defaultLaborRate: number;
@@ -49,7 +44,7 @@ export interface ProShopWorkflowSettings {
     priorityLevels: string[];
 }
 
-export interface ProShopSecuritySettings {
+export interface CompanySecuritySettings {
     enableTwoFactor: boolean;
     passwordMinLength: number;
     passwordRequireSpecialChars: boolean;
@@ -62,7 +57,7 @@ export interface ProShopSecuritySettings {
     backupFrequency: 'DAILY' | 'WEEKLY' | 'MONTHLY';
 }
 
-export interface ProShopNotificationSettings {
+export interface CompanyNotificationSettings {
     emailNotifications: {
         workOrderUpdates: boolean;
         customerMessages: boolean;
@@ -84,7 +79,7 @@ export interface ProShopNotificationSettings {
     notificationPhone?: string;
 }
 
-export interface ProShopIntegrationSettings {
+export interface CompanyIntegrationSettings {
     posIntegration?: {
         enabled: boolean;
         provider: string;
@@ -111,19 +106,47 @@ export interface ProShopIntegrationSettings {
     };
 }
 
-export interface ProShopSettings {
-    general: ProShopGeneralSettings;
-    billing: ProShopBillingSettings;
-    workflow: ProShopWorkflowSettings;
-    security: ProShopSecuritySettings;
-    notifications: ProShopNotificationSettings;
-    integrations: ProShopIntegrationSettings;
+export interface CompanySettings {
+    general: CompanyGeneralSettings;
+    billing: CompanyBillingSettings;
+    workflow: CompanyWorkflowSettings;
+    security: CompanySecuritySettings;
+    notifications: CompanyNotificationSettings;
+    integrations: CompanyIntegrationSettings;
 }
 
-export type ProShopSettingsSection =
+export type CompanySettingsSection =
     | 'general'
     | 'billing'
     | 'workflow'
     | 'security'
     | 'notifications'
     | 'integrations';
+
+// ==========================================
+// LOCATION OVERRIDES
+// ==========================================
+
+/**
+ * Per-location overrides of company defaults. Anything not set here falls
+ * back to the company value; see resolveLocationSettings.
+ */
+export interface LocationSettingsOverrides {
+    taxRate?: number;
+    defaultWarrantyPeriod?: number;
+    workflow?: Partial<CompanyWorkflowSettings>;
+    notifications?: Partial<Pick<CompanyNotificationSettings, 'notificationEmail' | 'notificationPhone'>>;
+}
+
+/**
+ * The settings that actually apply at a location: company defaults with the
+ * location's overrides applied.
+ */
+export interface EffectiveLocationSettings {
+    timezone: string;
+    currency: string;
+    taxRate?: number;
+    defaultWarrantyPeriod: number;
+    workflow: CompanyWorkflowSettings;
+    notifications: CompanyNotificationSettings;
+}
