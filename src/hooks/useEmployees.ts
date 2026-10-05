@@ -21,7 +21,7 @@ export const useEmployees = () => {
         const newEmployee: Employee = {
             ...employee,
             id: Date.now().toString(),
-            proshopID: 'proshop1',
+            companyID: 'company1',
             cognitoUserID: '',
             active: true,
             createdAt: now,

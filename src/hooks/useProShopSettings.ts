@@ -17,7 +17,7 @@ export const useProShopSettings = () => {
             // TODO: Replace with actual API call
             // const response = await API.graphql({
             //   query: getProShop,
-            //   variables: { id: currentProShopId }
+            //   variables: { id: currentCompanyId }
             // });
             // setSettings(JSON.parse(response.data.getProShop.settings) || mockProShopSettings);
 
@@ -55,7 +55,7 @@ export const useProShopSettings = () => {
             //   query: updateProShop,
             //   variables: {
             //     input: {
-            //       id: currentProShopId,
+            //       id: currentCompanyId,
             //       settings: JSON.stringify(settings)
             //     }
             //   }

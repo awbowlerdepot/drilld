@@ -99,7 +99,7 @@ export interface LocationEquipmentInfo {
 
 export interface Location {
     id: string;
-    proshopID: string;
+    companyID: string;
     name: string;
     address?: string;
     phone?: string;
@@ -158,7 +158,7 @@ export interface FilterOptions {
  */
 export interface AppState {
     user?: Employee;
-    currentProshop?: string;
+    currentCompany?: string;
     currentLocation?: string;
     loading: boolean;
     error?: string;

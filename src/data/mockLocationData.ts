@@ -4,7 +4,7 @@ import { Location } from '../types';
 export const mockLocations: Location[] = [
     {
         id: '1',
-        proshopID: 'proshop1',
+        companyID: 'company1',
         name: 'Main Location - Downtown',
         address: '123 Bowling Lane, Downtown City, ST 12345',
         phone: '(555) 123-4567',
@@ -56,7 +56,7 @@ export const mockLocations: Location[] = [
     },
     {
         id: '2',
-        proshopID: 'proshop1',
+        companyID: 'company1',
         name: 'Westside Branch',
         address: '456 Strike Street, Westside, ST 12346',
         phone: '(555) 234-5678',
@@ -101,7 +101,7 @@ export const mockLocations: Location[] = [
     },
     {
         id: '3',
-        proshopID: 'proshop1',
+        companyID: 'company1',
         name: 'Mobile Service Unit',
         address: 'Various tournament locations',
         phone: '(555) 345-6789',
@@ -146,7 +146,7 @@ export const mockLocations: Location[] = [
     },
     {
         id: '4',
-        proshopID: 'proshop1',
+        companyID: 'company1',
         name: 'Eastside Location',
         address: '789 Spare Avenue, Eastside, ST 12347',
         phone: '(555) 456-7890',
@@ -184,7 +184,7 @@ export const mockLocations: Location[] = [
     },
     {
         id: '5',
-        proshopID: 'proshop1',
+        companyID: 'company1',
         name: 'North Valley Pro Shop',
         address: '321 Pin Lane, North Valley, ST 12348',
         phone: '(555) 567-8901',

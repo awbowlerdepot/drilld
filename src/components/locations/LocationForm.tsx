@@ -9,7 +9,7 @@ interface LocationFormProps {
     location?: Location;
     onSave: (location: Omit<Location, 'id' | 'createdAt' | 'updatedAt'>) => void;
     onCancel: () => void;
-    proshopID: string;
+    companyID: string;
 }
 
 interface HoursData {
@@ -20,7 +20,7 @@ export const LocationForm: React.FC<LocationFormProps> = ({
                                                               location,
                                                               onSave,
                                                               onCancel,
-                                                              proshopID
+                                                              companyID
                                                           }) => {
     const [formData, setFormData] = useState({
         name: location?.name || '',
@@ -73,7 +73,7 @@ export const LocationForm: React.FC<LocationFormProps> = ({
 
         const locationData = {
             ...formData,
-            proshopID,
+            companyID,
             equipmentInfo: {
                 equipment,
                 lastUpdated: new Date().toISOString()

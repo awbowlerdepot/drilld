@@ -52,8 +52,8 @@ export const useLocations = () => {
         return locations.filter(location => !location.active);
     };
 
-    const getLocationsByProShop = (proshopId: string) => {
-        return locations.filter(location => location.proshopID === proshopId);
+    const getLocationsByCompany = (companyId: string) => {
+        return locations.filter(location => location.companyID === companyId);
     };
 
     const searchLocations = (searchTerm: string) => {
@@ -184,7 +184,7 @@ export const useLocations = () => {
         getLocationById,
         getActiveLocations,
         getInactiveLocations,
-        getLocationsByProShop,
+        getLocationsByCompany,
         searchLocations,
         getLocationStats,
         getLocationsByEquipment,

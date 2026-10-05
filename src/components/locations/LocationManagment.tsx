@@ -10,12 +10,12 @@ import { LocationStats } from './LocationStats';
 
 interface LocationManagementProps {
     searchTerm: string;
-    proshopID: string;
+    companyID: string;
 }
 
 export const LocationManagement: React.FC<LocationManagementProps> = ({
                                                                           searchTerm,
-                                                                          proshopID
+                                                                          companyID
                                                                       }) => {
     const {
         locations,
@@ -231,7 +231,7 @@ export const LocationManagement: React.FC<LocationManagementProps> = ({
                         setShowForm(false);
                         setEditingLocation(null);
                     }}
-                    proshopID={proshopID}
+                    companyID={companyID}
                 />
             )}
         </div>

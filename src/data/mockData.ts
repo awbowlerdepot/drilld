@@ -58,7 +58,7 @@ export const mockCustomers: Customer[] = [
 export const mockEmployees = [
     {
         id: 'emp1',
-        proshopID: 'proshop1',
+        companyID: 'company1',
         cognitoUserID: 'user1',
         username: 'mike_tech',
         email: 'mike@proshop.com',
@@ -89,7 +89,7 @@ export const mockEmployees = [
     },
     {
         id: 'emp2',
-        proshopID: 'proshop1',
+        companyID: 'company1',
         cognitoUserID: 'user2',
         username: 'sarah_drill',
         email: 'sarah@proshop.com',
@@ -115,7 +115,7 @@ export const mockEmployees = [
     },
     {
         id: 'emp3',
-        proshopID: 'proshop1',
+        companyID: 'company1',
         cognitoUserID: 'user3',
         username: 'alex_manager',
         email: 'alex@proshop.com',
@@ -150,7 +150,7 @@ export const mockDrillSheets: DrillSheet[] = [
     {
         id: '1',
         customerID: '1',
-        proshopID: 'proshop1',
+        companyID: 'company1',
         createdByEmployeeID: 'emp1',
         name: 'John Smith - Storm Phaze II',
         status: 'COMPLETED',
@@ -205,7 +205,7 @@ export const mockDrillSheets: DrillSheet[] = [
     {
         id: '2',
         customerID: '2',
-        proshopID: 'proshop1',
+        companyID: 'company1',
         createdByEmployeeID: 'emp1',
         name: 'Sarah Johnson - Brunswick Quantum Bias',
         status: 'COMPLETED',
@@ -260,7 +260,7 @@ export const mockDrillSheets: DrillSheet[] = [
     {
         id: '3',
         customerID: '3',
-        proshopID: 'proshop1',
+        companyID: 'company1',
         createdByEmployeeID: 'emp2',
         name: 'Mike Wilson - Roto Grip Gem',
         status: 'COMPLETED',
@@ -311,7 +311,7 @@ export const mockDrillSheets: DrillSheet[] = [
     {
         id: '4',
         customerID: '4',
-        proshopID: 'proshop1',
+        companyID: 'company1',
         createdByEmployeeID: 'emp1',
         name: 'Lisa Martinez - Hammer Black Widow',
         status: 'COMPLETED',
@@ -384,7 +384,7 @@ export const mockDrillSheets: DrillSheet[] = [
     {
         id: '5',
         customerID: '', // Template has no customer
-        proshopID: 'proshop1',
+        companyID: 'company1',
         createdByEmployeeID: 'emp1',
         name: 'Standard Fingertip Template',
         status: 'APPROVED',
@@ -439,7 +439,7 @@ export const mockDrillSheets: DrillSheet[] = [
     {
         id: '6',
         customerID: '', // Template has no customer
-        proshopID: 'proshop1',
+        companyID: 'company1',
         createdByEmployeeID: 'emp1',
         name: 'Insert User Template',
         status: 'APPROVED',

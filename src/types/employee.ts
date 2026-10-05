@@ -7,7 +7,7 @@ export type EmployeeRole =
 
 export interface Employee {
     id: string;
-    proshopID: string;
+    companyID: string;
     cognitoUserID: string;
     username: string;
     email: string;

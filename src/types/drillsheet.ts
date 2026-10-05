@@ -314,7 +314,7 @@ export interface DrillSheet {
     // Basic identification
     id: string;
     customerID: string;
-    proshopID: string;
+    companyID: string;
     createdByEmployeeID: string;
     name: string;
     status: DrillSheetStatus;
@@ -569,7 +569,7 @@ export const formDataToDrillSheet = (
 ): Omit<DrillSheet, 'id' | 'createdAt'> => {
     return {
         customerID: existingDrillSheet?.customerID || '',
-        proshopID: existingDrillSheet?.proshopID || '',
+        companyID: existingDrillSheet?.companyID || '',
         createdByEmployeeID: existingDrillSheet?.createdByEmployeeID || '',
         name: formData.name,
         status: existingDrillSheet?.status || 'DRAFT',
