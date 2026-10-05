@@ -10,6 +10,7 @@ The agreed backend design (Postgres schema, tenant isolation, ball registry, dri
 - `npm run build` — type-check (`tsc`) and build
 - `npm run lint` — ESLint, zero warnings allowed (currently fails on about 22 pre-existing issues, mostly `no-explicit-any`; keep new code clean)
 - `npm run preview` — preview the production build
+- `db/test.sh` — apply the database migrations (up, down, up) to a throwaway Postgres 16 in Docker and run the schema tests
 
 ## Layout
 
@@ -24,6 +25,7 @@ The agreed backend design (Postgres schema, tenant isolation, ball registry, dri
   - `LocationHours.ts` — today's hours, open/closed
   - `EmployeeRoles.ts` — roles and derived permissions
 - `docs/data-model.md` — backend data model design and open questions
+- `db/` — PostgreSQL migrations (plain SQL, dbmate format) and schema tests; see `db/README.md`. The migrations are the source of truth for the schema; never generate migrations from an ORM.
 - `src/services/` — empty; intended home for the real API layer
 - `amplify/` — Amplify Gen 2 backend scaffold: `auth/`, `data/`, `functions/`, `storage/` (all empty so far)
 
@@ -68,7 +70,15 @@ Look for incorrect imports, circular dependencies, and unnecessary complexity.
 ## Status and next up
 
 - The frontend runs entirely on mock data. Hooks simulate API calls with `setTimeout`.
-- No backend code exists in this repo yet: `amplify/` subfolders, `src/services/` and `amplify_outputs.json` are empty, and there is no Prisma schema.
+- The PostgreSQL schema exists in `db/migrations/` and is covered by `db/test.sh`:
+  - tenancy
+  - customers
+  - BowlerIQ catalog
+  - ball registry
+  - drill sheet revisions
+  - work orders
+  - row-level security
+- No API code yet: `amplify/` subfolders, `src/services/` and `amplify_outputs.json` are empty.
 - `npm run build` passes.
 - Done on the frontend:
   - company/location tenancy rename
@@ -81,9 +91,10 @@ Look for incorrect imports, circular dependencies, and unnecessary complexity.
   - layout moved from drill sheets to work orders
   - the ball registry and BowlerIQ catalog
 - Next:
-  1. Stand up the backend from `docs/data-model.md`:
-     - Postgres schema and migrations, including RLS
+  1. Stand up the rest of the backend:
+     - RDS and the migration runner
      - Cognito
+     - the API layer (choose the query client)
      - the BowlerIQ catalog sync job
   2. Replace mock data with real services, starting with customers and drill sheets.
   3. Complete work order management, using `resolveLocationSettings` for labor rate and tax.
