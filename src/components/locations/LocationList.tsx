@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { LocationOverridesSummary } from './LocationOverridesSummary';
+import { getHoursForDay, isClosedHours } from '../../utils/LocationHours';
 
 interface LocationListProps {
     locations: Location[];
@@ -34,22 +35,11 @@ export const LocationList: React.FC<LocationListProps> = ({
                                                               getLocationStats,
                                                               companySettings
                                                           }) => {
-    const formatHours = (hours?: Record<string, string>) => {
-        if (!hours) return 'Hours not set';
+    const formatTodayHours = (location: Location) => {
+        if (!location.hours) return 'Hours not set';
 
-        const today = new Date().toLocaleString().toLocaleLowerCase().slice(0, 3);
-        const dayMap: Record<string, string> = {
-            sun: 'sunday',
-            mon: 'monday',
-            tue: 'tuesday',
-            wed: 'wednesday',
-            thu: 'thursday',
-            fri: 'friday',
-            sat: 'saturday'
-        };
-
-        const currentDay = dayMap[today];
-        return currentDay && hours[currentDay] ? hours[currentDay] : 'Closed';
+        const todayHours = getHoursForDay(location);
+        return isClosedHours(todayHours) ? 'Closed' : todayHours;
     };
 
     const getConditionColor = (condition: string) => {
@@ -152,7 +142,7 @@ export const LocationList: React.FC<LocationListProps> = ({
                             )}
                             <p className="text-gray-600 flex items-center">
                                 <Clock className="w-4 h-4 mr-2" />
-                                Today: {formatHours(location.hours)}
+                                Today: {formatTodayHours(location)}
                             </p>
                         </div>
 

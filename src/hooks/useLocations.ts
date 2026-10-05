@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Location } from '../types';
+import { getHoursForDay, isClosedHours } from '../utils/LocationHours';
 import { mockLocations } from '../data/mockLocationData';
 
 export const useLocations = () => {
@@ -113,12 +114,8 @@ export const useLocations = () => {
         const location = getLocationById(locationId);
         if (!location || !location.hours || !location.active) return false;
 
-        const now = new Date();
-        const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-        const currentDay = dayNames[now.getDay()];
-
-        const todayHours = location.hours[currentDay];
-        if (!todayHours || todayHours === 'Closed') return false;
+        const todayHours = getHoursForDay(location);
+        if (!todayHours || isClosedHours(todayHours)) return false;
 
         // For appointment-based or special schedules, assume closed for "now" check
         if (todayHours.includes('Appointment') || todayHours.includes('Schedule')) return false;

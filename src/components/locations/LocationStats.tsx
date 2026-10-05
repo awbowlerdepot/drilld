@@ -1,6 +1,7 @@
 import React from 'react';
 import { Location } from '../../types';
 import { MapPin, Power, PowerOff, Wrench, Clock } from 'lucide-react';
+import { isOpenOnDay } from '../../utils/LocationHours';
 
 interface LocationStatsProps {
     locations: Location[];
@@ -14,21 +15,7 @@ export const LocationStats: React.FC<LocationStatsProps> = ({ locations }) => {
         withEquipment: locations.filter(l =>
             l.equipmentInfo?.equipment && l.equipmentInfo.equipment.length > 0
         ).length,
-        openToday: locations.filter(l => {
-            if (!l.hours) return false;
-            const today = new Date().toLocaleString().toLowerCase().slice(0, 3);
-            const dayMap: Record<string, string> = {
-                sun: 'sunday',
-                mon: 'monday',
-                tue: 'tuesday',
-                wed: 'wednesday',
-                thu: 'thursday',
-                fri: 'friday',
-                sat: 'saturday'
-            };
-            const currentDay = dayMap[today];
-            return currentDay && l.hours[currentDay] && l.hours[currentDay] !== 'Closed';
-        }).length
+        openToday: locations.filter(l => isOpenOnDay(l)).length
     };
 
     return (
