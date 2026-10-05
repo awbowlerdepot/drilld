@@ -1,5 +1,5 @@
 import React from 'react';
-import { Location } from '../../types';
+import { CompanySettings, Location } from '../../types';
 import {
     MapPin,
     Phone,
@@ -12,6 +12,7 @@ import {
     Users
 } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { LocationOverridesSummary } from './LocationOverridesSummary';
 
 interface LocationListProps {
     locations: Location[];
@@ -22,6 +23,7 @@ interface LocationListProps {
         totalWorkOrders: number;
         activeEmployees: number;
     };
+    companySettings: CompanySettings;
 }
 
 export const LocationList: React.FC<LocationListProps> = ({
@@ -29,7 +31,8 @@ export const LocationList: React.FC<LocationListProps> = ({
                                                               onEdit,
                                                               onDelete,
                                                               onToggleActive,
-                                                              getLocationStats
+                                                              getLocationStats,
+                                                              companySettings
                                                           }) => {
     const formatHours = (hours?: Record<string, string>) => {
         if (!hours) return 'Hours not set';
@@ -174,6 +177,11 @@ export const LocationList: React.FC<LocationListProps> = ({
                                 <div className="text-xs text-gray-600">Active Staff</div>
                             </div>
                         </div>
+
+                        <LocationOverridesSummary
+                            overrides={location.settingsOverrides}
+                            companySettings={companySettings}
+                        />
 
                         {/* Equipment Summary */}
                         {equipmentList.length > 0 && (

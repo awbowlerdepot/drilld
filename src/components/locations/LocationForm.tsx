@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
-import { Location, EquipmentItem } from '../../types';
+import { Location, EquipmentItem, CompanySettings, LocationSettingsOverrides } from '../../types';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Textarea } from '../ui/Textarea';
 import { X, MapPin, Clock, Wrench } from 'lucide-react';
+import { LocationSettingsOverridesForm } from './LocationSettingsOverridesForm';
 
 interface LocationFormProps {
     location?: Location;
     onSave: (location: Omit<Location, 'id' | 'createdAt' | 'updatedAt'>) => void;
     onCancel: () => void;
     companyID: string;
+    companySettings: CompanySettings;
 }
 
 interface HoursData {
@@ -20,7 +22,8 @@ export const LocationForm: React.FC<LocationFormProps> = ({
                                                               location,
                                                               onSave,
                                                               onCancel,
-                                                              companyID
+                                                              companyID,
+                                                              companySettings
                                                           }) => {
     const [formData, setFormData] = useState({
         name: location?.name || '',
@@ -43,6 +46,10 @@ export const LocationForm: React.FC<LocationFormProps> = ({
             saturday: '9:00 AM - 10:00 PM',
             sunday: '12:00 PM - 8:00 PM'
         }
+    );
+
+    const [settingsOverrides, setSettingsOverrides] = useState<LocationSettingsOverrides>(
+        location?.settingsOverrides ?? {}
     );
 
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -78,7 +85,8 @@ export const LocationForm: React.FC<LocationFormProps> = ({
                 equipment,
                 lastUpdated: new Date().toISOString()
             },
-            hours
+            hours,
+            settingsOverrides: Object.keys(settingsOverrides).length > 0 ? settingsOverrides : undefined
         };
 
         onSave(locationData);
@@ -298,6 +306,15 @@ export const LocationForm: React.FC<LocationFormProps> = ({
                                     ))}
                                 </div>
                             )}
+                        </div>
+
+                        {/* Settings Overrides */}
+                        <div className="border-t pt-6">
+                            <LocationSettingsOverridesForm
+                                overrides={settingsOverrides}
+                                companySettings={companySettings}
+                                onChange={setSettingsOverrides}
+                            />
                         </div>
                     </div>
 
