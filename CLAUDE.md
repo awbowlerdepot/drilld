@@ -11,14 +11,20 @@ Multi-tenant SaaS for bowling pro shops, centered on ball drilling. Each pro sho
 
 ## Layout
 
-- `src/` — React app: `components/`, `hooks/`, `types/`, `services/`, `data/` (mock data), `utils/`
-- `amplify/` — Amplify Gen 2 backend: `auth/`, `data/`, `functions/`, `storage/`
+- `src/App.tsx` — tab-based navigation (no router); sections wrapped in `ProtectedRoute` with permission strings like `read:customers`
+- `src/components/<feature>/` — one folder per feature: customers, drillsheets, balls, workorders, locations, employees, settings, auth, layout; shared primitives in `components/ui/`
+- `src/hooks/use<Feature>.ts` — one data hook per feature; currently all read from mock data
+- `src/data/` — mock data (`mockData.ts`, `mockLocationData.ts`, `mockProShopSettings.ts`)
+- `src/types/` — domain types split by file, re-exported from `types/index.ts`
+- `src/utils/InsertValidation.ts` — finger insert validation
+- `src/services/` — empty; intended home for the real API layer
+- `amplify/` — Amplify Gen 2 backend scaffold: `auth/`, `data/`, `functions/`, `storage/` (all empty so far)
 
 ## Stack
 
-- AWS Amplify Gen 2, Vite, React, TypeScript, Tailwind
-- PostgreSQL on RDS via Prisma ORM
-- Cognito (auth), GraphQL (API), Lambda (complex operations), S3 (storage), VPC setup
+- Frontend: Vite, React, TypeScript, Tailwind
+- Target backend (not built yet): AWS Amplify Gen 2 — Cognito (auth), GraphQL (API), Lambda, S3, PostgreSQL on RDS via Prisma, in a VPC
+- Hosting: Amplify (`amplify.yml` runs `npm ci` then `npm run build`, serves `dist/`); env vars documented in `.env.example`
 
 ## Domain rules (get these right)
 
@@ -51,9 +57,13 @@ Look for incorrect imports, circular dependencies, and unnecessary complexity.
 
 ## Status and next up
 
+- The frontend runs entirely on mock data. Hooks simulate API calls with `setTimeout`.
+- No backend code exists in this repo yet: `amplify/` subfolders, `src/services/`, and `amplify_outputs.json` are empty, and there is no Prisma schema.
+- `npm run build` currently fails type-checking (about 33 TS errors, mostly in `settings/tabs/BillingSettingsTab.tsx`, `customers/CustomerOverview.tsx`, `settings/tabs/IntegrationSettingsTab.tsx`). Fix these before deploying.
 - Drill sheet UX was refactored to use visual layouts, correct terminology, and full insert support.
-- The backend is ready to deploy, with migrations and seed data. The Amplify Gen 2 + RDS/Prisma config and dependency issues are resolved.
 - Next:
-  1. Complete work order management.
-  2. Finalize location management.
-  3. Build tiered pro shop settings.
+  1. Get `npm run build` passing.
+  2. Complete work order management.
+  3. Finalize location management.
+  4. Build tiered pro shop settings.
+  5. Stand up the Amplify Gen 2 backend and replace mock data in hooks with real services.
