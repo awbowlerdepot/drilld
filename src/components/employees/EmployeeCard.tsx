@@ -1,6 +1,7 @@
 import React from 'react';
 import { User, Edit, UserCheck, UserX, Mail, Phone, DollarSign } from 'lucide-react';
 import { Employee } from '../../types/employee';
+import { EmployeeRoleBadges } from './EmployeeRoleBadges';
 
 interface EmployeeCardProps {
     employee: Employee;
@@ -8,13 +9,15 @@ interface EmployeeCardProps {
     onDelete: (employeeId: string) => void;
     onToggleStatus: (employee: Employee) => void;
     onClick: (employee: Employee) => void;
+    locationNames: Record<string, string>;
 }
 
 export const EmployeeCard: React.FC<EmployeeCardProps> = ({
                                                               employee,
                                                               onEdit,
                                                               onToggleStatus,
-                                                              onClick
+                                                              onClick,
+                                                              locationNames
                                                           }) => {
     return (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer">
@@ -32,7 +35,9 @@ export const EmployeeCard: React.FC<EmployeeCardProps> = ({
                             <h3 className="font-medium text-gray-900">
                                 {employee.firstName} {employee.lastName}
                             </h3>
-                            <p className="text-sm text-gray-500">{employee.role.replace('_', ' ')}</p>
+                            <div className="mt-1">
+                                <EmployeeRoleBadges employee={employee} locationNames={locationNames} />
+                            </div>
                         </div>
                     </div>
                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${

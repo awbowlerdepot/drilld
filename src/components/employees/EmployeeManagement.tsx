@@ -2,6 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { User, Plus } from 'lucide-react';
 import { Employee, EmployeeRole, EmployeeFormData } from '../../types/employee';
 import { useEmployees } from '../../hooks/useEmployees';
+import { useLocations } from '../../hooks/useLocations';
+import { EMPLOYEE_ROLE_OPTIONS, hasRoleAnywhere } from '../../utils/EmployeeRoles';
 import { EmployeeCard } from './EmployeeCard';
 import { EmployeeTable } from './EmployeeTable';
 import { EmployeeForm } from './EmployeeForm';
@@ -10,14 +12,6 @@ import { EmployeeDetailModal } from './EmployeeDetailModal';
 interface EmployeeManagementProps {
     searchTerm: string;
 }
-
-const EMPLOYEE_ROLES: { value: EmployeeRole; label: string }[] = [
-    { value: 'MANAGER', label: 'Manager' },
-    { value: 'SENIOR_TECH', label: 'Senior Technician' },
-    { value: 'TECHNICIAN', label: 'Technician' },
-    { value: 'PART_TIME', label: 'Part Time' },
-    { value: 'INTERN', label: 'Intern' }
-];
 
 export const EmployeeManagement: React.FC<EmployeeManagementProps> = ({ searchTerm }) => {
     const {
@@ -31,6 +25,12 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = ({ searchTe
         deactivateEmployee,
         searchEmployees
     } = useEmployees();
+    const { locations } = useLocations();
+
+    const locationNames = useMemo(
+        () => Object.fromEntries(locations.map(location => [location.id, location.name])),
+        [locations]
+    );
 
     const [showForm, setShowForm] = useState(false);
     const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
@@ -44,7 +44,7 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = ({ searchTe
         let filtered = searchTerm ? searchEmployees(searchTerm) : employees;
 
         if (filterRole !== 'all') {
-            filtered = filtered.filter(emp => emp.role === filterRole);
+            filtered = filtered.filter(emp => hasRoleAnywhere(emp, filterRole));
         }
 
         if (filterStatus === 'active') {
@@ -148,7 +148,7 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = ({ searchTe
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         >
                             <option value="all">All Roles</option>
-                            {EMPLOYEE_ROLES.map(role => (
+                            {EMPLOYEE_ROLE_OPTIONS.map(role => (
                                 <option key={role.value} value={role.value}>{role.label}</option>
                             ))}
                         </select>
@@ -230,6 +230,7 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = ({ searchTe
                             onDelete={handleDeleteEmployee}
                             onToggleStatus={handleToggleStatus}
                             onClick={setSelectedEmployee}
+                            locationNames={locationNames}
                         />
                     ))}
                 </div>
@@ -241,6 +242,7 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = ({ searchTe
                         onDelete={handleDeleteEmployee}
                         onToggleStatus={handleToggleStatus}
                         onRowClick={setSelectedEmployee}
+                        locationNames={locationNames}
                     />
                 </div>
             )}
@@ -249,6 +251,7 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = ({ searchTe
             {showForm && (
                 <EmployeeForm
                     employee={editingEmployee}
+                    locations={locations}
                     onSubmit={handleFormSubmit}
                     onCancel={() => {
                         setShowForm(false);
@@ -263,6 +266,7 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = ({ searchTe
                     employee={selectedEmployee}
                     onClose={() => setSelectedEmployee(null)}
                     onEdit={handleEditEmployee}
+                    locationNames={locationNames}
                 />
             )}
         </div>

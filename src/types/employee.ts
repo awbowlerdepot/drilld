@@ -1,9 +1,26 @@
+/**
+ * Job role at a location, in order of seniority.
+ */
 export type EmployeeRole =
     | 'MANAGER'
     | 'SENIOR_TECH'
     | 'TECHNICIAN'
-    | 'PART_TIME'
-    | 'INTERN';
+    | 'APPRENTICE';
+
+/**
+ * Company-wide administrative access. Not a job role: owners and admins
+ * can manage the whole company and every location. Everyone else gets
+ * their permissions from their role at each location.
+ */
+export type CompanyRole = 'OWNER' | 'ADMIN';
+
+/**
+ * An employee's role at one location.
+ */
+export interface LocationMembership {
+    locationID: string;
+    role: EmployeeRole;
+}
 
 export interface Employee {
     id: string;
@@ -14,12 +31,11 @@ export interface Employee {
     firstName: string;
     lastName: string;
     phone?: string;
-    role: EmployeeRole;
-    permissions: string[];
+    companyRole?: CompanyRole;
+    memberships: LocationMembership[];
     certifications: Record<string, any>;
     hireDate?: string;
     hourlyRate?: number;
-    locations: string[];
     specialties: string[];
     active: boolean;
     createdAt: string;
@@ -32,12 +48,11 @@ export interface EmployeeFormData {
     firstName: string;
     lastName: string;
     phone: string;
-    role: EmployeeRole;
-    permissions: string[];
+    companyRole?: CompanyRole;
+    memberships: LocationMembership[];
     certifications: Record<string, any>;
     hireDate: string;
     hourlyRate: number;
-    locations: string[];
     specialties: string[];
 }
 
@@ -95,13 +110,7 @@ export const DEFAULT_PERMISSIONS_BY_ROLE: Record<EmployeeRole, string[]> = {
         'read:drillsheets', 'write:drillsheets',
         'read:employees'
     ],
-    PART_TIME: [
-        'read:customers',
-        'read:workorders', 'write:workorders',
-        'read:balls', 'write:balls',
-        'read:drillsheets'
-    ],
-    INTERN: [
+    APPRENTICE: [
         'read:customers',
         'read:workorders',
         'read:balls',

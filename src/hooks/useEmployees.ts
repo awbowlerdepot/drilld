@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Employee, EmployeeFormData } from '../types';
+import { Employee, EmployeeFormData, EmployeeRole } from '../types';
+import { getHighestRole, hasPermission, hasRoleAnywhere, isAssignedToLocation } from '../utils/EmployeeRoles';
 import { mockEmployees } from '../data/mockData';
 
 export const useEmployees = () => {
@@ -55,13 +56,13 @@ export const useEmployees = () => {
         return employees.find(employee => employee.id === id);
     };
 
-    const getEmployeesByRole = (role: Employee['role']) => {
-        return employees.filter(employee => employee.role === role && employee.active);
+    const getEmployeesByRole = (role: EmployeeRole) => {
+        return employees.filter(employee => hasRoleAnywhere(employee, role) && employee.active);
     };
 
     const getEmployeesByLocation = (locationId: string) => {
         return employees.filter(employee =>
-            employee.locations.includes(locationId) && employee.active
+            isAssignedToLocation(employee, locationId) && employee.active
         );
     };
 
@@ -81,7 +82,7 @@ export const useEmployees = () => {
 
     const getEmployeesByPermission = (permission: string) => {
         return employees.filter(employee =>
-            employee.permissions.includes(permission) && employee.active
+            hasPermission(employee, permission) && employee.active
         );
     };
 
@@ -120,8 +121,9 @@ export const useEmployees = () => {
         const inactiveCount = employees.filter(e => !e.active).length;
 
         const roleBreakdown = employees.reduce((acc, emp) => {
-            if (emp.active) {
-                acc[emp.role] = (acc[emp.role] || 0) + 1;
+            const role = getHighestRole(emp);
+            if (emp.active && role) {
+                acc[role] = (acc[role] || 0) + 1;
             }
             return acc;
         }, {} as Record<string, number>);
@@ -141,7 +143,7 @@ export const useEmployees = () => {
 
         const locationCoverage = employees
             .filter(e => e.active)
-            .flatMap(e => e.locations)
+            .flatMap(e => e.memberships.map(membership => membership.locationID))
             .reduce((acc, location) => {
                 acc[location] = (acc[location] || 0) + 1;
                 return acc;
@@ -171,16 +173,14 @@ export const useEmployees = () => {
 
     const getEmployeesAvailableForLocation = (locationId: string) => {
         return employees.filter(employee =>
-            employee.active && employee.locations.includes(locationId)
+            employee.active && isAssignedToLocation(employee, locationId)
         );
     };
 
     const getTechnicians = () => {
         return employees.filter(employee =>
             employee.active &&
-            (employee.role === 'TECHNICIAN' ||
-                employee.role === 'SENIOR_TECH' ||
-                employee.role === 'MANAGER')
+            employee.memberships.some(membership => membership.role !== 'APPRENTICE')
         );
     };
 

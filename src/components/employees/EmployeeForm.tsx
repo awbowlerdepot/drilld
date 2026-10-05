@@ -1,62 +1,45 @@
 import React, { useState } from 'react';
-import { Employee, EmployeeRole, EmployeeFormData } from '../../types/employee';
+import { Location } from '../../types';
+import { CompanyRole, Employee, EmployeeFormData } from '../../types/employee';
+import { COMPANY_ROLE_OPTIONS } from '../../utils/EmployeeRoles';
+import { EmployeeMembershipsInput } from './EmployeeMembershipsInput';
 
 interface EmployeeFormProps {
     employee: Employee | null;
+    locations: Location[];
     onSubmit: (data: EmployeeFormData) => void;
     onCancel: () => void;
 }
-
-const EMPLOYEE_ROLES: { value: EmployeeRole; label: string }[] = [
-    { value: 'MANAGER', label: 'Manager' },
-    { value: 'SENIOR_TECH', label: 'Senior Technician' },
-    { value: 'TECHNICIAN', label: 'Technician' },
-    { value: 'PART_TIME', label: 'Part Time' },
-    { value: 'INTERN', label: 'Intern' }
-];
-
-const AVAILABLE_PERMISSIONS = [
-    'read:customers', 'write:customers', 'delete:customers',
-    'read:workorders', 'write:workorders', 'delete:workorders',
-    'read:balls', 'write:balls', 'delete:balls',
-    'read:drillsheets', 'write:drillsheets', 'delete:drillsheets',
-    'read:employees', 'write:employees', 'delete:employees',
-    'read:analytics', 'manage:settings'
-];
 
 const SPECIALTIES = [
     'Ball Drilling', 'Surface Adjustments', 'Thumb Slugs', 'Finger Inserts',
     'Weight Holes', 'Layout Design', 'Customer Consultation', 'Equipment Maintenance'
 ];
 
-export const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSubmit, onCancel }) => {
+export const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, locations, onSubmit, onCancel }) => {
     const [formData, setFormData] = useState<EmployeeFormData>({
         username: employee?.username || '',
         email: employee?.email || '',
         firstName: employee?.firstName || '',
         lastName: employee?.lastName || '',
         phone: employee?.phone || '',
-        role: employee?.role || 'TECHNICIAN',
-        permissions: employee?.permissions || [],
+        companyRole: employee?.companyRole,
+        memberships: employee?.memberships || [],
         certifications: employee?.certifications || {},
         hireDate: employee?.hireDate || new Date().toISOString().split('T')[0],
         hourlyRate: employee?.hourlyRate || 0,
-        locations: employee?.locations || [],
         specialties: employee?.specialties || []
     });
 
+    const [membershipError, setMembershipError] = useState<string | undefined>();
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        if (!formData.companyRole && formData.memberships.length === 0) {
+            setMembershipError('Assign at least one location, or give company-wide access.');
+            return;
+        }
         onSubmit(formData);
-    };
-
-    const handlePermissionToggle = (permission: string) => {
-        setFormData(prev => ({
-            ...prev,
-            permissions: prev.permissions.includes(permission)
-                ? prev.permissions.filter(p => p !== permission)
-                : [...prev.permissions, permission]
-        }));
     };
 
     const handleSpecialtyToggle = (specialty: string) => {
@@ -146,22 +129,6 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSubmit, 
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Role *
-                            </label>
-                            <select
-                                value={formData.role}
-                                onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value as EmployeeRole }))}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                required
-                            >
-                                {EMPLOYEE_ROLES.map(role => (
-                                    <option key={role.value} value={role.value}>{role.label}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
                                 Hire Date
                             </label>
                             <input
@@ -187,25 +154,48 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSubmit, 
                         </div>
                     </div>
 
-                    {/* Permissions */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-3">
-                            Permissions
-                        </label>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                            {AVAILABLE_PERMISSIONS.map(permission => (
-                                <label key={permission} className="flex items-center">
-                                    <input
-                                        type="checkbox"
-                                        checked={formData.permissions.includes(permission)}
-                                        onChange={() => handlePermissionToggle(permission)}
-                                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                                    />
-                                    <span className="ml-2 text-sm text-gray-700">
-                                        {permission.replace(':', ' ').replace('_', ' ')}
-                                    </span>
-                                </label>
-                            ))}
+                    {/* Access */}
+                    <div className="space-y-4">
+                        <div>
+                            <h4 className="text-sm font-medium text-gray-900">Access</h4>
+                            <p className="text-sm text-gray-500">
+                                Permissions come from the role at each location. Owners and admins have full access at every location.
+                            </p>
+                        </div>
+
+                        <div className="md:w-1/2">
+                            <label htmlFor="companyRole" className="block text-sm font-medium text-gray-700 mb-1">
+                                Company Access
+                            </label>
+                            <select
+                                id="companyRole"
+                                value={formData.companyRole ?? ''}
+                                onChange={(e) => {
+                                    setFormData(prev => ({ ...prev, companyRole: (e.target.value || undefined) as CompanyRole | undefined }));
+                                    setMembershipError(undefined);
+                                }}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            >
+                                <option value="">None (location roles only)</option>
+                                {COMPANY_ROLE_OPTIONS.map(option => (
+                                    <option key={option.value} value={option.value}>{option.label}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div>
+                            <span className="block text-sm font-medium text-gray-700 mb-1">
+                                Locations & Roles
+                            </span>
+                            <EmployeeMembershipsInput
+                                locations={locations}
+                                memberships={formData.memberships}
+                                onChange={(memberships) => {
+                                    setFormData(prev => ({ ...prev, memberships }));
+                                    setMembershipError(undefined);
+                                }}
+                                error={membershipError}
+                            />
                         </div>
                     </div>
 

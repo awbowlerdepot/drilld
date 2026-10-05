@@ -4,6 +4,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Textarea } from '../ui/Textarea';
+import { getHighestRole, getRoleAtLocation, getRoleLabel, isAssignedToLocation } from '../../utils/EmployeeRoles';
 import { X, Wrench, DollarSign } from 'lucide-react';
 
 interface WorkOrderFormProps {
@@ -168,9 +169,11 @@ export const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
     };
 
     // Helper function to format employee display
+    // Shows the employee's role at the selected location, or their most senior role
     const getEmployeeDisplay = (employee: Employee) => {
-        const roleDisplay = employee.role.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
-        return `${employee.firstName} ${employee.lastName} - ${roleDisplay}`;
+        const role = (formData.locationID && getRoleAtLocation(employee, formData.locationID)) || getHighestRole(employee);
+        const name = `${employee.firstName} ${employee.lastName}`;
+        return role ? `${name} - ${getRoleLabel(role)}` : name;
     };
 
     // Helper function to format ball display
@@ -203,7 +206,14 @@ export const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
         label: location.name
     }));
 
-    const employeeOptions = employees.filter(emp => emp.active).map(employee => ({
+    // Once a location is chosen, only offer people who work there (keeping the current pick when editing)
+    const employeeOptions = employees.filter(emp =>
+        emp.active && (
+            !formData.locationID ||
+            isAssignedToLocation(emp, formData.locationID) ||
+            emp.id === formData.performedByEmployeeID
+        )
+    ).map(employee => ({
         value: employee.id,
         label: getEmployeeDisplay(employee)
     }));

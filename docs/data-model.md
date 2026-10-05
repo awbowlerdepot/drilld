@@ -8,7 +8,7 @@ Status: agreed design, not implemented yet. Target is PostgreSQL. Last updated 2
 |---|---|
 | Tenant | **Company**, the paying customer. All tenant data carries `company_id`. |
 | Physical shops | **Location**. A company has 1..n locations. In the UI it can be labelled "Pro Shop". |
-| Users | Belong to exactly **one company**. Roles are granted **per location**. |
+| Users | Belong to exactly **one company**. Job roles (Manager, Senior Tech, Technician, Apprentice) are granted **per location**; optional company access (`OWNER`/`ADMIN`) covers every location. Permissions are derived from these roles, with no per-user permission lists. |
 | Billing | **Company level**. A plan includes up to **4 locations**; more locations means a bigger plan (to be designed later). |
 | Rollout | Used **internally first**, as the first company, then productized. Multi-tenancy is built in from day one so productizing needs no data migration. |
 | Customers (bowlers) | Company level, with a home location. Shared across the company's locations. |

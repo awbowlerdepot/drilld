@@ -1,18 +1,31 @@
 import React from 'react';
 import { User, Mail, Phone, Calendar, DollarSign, Shield, MapPin, X } from 'lucide-react';
 import { Employee } from '../../types/employee';
+import {
+    getCompanyRoleLabel,
+    getHighestRole,
+    getPermissionsAtLocation,
+    getRoleLabel
+} from '../../utils/EmployeeRoles';
 
 interface EmployeeDetailModalProps {
     employee: Employee;
     onClose: () => void;
     onEdit: (employee: Employee) => void;
+    locationNames: Record<string, string>;
 }
 
 export const EmployeeDetailModal: React.FC<EmployeeDetailModalProps> = ({
                                                                             employee,
                                                                             onClose,
-                                                                            onEdit
+                                                                            onEdit,
+                                                                            locationNames
                                                                         }) => {
+    const highestRole = getHighestRole(employee);
+    const headline = employee.companyRole
+        ? getCompanyRoleLabel(employee.companyRole)
+        : highestRole ? getRoleLabel(highestRole) : 'No role assigned';
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -42,7 +55,7 @@ export const EmployeeDetailModal: React.FC<EmployeeDetailModalProps> = ({
                             <h2 className="text-xl font-semibold text-gray-900">
                                 {employee.firstName} {employee.lastName}
                             </h2>
-                            <p className="text-gray-600">{employee.role.replace('_', ' ')}</p>
+                            <p className="text-gray-600">{headline}</p>
                             <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full mt-1 ${
                                 employee.active
                                     ? 'bg-green-100 text-green-800'
@@ -90,10 +103,6 @@ export const EmployeeDetailModal: React.FC<EmployeeDetailModalProps> = ({
                                         <span>${employee.hourlyRate}/hour</span>
                                     </div>
                                 )}
-                                <div className="flex items-center gap-2">
-                                    <Shield className="w-4 h-4 text-gray-400" />
-                                    <span>{employee.permissions.length} permissions</span>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -115,41 +124,39 @@ export const EmployeeDetailModal: React.FC<EmployeeDetailModalProps> = ({
                         </div>
                     )}
 
-                    {/* Permissions */}
-                    {employee.permissions.length > 0 && (
-                        <div>
-                            <h4 className="text-sm font-medium text-gray-900 mb-3">Permissions</h4>
-                            <div className="grid grid-cols-2 gap-2">
-                                {employee.permissions.map((permission, index) => (
-                                    <div
-                                        key={index}
-                                        className="flex items-center gap-2 text-sm text-gray-600"
-                                    >
-                                        <Shield className="w-3 h-3 text-green-500" />
-                                        <span>{permission.replace(':', ' ').replace('_', ' ')}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Locations */}
-                    {employee.locations.length > 0 && (
-                        <div>
-                            <h4 className="text-sm font-medium text-gray-900 mb-3">Assigned Locations</h4>
+                    {/* Locations & Roles */}
+                    <div>
+                        <h4 className="text-sm font-medium text-gray-900 mb-3">Locations & Roles</h4>
+                        {employee.companyRole && (
+                            <p className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                                <Shield className="w-4 h-4 text-purple-500" />
+                                Company {getCompanyRoleLabel(employee.companyRole).toLowerCase()}: full access at every location
+                            </p>
+                        )}
+                        {employee.memberships.length > 0 ? (
                             <div className="space-y-1">
-                                {employee.locations.map((location, index) => (
+                                {employee.memberships.map(membership => (
                                     <div
-                                        key={index}
-                                        className="flex items-center gap-2 text-sm text-gray-600"
+                                        key={membership.locationID}
+                                        className="flex items-center justify-between gap-4 text-sm"
                                     >
-                                        <MapPin className="w-3 h-3 text-gray-400" />
-                                        <span>{location}</span>
+                                        <span className="flex items-center gap-2 text-gray-600">
+                                            <MapPin className="w-3 h-3 text-gray-400" />
+                                            {locationNames[membership.locationID] ?? 'Unknown location'}
+                                        </span>
+                                        <span className="text-gray-900">
+                                            <span className="font-medium">{getRoleLabel(membership.role)}</span>
+                                            <span className="ml-2 text-xs text-gray-400">
+                                                {getPermissionsAtLocation(employee, membership.locationID).length} permissions
+                                            </span>
+                                        </span>
                                     </div>
                                 ))}
                             </div>
-                        </div>
-                    )}
+                        ) : (
+                            <p className="text-sm text-gray-400">Not assigned to any location</p>
+                        )}
+                    </div>
 
                     {/* Actions */}
                     <div className="flex justify-end gap-3 pt-6 border-t border-gray-200">

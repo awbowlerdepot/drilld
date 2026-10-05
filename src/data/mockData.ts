@@ -1,6 +1,6 @@
 // REPLACE ENTIRE CONTENTS of src/data/mockData.ts
 
-import { Customer, BowlingBall, WorkOrder } from '../types';
+import { Customer, BowlingBall, WorkOrder, Employee } from '../types';
 import { DrillSheet } from '../types/drillsheet';
 
 export const mockCustomers: Customer[] = [
@@ -55,7 +55,7 @@ export const mockCustomers: Customer[] = [
 ];
 
 // Mock data for supporting entities
-export const mockEmployees = [
+export const mockEmployees: Employee[] = [
     {
         id: 'emp1',
         companyID: 'company1',
@@ -65,8 +65,10 @@ export const mockEmployees = [
         firstName: 'Mike',
         lastName: 'Rodriguez',
         phone: '555-0123',
-        role: 'SENIOR_TECH' as const,
-        permissions: ['read:customers', 'write:customers', 'read:workorders', 'write:workorders', 'read:balls', 'write:balls', 'read:drillsheets', 'write:drillsheets'],
+        memberships: [
+            { locationID: '1', role: 'SENIOR_TECH' },
+            { locationID: '2', role: 'MANAGER' }
+        ],
         certifications: {
             'IBPSIA_Bronze': {
                 issueDate: '2020-06-15',
@@ -81,7 +83,6 @@ export const mockEmployees = [
         },
         hireDate: '2020-03-15',
         hourlyRate: 25.00,
-        locations: ['1', '2'],
         specialties: ['Finger Inserts', 'Ball Drilling', 'Layout Design'],
         active: true,
         createdAt: '2020-03-15T08:00:00Z',
@@ -96,8 +97,9 @@ export const mockEmployees = [
         firstName: 'Sarah',
         lastName: 'Johnson',
         phone: '555-0124',
-        role: 'TECHNICIAN' as const,
-        permissions: ['read:customers', 'write:customers', 'read:workorders', 'write:workorders', 'read:balls', 'write:balls', 'read:drillsheets'],
+        memberships: [
+            { locationID: '1', role: 'TECHNICIAN' }
+        ],
         certifications: {
             'Basic_Drilling': {
                 issueDate: '2021-07-01',
@@ -107,7 +109,6 @@ export const mockEmployees = [
         },
         hireDate: '2021-06-01',
         hourlyRate: 20.00,
-        locations: ['1'],
         specialties: ['Ball Drilling', 'Surface Adjustments'],
         active: true,
         createdAt: '2021-06-01T08:00:00Z',
@@ -122,8 +123,11 @@ export const mockEmployees = [
         firstName: 'Alex',
         lastName: 'Thompson',
         phone: '555-0125',
-        role: 'MANAGER' as const,
-        permissions: ['read:customers', 'write:customers', 'delete:customers', 'read:workorders', 'write:workorders', 'delete:workorders', 'read:balls', 'write:balls', 'delete:balls', 'read:drillsheets', 'write:drillsheets', 'delete:drillsheets', 'read:employees', 'write:employees', 'read:analytics', 'manage:settings'],
+        companyRole: 'ADMIN',
+        memberships: [
+            { locationID: '1', role: 'MANAGER' },
+            { locationID: '2', role: 'MANAGER' }
+        ],
         certifications: {
             'IBPSIA_Silver': {
                 issueDate: '2019-04-10',
@@ -138,7 +142,6 @@ export const mockEmployees = [
         },
         hireDate: '2019-01-15',
         hourlyRate: 30.00,
-        locations: ['1', '2'],
         specialties: ['Customer Consultation', 'Ball Drilling', 'Equipment Maintenance', 'Finger Inserts'],
         active: true,
         createdAt: '2019-01-15T08:00:00Z',
