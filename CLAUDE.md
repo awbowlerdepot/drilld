@@ -1,12 +1,14 @@
 # Drilld
 
-Multi-tenant SaaS for bowling pro shops, centered on ball drilling. Each pro shop manages its own customers, drill specs, work orders, and inventory.
+Multi-tenant SaaS for bowling pro shops, centered on ball drilling. The tenant is a **company**, which has one or more **locations** (physical pro shops). Customers, balls and drill sheets belong to the company. Work orders, inventory and equipment belong to a location. The first company is our own business; the platform gets productized for other companies later, so multi-tenancy is built in from the start.
+
+The agreed backend design (Postgres schema, tenant isolation, ball registry, drill sheet revisions, BowlerIQ catalog sync) is in `docs/data-model.md`. Read it before any backend or data-model work.
 
 ## Commands
 
 - `npm run dev` — start the Vite dev server
 - `npm run build` — type-check (`tsc`) and build
-- `npm run lint` — ESLint, zero warnings allowed
+- `npm run lint` — ESLint, zero warnings allowed (currently fails on about 22 pre-existing issues, mostly `no-explicit-any`; keep new code clean)
 - `npm run preview` — preview the production build
 
 ## Layout
@@ -14,9 +16,14 @@ Multi-tenant SaaS for bowling pro shops, centered on ball drilling. Each pro sho
 - `src/App.tsx` — tab-based navigation (no router); sections wrapped in `ProtectedRoute` with permission strings like `read:customers`
 - `src/components/<feature>/` — one folder per feature: customers, drillsheets, balls, workorders, locations, employees, settings, auth, layout; shared primitives in `components/ui/`
 - `src/hooks/use<Feature>.ts` — one data hook per feature; currently all read from mock data
-- `src/data/` — mock data (`mockData.ts`, `mockLocationData.ts`, `mockProShopSettings.ts`)
-- `src/types/` — domain types split by file, re-exported from `types/index.ts`
-- `src/utils/InsertValidation.ts` — finger insert validation
+- `src/data/` — mock data (`mockData.ts`, `mockLocationData.ts`, `mockCompanySettings.ts`)
+- `src/types/` — domain types split by file (`drillsheet.ts`, `employee.ts`, `settings.ts`), re-exported from `types/index.ts`
+- `src/utils/` — pure helpers:
+  - `InsertValidation.ts` — finger insert validation
+  - `LocationSettings.ts` — company settings plus location overrides
+  - `LocationHours.ts` — today's hours, open/closed
+  - `EmployeeRoles.ts` — roles and derived permissions
+- `docs/data-model.md` — backend data model design and open questions
 - `src/services/` — empty; intended home for the real API layer
 - `amplify/` — Amplify Gen 2 backend scaffold: `auth/`, `data/`, `functions/`, `storage/` (all empty so far)
 
@@ -33,7 +40,10 @@ Multi-tenant SaaS for bowling pro shops, centered on ball drilling. Each pro sho
 - Drill sheets cover spans, bridge distances, pitch angles, hole specs, and finger insert compatibility.
 - Finger inserts: VISE, Turbo, JoPo. Use each manufacturer's real size ranges and specs.
 - Use industry-standard drill bit sizes and measurement conventions.
-- Roles: Manager, Senior Tech, Technician, Apprentice.
+- Tenancy naming: `companyID` is the tenant and `Location` is a physical pro shop. Never reintroduce `proshopID` for the tenant.
+- Settings: company-wide settings live in `CompanySettings`. A location can override some of them via `Location.settingsOverrides`. Use `resolveLocationSettings` to get the values that apply at a location.
+- Roles: Manager, Senior Tech, Technician, Apprentice, assigned **per location** (`Employee.memberships`). Optional company access (`companyRole`: `OWNER` or `ADMIN`) grants full access everywhere. Permissions are derived from roles, not stored per employee.
+- Ball products come from the BowlerIQ Partner API (see `docs/data-model.md`). Its partner key is server-side only: never put it in a `VITE_*` var, the frontend or the repo.
 - Drill sheets live under customer profiles. They are not standalone navigation items.
 
 ## Conventions
@@ -58,12 +68,24 @@ Look for incorrect imports, circular dependencies, and unnecessary complexity.
 ## Status and next up
 
 - The frontend runs entirely on mock data. Hooks simulate API calls with `setTimeout`.
-- No backend code exists in this repo yet: `amplify/` subfolders, `src/services/`, and `amplify_outputs.json` are empty, and there is no Prisma schema.
-- `npm run build` currently fails type-checking (about 33 TS errors, mostly in `settings/tabs/BillingSettingsTab.tsx`, `customers/CustomerOverview.tsx`, `settings/tabs/IntegrationSettingsTab.tsx`). Fix these before deploying.
-- Drill sheet UX was refactored to use visual layouts, correct terminology, and full insert support.
+- No backend code exists in this repo yet: `amplify/` subfolders, `src/services/` and `amplify_outputs.json` are empty, and there is no Prisma schema.
+- `npm run build` passes.
+- Done on the frontend:
+  - company/location tenancy rename
+  - company settings with per-location overrides
+  - employee roles per location
+- Not yet applied to the frontend types (designed in `docs/data-model.md`):
+  - drill sheet revisions
+  - hole sizes stored in 64ths
+  - a single insert shape
+  - layout moved from drill sheets to work orders
+  - the ball registry and BowlerIQ catalog
 - Next:
-  1. Get `npm run build` passing.
-  2. Complete work order management.
-  3. Finalize location management.
-  4. Build tiered pro shop settings.
-  5. Stand up the Amplify Gen 2 backend and replace mock data in hooks with real services.
+  1. Stand up the backend from `docs/data-model.md`:
+     - Postgres schema and migrations, including RLS
+     - Cognito
+     - the BowlerIQ catalog sync job
+  2. Replace mock data with real services, starting with customers and drill sheets.
+  3. Complete work order management, using `resolveLocationSettings` for labor rate and tax.
+  4. Resolve the remaining open items in `docs/data-model.md`.
+  5. Clear the pre-existing lint errors.
