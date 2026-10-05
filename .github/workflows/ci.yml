@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Frontend build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Type-check and build, the same as the Amplify deploy (amplify.yml).
+      # Lint is not run yet: it fails on pre-existing issues (see CLAUDE.md).
+      - run: npm run build
+
+  database:
+    name: Database schema tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Migrations up/down/up on a throwaway postgres:16 container, then the schema tests.
+      - run: db/test.sh
