@@ -1,16 +1,19 @@
 import React from 'react';
-import { Search, Settings, Target } from 'lucide-react';
+import { LogOut, Search, Settings, Target } from 'lucide-react';
+import { SignedInUser } from '../../types';
 
 interface HeaderProps {
     searchTerm: string;
     onSearchChange: (term: string) => void;
     onSettingsClick?: () => void;
+    user?: SignedInUser;
 }
 
 export const Header: React.FC<HeaderProps> = ({
                                                   searchTerm,
                                                   onSearchChange,
-                                                  onSettingsClick
+                                                  onSettingsClick,
+                                                  user
                                               }) => {
     return (
         <header className="bg-white shadow-sm border-b">
@@ -38,6 +41,21 @@ export const Header: React.FC<HeaderProps> = ({
                         >
                             <Settings className="w-5 h-5" />
                         </button>
+                        {user && (
+                            <>
+                                <span className="hidden md:inline text-sm text-gray-600" title="Signed in">
+                                    {user.email}
+                                </span>
+                                <button
+                                    onClick={user.signOut}
+                                    className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+                                    title="Sign out"
+                                    aria-label="Sign out"
+                                >
+                                    <LogOut className="w-5 h-5" />
+                                </button>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>

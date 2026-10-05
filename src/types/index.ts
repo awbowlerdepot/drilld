@@ -10,6 +10,9 @@ export * from './employee';
 // Re-export company and location settings types
 export * from './settings';
 
+// Re-export auth types
+export * from './auth';
+
 // Import specific types that we need to reference in this file
 import type { Employee } from './employee';
 import type { LocationSettingsOverrides } from './settings';

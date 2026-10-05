@@ -26,6 +26,9 @@ jobs:
       # Type-check and build, the same as the Amplify deploy (amplify.yml).
       # Lint is not run yet: it fails on pre-existing issues (see CLAUDE.md).
       - run: npm run build
+      # The Amplify backend definition (amplify/) is not part of the app build.
+      - name: Type-check Amplify backend
+        run: npx tsc --noEmit -p amplify
 
   database:
     name: Database schema tests
