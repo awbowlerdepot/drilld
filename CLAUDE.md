@@ -42,7 +42,6 @@ The agreed backend design (Postgres schema, tenant isolation, ball registry, dri
 - Hosting: Amplify Hosting app `d1fijf3mjtco4q` in **us-west-1**. It auto-builds `main`, using the service role `drilld-amplify-backend-role` (`AmplifyBackendDeployFullAccess` only).
   - `amplify.yml` backend phase: `npm ci`, then `ampx pipeline-deploy`, which deploys `amplify/` and writes `amplify_outputs.json`.
   - Frontend phase: `npm run build`, serving `dist/`.
-  - A duplicate app (`d1lpo0nl0hnby8`, us-east-1) has auto-build turned off. It's not the real site.
   - Env vars are documented in `.env.example`.
 - Local backend: `npx ampx sandbox --once` deploys a personal sandbox (us-west-1) and writes `amplify_outputs.json`. `npx ampx sandbox delete` removes it.
 
