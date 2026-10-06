@@ -1,27 +1,46 @@
 import { useState } from 'react'
-import { Header } from './components/layout/Header'
-import { Navigation } from './components/layout/Navigation'
+import { Sidebar } from './components/layout/Sidebar'
+import { TopBar } from './components/layout/TopBar'
 import { CustomerManagement } from './components/customers/CustomerManagement'
 import { BowlingBallManagement } from './components/balls/BowlingBallManagement'
 import { WorkOrderManagement } from './components/workorders/WorkOrderManagement'
 import { SettingsPage } from './components/settings/SettingsPage'
-import { SignedInUser } from './types'
+import { useLocations } from './hooks/useLocations'
+import { useSidebarCollapsed } from './hooks/useSidebarCollapsed'
+import { AppSection, SignedInUser } from './types'
 
 interface AppProps {
     // Absent when running without auth (no amplify_outputs.json): local mock-data development.
     user?: SignedInUser
 }
 
+const SECTION_TITLES: Record<AppSection, string> = {
+    customers: 'Customers',
+    workorders: 'Work Orders',
+    balls: 'Bowling Balls',
+    analytics: 'Analytics',
+    settings: 'Settings'
+}
+
 function App({ user }: AppProps) {
-    const [activeTab, setActiveTab] = useState('customers')
+    const [activeSection, setActiveSection] = useState<AppSection>('customers')
     const [searchTerm, setSearchTerm] = useState('')
+    const [sidebarOpen, setSidebarOpen] = useState(false)
+    const [selectedLocationID, setSelectedLocationID] = useState('')
+    const { locations } = useLocations()
+    const { collapsed: sidebarCollapsed, toggleCollapsed: toggleSidebarCollapsed } = useSidebarCollapsed()
 
-    const handleSettingsClick = () => {
-        setActiveTab('settings');
-    };
+    // Until the user picks one, the first active location is current.
+    // Not yet used to filter data: sections still show every location.
+    const currentLocationID = selectedLocationID || locations.find(location => location.active)?.id || ''
 
-    const renderActiveTab = () => {
-        switch (activeTab) {
+    const handleNavigate = (section: AppSection) => {
+        setActiveSection(section)
+        setSidebarOpen(false)
+    }
+
+    const renderActiveSection = () => {
+        switch (activeSection) {
             case 'customers':
                 return <CustomerManagement searchTerm={searchTerm} />
             case 'balls':
@@ -32,23 +51,35 @@ function App({ user }: AppProps) {
                 return <div className="text-center py-12">Analytics Dashboard - Coming soon...</div>
             case 'settings':
                 return <SettingsPage searchTerm={searchTerm} />
-            default:
-                return <div className="text-center py-12">Coming soon...</div>
         }
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <Header
-                searchTerm={searchTerm}
-                onSearchChange={setSearchTerm}
-                onSettingsClick={handleSettingsClick}
+        <div className="min-h-screen bg-gray-50 md:flex">
+            <Sidebar
+                activeSection={activeSection}
+                onNavigate={handleNavigate}
+                locations={locations}
+                currentLocationID={currentLocationID}
+                onLocationChange={setSelectedLocationID}
                 user={user}
+                open={sidebarOpen}
+                onClose={() => setSidebarOpen(false)}
+                collapsed={sidebarCollapsed}
+                onToggleCollapsed={toggleSidebarCollapsed}
             />
-            <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-                {renderActiveTab()}
-            </main>
+            <div className="min-w-0 flex-1">
+                <TopBar
+                    title={SECTION_TITLES[activeSection]}
+                    searchTerm={searchTerm}
+                    onSearchChange={setSearchTerm}
+                    onMenuClick={() => setSidebarOpen(true)}
+                    menuOpen={sidebarOpen}
+                />
+                <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                    {renderActiveSection()}
+                </main>
+            </div>
         </div>
     )
 }

@@ -13,6 +13,9 @@ export * from './settings';
 // Re-export auth types
 export * from './auth';
 
+// Re-export navigation types
+export * from './navigation';
+
 // Import specific types that we need to reference in this file
 import type { Employee } from './employee';
 import type { LocationSettingsOverrides } from './settings';
