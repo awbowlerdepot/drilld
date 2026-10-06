@@ -491,16 +491,14 @@ $$;
 
 It returns counts and a month only: no company, customer, location, spec or layout. It is calculated live, with no stored counters. The `ball` registry itself is readable by any authenticated user for serial lookup, and holds only identity fields.
 
-## Prisma notes
+## Query client (Kysely over the Data API)
 
-Prisma models cover the tables and plain foreign keys. The following live in raw SQL migrations, because Prisma's schema can't express them:
+The API (`amplify/api`) uses **Kysely** with the `kysely-data-api` dialect. Prisma was ruled out because it needs direct database connections, which would mean Lambdas inside the VPC plus a NAT gateway or RDS Proxy.
 
-- RLS policies
-- partial unique indexes
-- `ball_service_summary`
-- the revision immutability trigger
-
-Tenant-scoped Prisma queries run in an interactive transaction that sets `app.company_id` first.
+- **Types:** generated from the migrations by `db/codegen.sh` into `amplify/api/db/schema.ts`. The SQL migrations stay the only source of truth.
+- **Company scope:** tenant queries run inside `withCompany(db, companyId, …)`, one Data API transaction that first sets `app.company_id`.
+- **Ids:** the Data API sends plain strings as text, so every id in a query goes through `uuid()` (a UUID type hint).
+- **Returned values:** `numeric` comes back as a string, which keeps it exact. Timestamps come back as `Date`, and JSON is already parsed.
 
 ## Mapping from the current frontend code
 

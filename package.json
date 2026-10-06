@@ -13,10 +13,14 @@
     "@aws-amplify/ui-react": "^6.11.2",
     "@tailwindcss/vite": "^4.1.11",
     "aws-amplify": "^6.15.3",
+    "hono": "^4.13.13",
+    "kysely": "^0.27.6",
+    "kysely-data-api": "^2.0.0",
     "lucide-react": "^0.525.0",
     "pg": "^8.16.3",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "zod": "^3.25.17"
   },
   "devDependencies": {
     "@aws-amplify/backend": "^1.16.1",
@@ -25,6 +29,7 @@
     "@aws-amplify/backend-data": "^1.6.1",
     "@aws-amplify/backend-function": "^1.14.1",
     "@aws-amplify/backend-storage": "^1.4.1",
+    "@aws-sdk/client-cloudformation": "^3.1146.0",
     "@aws-sdk/client-rds-data": "^3.1146.0",
     "@aws-sdk/client-secrets-manager": "^3.1146.0",
     "@eslint/js": "^9.29.0",
@@ -36,6 +41,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.2.0",
+    "kysely-codegen": "^0.20.0",
     "tailwindcss": "^4.1.11",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.34.1",

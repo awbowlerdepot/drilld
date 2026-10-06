@@ -1,5 +1,6 @@
 import { defineBackend } from '@aws-amplify/backend';
 import { auth } from './auth/resource';
+import { defineApi } from './api/resource';
 import { defineDatabase } from './database/resource';
 
 const backend = defineBackend({
@@ -17,4 +18,16 @@ cfnUserPool.addPropertyOverride('AdminCreateUserConfig.AllowAdminCreateUserOnly'
 // Postgres for this environment. Branch deployments (production) are
 // protected; each sandbox gets its own disposable database.
 const isSandbox = backend.stack.node.tryGetContext('amplify-backend-type') === 'sandbox';
-defineDatabase(backend.createStack('database'), { protect: !isSandbox });
+const database = defineDatabase(backend.createStack('database'), { protect: !isSandbox });
+
+// REST API (API Gateway + one Lambda), authorized by Cognito, reaching Postgres as drilld_api.
+const api = defineApi(backend.createStack('api'), {
+    userPool: backend.auth.resources.userPool,
+    userPoolClient: backend.auth.resources.userPoolClient,
+    cluster: database.cluster,
+    apiSecret: database.apiSecret,
+    databaseName: database.databaseName
+});
+
+// The frontend reads the API URL from amplify_outputs.json (custom.api.url).
+backend.addOutput({ custom: { api: { url: api.url } } });

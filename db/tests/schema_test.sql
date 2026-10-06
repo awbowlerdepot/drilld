@@ -59,6 +59,10 @@ insert into app_user (id, company_id, cognito_sub, email, first_name, last_name,
     ('20000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-00000000000a', 'sub-a-tech', 'tech@a.test', 'Tom', 'Tech', null),
     ('20000000-0000-0000-0000-0000000000b1', '00000000-0000-0000-0000-00000000000b', 'sub-b-manager', 'manager@b.test', 'Bea', 'Boss', null);
 
+-- Invited but not signed in yet: no Cognito sub until first sign-in (link_app_user).
+insert into app_user (id, company_id, cognito_sub, email, first_name, last_name) values
+    ('20000000-0000-0000-0000-0000000000a9', '00000000-0000-0000-0000-00000000000a', null, 'New.Hire@A.test', 'Nia', 'New');
+
 insert into location_membership (company_id, user_id, location_id, role) values
     ('00000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-0000000000a2', '10000000-0000-0000-0000-0000000000a1', 'TECHNICIAN'),
     ('00000000-0000-0000-0000-00000000000b', '20000000-0000-0000-0000-0000000000b1', '10000000-0000-0000-0000-0000000000b1', 'MANAGER');
@@ -111,6 +115,18 @@ select test.ok((select count(*) from company) = 0, 'no company set: sees no comp
 select test.ok((select company_id from resolve_app_user('sub-b-manager')) = '00000000-0000-0000-0000-00000000000b',
                'resolve_app_user finds the user''s company before one is set');
 select test.ok((select count(*) from resolve_app_user('no-such-sub')) = 0, 'resolve_app_user returns nothing for unknown users');
+
+-- First sign-in linking (0008). Seeded users all have a Cognito sub, so add an unlinked one as the owner would.
+select test.ok((select count(*) from link_app_user('sub-new', 'admin@a.test')) = 0,
+               'link_app_user never relinks a user that already has a Cognito login');
+select test.ok((select count(*) from link_app_user('sub-new', 'nobody@a.test')) = 0,
+               'link_app_user returns nothing for an unknown email');
+select test.ok((select company_id from link_app_user('sub-a-new-hire', 'new.hire@a.test')) = '00000000-0000-0000-0000-00000000000a',
+               'link_app_user links an invited user by email, case-insensitively');
+select test.ok((select company_id from resolve_app_user('sub-a-new-hire')) = '00000000-0000-0000-0000-00000000000a',
+               'after linking, resolve_app_user finds the user');
+select test.ok((select count(*) from link_app_user('sub-attacker', 'new.hire@a.test')) = 0,
+               'a second login cannot claim an already-linked user');
 
 -- ==========================================
 -- As the API for company A

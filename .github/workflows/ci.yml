@@ -43,3 +43,8 @@ jobs:
       - run: npm ci
       # Migrations up/down/up on a throwaway postgres:16 container, then the schema tests.
       - run: db/test.sh
+      # The Kysely types must match the migrations.
+      - name: Check generated Kysely types are up to date
+        run: |
+          db/codegen.sh
+          git diff --exit-code -- amplify/api/db/schema.ts || { echo "::error::amplify/api/db/schema.ts is stale; run db/codegen.sh and commit"; exit 1; }

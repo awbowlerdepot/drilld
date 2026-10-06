@@ -34,6 +34,7 @@ export interface Customer {
     preferredGripStyle: 'CONVENTIONAL' | 'FINGERTIP' | 'TWO_HANDED_NO_THUMB';
     usesThumb: boolean;
     notes?: string;
+    homeLocationID?: string;
     createdAt: string;
 }
 
