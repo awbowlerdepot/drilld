@@ -314,7 +314,7 @@ alter table drill_sheet
 
 - **New sheets start as drafts.** A new sheet, or a change to a locked revision, creates a **draft** revision (version n+1) and makes it the sheet's current revision.
 - **Drafts are editable.** Saving a draft updates it in place.
-- **A revision locks** when it's approved, or when a work order references it. From then on a trigger rejects every `UPDATE` and `DELETE`. Approval can be set once, on a draft. (Migration 0005 currently locks revisions on insert; see "Pending schema changes".)
+- **A revision locks** when it's approved, or when a work order references it. From then on a trigger rejects every `UPDATE` and `DELETE`. Approval can be set once on any unapproved revision, even one already drilled, since it only records who signed off. A revision's sheet, version, author and creation time never change. (Migration `0007`.)
 - **Approval** sets `approved_by_user_id` and `approved_at`. Anyone with `write:drillsheets` at the revision's location can approve, the author included, as can company owners and admins. Under today's role permissions that means Technician and up; Apprentices can't.
 - **Drilling to an unapproved revision** is rejected when the effective **Require Supervisor Approval** setting is on: the company setting, or the location's override (`resolveLocationSettings`). This is enforced in the API.
 - **Promoted columns** are written from `spec` by the backend on every save. The backend validates `spec` against the schema for `spec_schema_version` with zod (a TypeScript validation library), on both write and read.
@@ -517,14 +517,6 @@ Tenant-scoped Prisma queries run in an interactive transaction that sets `app.co
 | `HoleSize.primary` (`"31/64"`) | `size64` (`31`) |
 | `HoleSize.insert` and `FingerHole.insert` | single `Insert` shape |
 | `WorkOrder.drillSheetID`, `ballID`, `locationID` | `drillSheetRevisionID`, `companyBallID`, `locationID` |
-
-## Pending schema changes
-
-These decisions are agreed but not yet in `db/migrations`. They go in the next migration:
-
-1. **Editable draft revisions.** Replace `protect_drill_sheet_revision`: allow `UPDATE` while `approved_at` is null and no `work_order` references the revision; otherwise reject. Approval stays a one-time update on a draft. `DELETE` remains blocked for all revisions.
-2. **`layout_template` table** and `work_order.based_on_layout_template_id`, with row-level security and grants like the other tenant tables.
-3. **Column comments:** the bridge is edge-to-edge, and pitch is in inches.
 
 ## Open items
 
