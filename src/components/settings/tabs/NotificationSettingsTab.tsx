@@ -1,7 +1,7 @@
 import React from 'react';
 import { Mail, MessageSquare, Bell, Phone } from 'lucide-react';
 import { CompanyNotificationSettings } from '../../../types/settings';
-import { Input } from '../../ui/Input';
+import { Input } from '../../common/Input';
 
 interface NotificationSettingsTabProps {
     settings: CompanyNotificationSettings;

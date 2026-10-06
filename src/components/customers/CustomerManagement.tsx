@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { Customer } from '../../types';
 import { useCustomers } from '../../hooks/useCustomers';
-import { Button } from '../ui/Button';
+import { Button } from '../common/Button';
 import { CustomerForm } from './CustomerForm';
 import { CustomerList } from './CustomerList';
 import { CustomerDetailView } from './CustomerDetailView';

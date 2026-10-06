@@ -18,7 +18,9 @@ The agreed backend design (Postgres schema, tenant isolation, ball registry, dri
 
 - `src/main.tsx` — configures Amplify from `amplify_outputs.json` and wraps the app in `AuthWrapper` (Cognito sign-in) when it has an `auth` section. Otherwise the app runs without sign-in on mock data.
 - `src/App.tsx` — tab-based navigation (no router). Permission checks per section (`ProtectedRoute`) are not implemented yet.
-- `src/components/<feature>/` — one folder per feature: customers, drillsheets, balls, workorders, locations, employees, settings, auth, layout; shared primitives in `components/ui/`
+- `src/components/<feature>/` — one folder per feature: customers, drillsheets, balls, workorders, locations, employees, settings, auth, layout
+- `src/components/ui/` — **shadcn/ui** components (Radix based, "nova" style), owned and editable here; add more with `npx shadcn@latest add <name>`. `src/lib/utils.ts` re-exports `cn`.
+- `src/components/common/` — the older hand-rolled `Button`, `Input`, `Select` and `Textarea`, being replaced screen by screen with `components/ui`. Don't use them in new code.
 - `src/hooks/use<Feature>.ts` — one data hook per feature; currently all read from mock data
 - `src/data/` — mock data (`mockData.ts`, `mockLocationData.ts`, `mockCompanySettings.ts`)
 - `src/types/` — domain types split by file (`drillsheet.ts`, `employee.ts`, `settings.ts`), re-exported from `types/index.ts`
@@ -94,6 +96,8 @@ The agreed backend design (Postgres schema, tenant isolation, ball registry, dri
 - Use progressive disclosure.
 - Root navigation is the left sidebar (`components/layout/Sidebar.tsx`): the location switcher, then the main sections. Admin functions like Settings and the signed-in user sit in its bottom area, apart from the main sections. On desktop it can collapse to icons, and the choice is remembered per browser. On phones it's a drawer opened from the top bar.
 - Visual style ("Clean Blue"): IBM Plex Sans for text and IBM Plex Mono for measurements, as Tailwind v4 `@theme` tokens in `src/index.css`. White cards on a gray-50 background, with blue-600 as the accent.
+- Build UI from shadcn/ui components. The shadcn theme variables in `src/index.css` map to Clean Blue: `--primary` is blue-600 and `--ring` is blue-500. Forms use `Field`/`FieldLabel`/`FieldError` and validate with the same zod schemas as the API (`shared/api`). Edit and add flows open in a `Dialog`.
+- The drill sheet's ball layout and measurement entry are custom components, built from shadcn primitives around a custom SVG.
 - Use visual layouts over text for spatial things. Drill sheets render as ball hole layouts, with finger holes side by side.
 
 ## Code review focus

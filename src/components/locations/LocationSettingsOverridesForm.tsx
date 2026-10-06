@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { CompanySettings, CompanyWorkflowSettings, LocationSettingsOverrides } from '../../types';
-import { Input } from '../ui/Input';
-import { Select } from '../ui/Select';
+import { Input } from '../common/Input';
+import { Select } from '../common/Select';
 import { OVERRIDABLE_WORKFLOW_TOGGLES, describeOverrides, pruneOverrides } from '../../utils/LocationSettings';
 
 interface LocationSettingsOverridesFormProps {

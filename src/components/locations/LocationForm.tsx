@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Location, EquipmentItem, CompanySettings, LocationSettingsOverrides } from '../../types';
-import { Button } from '../ui/Button';
-import { Input } from '../ui/Input';
-import { Textarea } from '../ui/Textarea';
+import { Button } from '../common/Button';
+import { Input } from '../common/Input';
+import { Textarea } from '../common/Textarea';
 import { X, MapPin, Clock, Wrench } from 'lucide-react';
 import { LocationSettingsOverridesForm } from './LocationSettingsOverridesForm';
 

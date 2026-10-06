@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { HoleSize, FingerInsert, getAvailableInsertSizes, INSERT_MANUFACTURERS } from '../../types/drillsheet';
-import { Input } from '../ui/Input';
-import { Select } from '../ui/Select';
+import { Input } from '../common/Input';
+import { Select } from '../common/Select';
 
 interface HoleSizeInputProps {
     label: string;

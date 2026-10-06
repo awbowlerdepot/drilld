@@ -1,8 +1,8 @@
 import React from 'react';
 import { Building2, Clock, DollarSign } from 'lucide-react';
 import { CompanyGeneralSettings } from '../../../types/settings';
-import { Input } from '../../ui/Input';
-import { Select } from '../../ui/Select';
+import { Input } from '../../common/Input';
+import { Select } from '../../common/Select';
 
 interface GeneralSettingsTabProps {
     settings: CompanyGeneralSettings;

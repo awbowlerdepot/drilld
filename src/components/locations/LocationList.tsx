@@ -11,7 +11,7 @@ import {
     Wrench,
     Users
 } from 'lucide-react';
-import { Button } from '../ui/Button';
+import { Button } from '../common/Button';
 import { LocationOverridesSummary } from './LocationOverridesSummary';
 import { getHoursForDay, isClosedHours } from '../../utils/LocationHours';
 

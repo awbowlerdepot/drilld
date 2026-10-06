@@ -3,7 +3,7 @@ import { Plus } from 'lucide-react';
 import { BowlingBall } from '../../types';
 import { useBalls } from '../../hooks/useBalls';
 import { useCustomers } from '../../hooks/useCustomers';
-import { Button } from '../ui/Button';
+import { Button } from '../common/Button';
 import { BallForm } from './BallForm';
 import { BallList } from './BallList';
 import { BallFilters } from './BallFilters';

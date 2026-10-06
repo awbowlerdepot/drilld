@@ -1,7 +1,7 @@
 import React from 'react';
 import { FileText, Target, Calendar, TrendingUp, Plus, ArrowRight } from 'lucide-react';
 import { Customer, DrillSheet, BowlingBall } from '../../types';
-import { Button } from '../ui/Button';
+import { Button } from '../common/Button';
 
 interface CustomerOverviewProps {
     customer: Customer;

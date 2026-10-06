@@ -4,7 +4,7 @@
 import React from 'react';
 import { WorkOrder, DrillSheet, BowlingBall, Customer, Employee, Location } from '../../types';
 import { HoleSpecificationDisplay, DrillSheetInsertSummary } from '../drillsheets/InsertDisplay'; // ADD THIS IMPORT
-import { Button } from '../ui/Button';
+import { Button } from '../common/Button';
 import { X, FileText, Settings, User } from 'lucide-react';
 
 interface WorkOrderDetailModalProps {

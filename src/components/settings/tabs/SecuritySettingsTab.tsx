@@ -1,8 +1,8 @@
 import React from 'react';
 import { Shield, Key, Clock, Database, HardDrive } from 'lucide-react';
 import { CompanySecuritySettings } from '../../../types/settings';
-import { Input } from '../../ui/Input';
-import { Select } from '../../ui/Select';
+import { Input } from '../../common/Input';
+import { Select } from '../../common/Select';
 
 interface SecuritySettingsTabProps {
     settings: CompanySecuritySettings;

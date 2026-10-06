@@ -1,8 +1,8 @@
 import React from 'react';
 import { MapPin, FileText, Crown, Building } from 'lucide-react';
 import { CompanyBillingSettings } from '../../../types/settings';
-import { Input } from '../../ui/Input';
-import { Select } from '../../ui/Select';
+import { Input } from '../../common/Input';
+import { Select } from '../../common/Select';
 
 const emptyBillingAddress = {
     street: '',

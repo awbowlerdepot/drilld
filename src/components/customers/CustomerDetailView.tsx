@@ -4,7 +4,7 @@ import { ArrowLeft, Plus, FileText, Target, Edit, Eye } from 'lucide-react';
 import { Customer, DrillSheet, BowlingBall } from '../../types';
 import { useDrillSheets } from '../../hooks/useDrillSheets';
 import { useBalls } from '../../hooks/useBalls';
-import { Button } from '../ui/Button';
+import { Button } from '../common/Button';
 import { DrillSheetForm } from '../drillsheets/DrillSheetForm';
 import { DrillSheetCard } from '../drillsheets/DrillSheetCard';
 import { BallCard } from '../balls/BallCard';
