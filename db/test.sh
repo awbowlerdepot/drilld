@@ -2,7 +2,8 @@
 # Tests the migrations against a throwaway PostgreSQL in Docker:
 #   1. applies every migration up, then down in reverse, then up again
 #   2. runs db/tests/schema_test.sql (row-level security, constraints, triggers)
-# The container is removed afterwards. Requires Docker.
+# The container is removed afterwards. Requires Docker, and node_modules
+# (npm ci) for the statement splitter.
 set -euo pipefail
 
 cd "$(dirname "$0")"
@@ -48,8 +49,20 @@ for ((i = ${#migrations[@]} - 1; i >= 0; i--)); do
     f="${migrations[$i]}"; echo "   $f"; section down "$f" | psql_as drilld_owner
 done
 
-echo "== up again"
-for f in "${migrations[@]}"; do section up "$f" | psql_as drilld_owner; done
+# Second pass: one statement per call, split exactly as the deploy-time
+# migration runner does for the RDS Data API (amplify/database/sql.ts).
+echo "== up again, one statement per call (as the RDS Data API runs them)"
+statements_file="$(mktemp)"
+trap 'rm -f "$statements_file"; docker stop "$CONTAINER" >/dev/null' EXIT
+for f in "${migrations[@]}"; do
+    (cd .. && npx --no-install tsx db/tests/split_migration.ts "db/$f" up) > "$statements_file"
+    count=0
+    while IFS= read -r -d '' statement || [ -n "$statement" ]; do
+        printf '%s;\n' "$statement" | psql_as drilld_owner
+        count=$((count + 1))
+    done < "$statements_file"
+    echo "   $f: $count statements"
+done
 
 # Login users standing in for the API and the catalog sync job.
 psql_as drilld_owner <<'SQL'
