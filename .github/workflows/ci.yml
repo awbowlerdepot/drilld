@@ -35,5 +35,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # Node is needed for the migration statement splitter (amplify/database/sql.ts).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
       # Migrations up/down/up on a throwaway postgres:16 container, then the schema tests.
       - run: db/test.sh

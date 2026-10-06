@@ -25,6 +25,8 @@
     "@aws-amplify/backend-data": "^1.6.1",
     "@aws-amplify/backend-function": "^1.14.1",
     "@aws-amplify/backend-storage": "^1.4.1",
+    "@aws-sdk/client-rds-data": "^3.1146.0",
+    "@aws-sdk/client-secrets-manager": "^3.1146.0",
     "@eslint/js": "^9.29.0",
     "@types/node": "^24.0.10",
     "@types/react": "^19.1.8",

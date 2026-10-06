@@ -1,6 +1,6 @@
 # Drilld data model
 
-Status: agreed design. The PostgreSQL schema is implemented in `db/migrations/` and tested by `db/test.sh`; where this doc and the migrations differ, the migrations win. The API and services are not built yet. Last updated 2026-10-05.
+Status: agreed design. The PostgreSQL schema is implemented in `db/migrations/`, tested by `db/test.sh`, and deployed per environment on Aurora Serverless v2 (see `db/README.md`); where this doc and the migrations differ, the migrations win. The API and services are not built yet. Last updated 2026-10-05.
 
 ## Decisions
 
