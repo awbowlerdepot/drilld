@@ -109,6 +109,8 @@ export interface CompanyBall {
 }
 
 export interface Customer {
+  axis_rotation_degrees: Numeric | null;
+  axis_tilt_degrees: Numeric | null;
   company_id: string;
   created_at: Generated<Timestamp>;
   dominant_hand: string;
@@ -118,8 +120,12 @@ export interface Customer {
   id: Generated<string>;
   last_name: string;
   notes: string | null;
+  pap_over_32: number | null;
+  pap_up_32: number | null;
   phone: string | null;
   preferred_grip_style: string;
+  rev_rate_rpm: number | null;
+  speed_mph: Numeric | null;
   updated_at: Generated<Timestamp>;
   uses_thumb: Generated<boolean>;
 }
@@ -142,9 +148,9 @@ export interface DrillSheetRevision {
   approved_at: Timestamp | null;
   approved_by_user_id: string | null;
   /**
-   * Inches, edge-to-edge: the material between the middle and ring finger holes.
+   * Bridge in 32nds of an inch, edge-to-edge: the material between the middle and ring finger holes.
    */
-  bridge: Numeric | null;
+  bridge_32: number | null;
   company_id: string;
   created_at: Generated<Timestamp>;
   created_by_user_id: string;
@@ -160,10 +166,31 @@ export interface DrillSheetRevision {
   spec: Json;
   spec_schema_version: number;
   thumb_size_64: number | null;
-  thumb_to_middle_fit: Numeric | null;
-  thumb_to_middle_full: Numeric | null;
-  thumb_to_ring_fit: Numeric | null;
-  thumb_to_ring_full: Numeric | null;
+  /**
+   * Center-to-center span in 32nds of an inch (CAD/CNC spec).
+   */
+  thumb_to_middle_ctc_32: number | null;
+  /**
+   * Cut-to-cut span in 32nds of an inch: drilled hole edge to drilled hole edge, before hardware.
+   */
+  thumb_to_middle_cut_32: number | null;
+  /**
+   * Fit span in 32nds of an inch: center of the finger hole to the cut edge of the thumb.
+   */
+  thumb_to_middle_fit_32: number | null;
+  /**
+   * Full span in 32nds of an inch: gripping edge to gripping edge.
+   */
+  thumb_to_middle_full_32: number | null;
+  /**
+   * Outer-to-cut span in 32nds of an inch: outer edge of the thumb hardware (inner not installed) to the finger's drilled hole edge.
+   */
+  thumb_to_middle_outer_32: number | null;
+  thumb_to_ring_ctc_32: number | null;
+  thumb_to_ring_cut_32: number | null;
+  thumb_to_ring_fit_32: number | null;
+  thumb_to_ring_full_32: number | null;
+  thumb_to_ring_outer_32: number | null;
   updated_at: Generated<Timestamp>;
   version: number;
 }

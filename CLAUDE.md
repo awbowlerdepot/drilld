@@ -71,7 +71,8 @@ The agreed backend design (Postgres schema, tenant isolation, ball registry, dri
 
 ## Domain rules (get these right)
 
-- Span (fit, full, cut-to-cut) and bridge are separate measurements. Never conflate them.
+- Span types (full, cut-to-cut, outer-to-cut, center-to-center, fit) and bridge are separate measurements. Never conflate them or auto-convert between span types.
+- Precision: spans, bridge and pitch in 32nds (shops write 16ths plus "+" for 1/32), drill bit and hole sizes in 64ths, cuts in decimal inches. See `docs/data-model.md` Units.
 - Be explicit about edge-to-edge vs center-to-center calculations.
 - Drill sheets cover spans, bridge distances, pitch angles, hole specs, and finger insert compatibility.
 - Finger inserts: VISE, Turbo, JoPo. Use each manufacturer's real size ranges and specs.
@@ -128,7 +129,8 @@ Look for incorrect imports, circular dependencies, and unnecessary complexity.
   - employee roles per location
 - Not yet applied to the frontend types (designed in `docs/data-model.md`):
   - drill sheet revisions
-  - hole sizes stored in 64ths
+  - spans, bridge and pitch stored in 32nds, hole sizes in 64ths, cuts in thousandths
+  - the spec v1 fields (span types, cuts, oval, flexibility, Pro Fit, hidden CLT, delivery snapshot)
   - a single insert shape
   - layout moved from drill sheets to work orders
   - the ball registry and BowlerIQ catalog

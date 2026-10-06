@@ -1,6 +1,6 @@
 # Drilld data model
 
-Status: agreed design. The PostgreSQL schema is implemented in `db/migrations/`, tested by `db/test.sh`, and deployed per environment on Aurora Serverless v2 (see `db/README.md`); where this doc and the migrations differ, the migrations win. The API and services are not built yet. Last updated 2026-10-05.
+Status: agreed design. The PostgreSQL schema is implemented in `db/migrations/`, tested by `db/test.sh`, and deployed per environment on Aurora Serverless v2 (see `db/README.md`); where this doc and the migrations differ, the migrations win. The API and services are not built yet. Last updated 2026-10-06.
 
 ## Decisions
 
@@ -19,6 +19,11 @@ Status: agreed design. The PostgreSQL schema is implemented in `db/migrations/`,
 | Revisions | **Drafts are editable** until the revision is approved or used on a work order; after that it's locked, and further changes start a new draft revision. |
 | Approval | Records **who approved and when**; it's not a second-person check. Anyone who can edit drill sheets at that location may approve, the author included. Whether drilling requires an approved revision follows the **Require Supervisor Approval** workflow setting (company default, overridable per location). |
 | Pitch | **Inches only** (forward, reverse, lateral). |
+| Precision | Spans, bridge and pitch are measured in **16ths**, with "+" adding 1/32 (`4-3/8″+` = 4-13/32″), and stored as whole **32nds**. Drill bit and hole sizes are **64ths**. Cuts are **decimal inches** (one standard cut is .032″). |
+| Span types | **Full**, **cut-to-cut**, **outer-to-cut**, **center-to-center** and **fit** are separate measurements, each recorded as entered. They are never converted into one another automatically: spans run over a sphere between pitched holes. |
+| Delivery | The customer holds the bowler's **current** delivery (tilt, rotation, PAP, speed, rev rate). Each drill sheet revision keeps a **copy** as of that fitting. |
+| Pro Fit | A per-revision flag meaning the fit deliberately breaks the norms. It suppresses norm warnings (e.g. flexibility outside 70–135°) and suggested starting pitch. |
+| CLT | Recorded in **degrees**. It's off by default (company setting `drillSheets.enableClt`), since the first company doesn't use it. When enabled, Auto-CLT **suggests** the fingers' lateral pitch from the CLT chart; the lateral pitch stored on each hole is what gets drilled. |
 | Bridge | Measured **edge-to-edge**: the material left between the middle and ring finger holes. |
 | Layouts | Per ball: the exact layout used is stored on the **work order**. Layouts can also be saved for reuse as **layout templates**, either a bowler's go-to or shop standards. A drilling starts from one and is then adjusted. |
 | Storage of the spec | **Hybrid**: queryable measurements are real columns, and the full nested spec goes in `jsonb` with a schema version. |
@@ -44,9 +49,12 @@ Platform
 
 ## Units
 
-- **Spans and bridge**: inches, `numeric(6,4)`. No floats. Bridge is always edge-to-edge.
-- **Hole and bit sizes**: integer **64ths of an inch** (31/64" is stored as `31`, 1" as `64`). They are exact and sortable, and the UI renders them as fractions.
+- **Spans, bridge and pitch**: integer **32nds of an inch** (`4-3/8″+` = 4-13/32″ is stored as `141`). Shops measure in 16ths and write "+" for an extra 1/32; the UI renders `141` back as `4-3/8″+`. Bridge is always edge-to-edge.
+- **Hole and bit sizes**: integer **64ths of an inch** (31/64″ is stored as `31`, 1″ as `64`). Every drill bit size uses 64ths: hole sizes, O.D., pilot holes, step drilling. They are exact and sortable, and the UI renders them as fractions.
+- **Cuts and oval width**: decimal inches, stored as integer **thousandths** (`.032″` is `32`). One standard cut is 1/32″, or "2 bits" (.032″).
 - **Pitch**: inches only, never degrees. `forward` is positive forward and negative reverse; `lateral` is positive right and negative left.
+- **Angles**: degrees (flexibility, CLT, thumb oval angle, bevel, axis tilt and rotation).
+- **Delivery**: speed in mph (`numeric(4,1)`), rev rate in RPM (integer). PAP in 32nds of an inch: over from the center line, and up (negative = down).
 - **Weights**: ball weight in pounds, static weights (top, side, finger) in ounces, both `numeric(5,2)`.
 - **Money**: `numeric(10,2)`.
 
@@ -140,6 +148,13 @@ create table customer (
     preferred_grip_style  text not null check (preferred_grip_style in ('CONVENTIONAL','FINGERTIP','TWO_HANDED_NO_THUMB')),
     uses_thumb            boolean not null default true,
     notes                 text,
+    -- Current delivery (0009). Each drill sheet revision keeps a copy in spec.delivery.
+    axis_tilt_degrees     numeric(4,1) check (axis_tilt_degrees between 0 and 90),
+    axis_rotation_degrees numeric(4,1) check (axis_rotation_degrees between 0 and 90),
+    pap_over_32           smallint check (pap_over_32 >= 0),
+    pap_up_32             smallint,                   -- negative = down
+    speed_mph             numeric(4,1) check (speed_mph > 0),
+    rev_rate_rpm          smallint check (rev_rate_rpm > 0),
     created_at            timestamptz not null default now(),
     updated_at            timestamptz not null default now(),
     unique (company_id, id),
@@ -252,7 +267,7 @@ A ball without a serial always gets a new registry row.
 
 ### Drill sheets
 
-A drill sheet is the **bowler's fit**: spans, bridge, holes, pitch, inserts, and the bowler's axis (PAP, tilt, rotation). Ball-specific layout lives on the work order.
+A drill sheet is the **bowler's fit**: spans, bridge, holes, pitch, inserts, plus the bowler's delivery as of the fitting. Ball-specific layout lives on the work order.
 
 ```sql
 create table drill_sheet (
@@ -283,12 +298,15 @@ create table drill_sheet_revision (
     approved_by_user_id   uuid,
     approved_at           timestamptz,
 
-    -- Promoted, queryable measurements (inches)
-    thumb_to_middle_fit   numeric(6,4),
-    thumb_to_middle_full  numeric(6,4),
-    thumb_to_ring_fit     numeric(6,4),
-    thumb_to_ring_full    numeric(6,4),
-    bridge                numeric(6,4),
+    -- Promoted, queryable measurements (32nds of an inch; 0009).
+    -- One column per span type, for thumb–middle and thumb–ring.
+    thumb_to_middle_full_32   smallint,    -- gripping edge to gripping edge
+    thumb_to_middle_cut_32    smallint,    -- drilled edge to drilled edge, before hardware
+    thumb_to_middle_outer_32  smallint,    -- outer thumb hardware edge (no inner) to finger drilled edge
+    thumb_to_middle_ctc_32    smallint,    -- center to center (CAD/CNC)
+    thumb_to_middle_fit_32    smallint,    -- center of finger hole to cut edge of thumb
+    thumb_to_ring_…_32        smallint,    -- same five for the ring finger
+    bridge_32             smallint,       -- edge-to-edge
     -- Promoted hole sizes (64ths)
     thumb_size_64         smallint,
     middle_size_64        smallint,
@@ -319,35 +337,53 @@ alter table drill_sheet
 - **Drilling to an unapproved revision** is rejected when the effective **Require Supervisor Approval** setting is on: the company setting, or the location's override (`resolveLocationSettings`). This is enforced in the API.
 - **Promoted columns** are written from `spec` by the backend on every save. The backend validates `spec` against the schema for `spec_schema_version` with zod (a TypeScript validation library), on both write and read.
 
-**`spec` contents** (version 1). Lengths are inches; sizes are 64ths:
+**`spec` contents** (version 1). Spans, bridge and pitch are 32nds; drill bit sizes are 64ths; cuts and widths are thousandths of an inch; angles are degrees:
 
 ```
 {
   spans: {
-    thumbToMiddle: { fit, full, cutToCut, notes },
-    thumbToRing:   { fit, full, cutToCut, notes },
-    custom: [ { name, from: 'THUMB'|'INDEX'|'MIDDLE'|'RING'|'PINKY', to: …, fit, full, cutToCut, notes } ]
+    thumbToMiddle: span,
+    thumbToRing:   span,
+    custom: [ { name, from: 'THUMB'|'INDEX'|'MIDDLE'|'RING'|'PINKY', to: …, …span } ]
   },
-  bridge: { distance, notes },                 // edge-to-edge, middle ↔ ring
+  bridge: { distance32, notes },               // edge-to-edge, middle ↔ ring
   holes: {
-    thumb:  { enabled, shape: 'ROUND'|'OVAL', size64, ovalLength64?, depth,
-              pitch, slug?, bevel?, drillingSequence?, notes },
-    middle: { size64, depth, pitch, insert?, bevel?, drillingSequence?, notes },
+    thumb:  { enabled, size64, outsideDiameter64?, depth32?, pitch,
+              oval?, cuts: [cut], slug?, bevel?, drillingSequence?, notes },
+    middle: { size64, outsideDiameter64?, depth32?, pitch, insert?, cuts: [cut], bevel?, drillingSequence?, notes },
     ring:   { …same as middle },
     index?: { …same as middle },
     pinky?: { …same as middle }
   },
-  axis: { papHorizontal, papVertical, tilt, rotation },
-  notes, customerPreferences, restrictions: []
+  fitting: { flexibilityDegrees?, proFit, cltDegrees? },
+  delivery: { tilt, rotation, papOver32, papUp32, speedMph, revRateRpm },   // copy of the customer's, at this fitting
+  fittingNotes, notes, customerPreferences, restrictions: []
 }
 
-pitch            = { forward, lateral }      // inches; negative forward = reverse, negative lateral = left
-bevel            = { angleDegrees, depth }
-drillingSequence = [ { step, bitSize64, depth, notes } ]   // in drilling order
-slug             = { manufacturer, type, size64, tapered }
+span             = { full32?, cutToCut32?, outerToCut32?, centerToCenter32?, fit32?, notes }
+pitch            = { forward32, lateral32 }  // negative forward = reverse, negative lateral = left
+oval             = { angleDegrees, pilotHole64, width1000 }
+cut              = { vertical1000, horizontal1000 }       // one entry per successive cut, in order
+slug             = { manufacturer, type, size64, interchangeable, notes }
+bevel            = { angleDegrees, depth32 }
+drillingSequence = [ { step, bitSize64, depth32, notes } ]   // in drilling order
 ```
 
-Inserts use one shape everywhere: `{ manufacturer: 'VISE'|'Turbo'|'JoPo'|'Other', insertSize64, outsideHole: '7/8'|'31/32'|'1-1/32', type, model, color }`. The current code has two insert definitions; this replaces both.
+- **Left and right holes.** The middle finger is the left hole for a right-hander and the right hole for a left-hander. The spec stores fingers by name (`middle`, `ring`); the editor mirrors the layout by the customer's dominant hand.
+- **O.D.** (`outsideDiameter64`) is the outer hole drilled for an insert or slug; `size64` is the grip hole inside it.
+- **Offset** (lateral thumb offset) is left out of v1.
+- **Flexibility** is the hand's spread angle, normally 70–135°. A suggested starting pitch from flexibility and span may come later, only from a validated chart, and never under `proFit`.
+- **CLT** (center line transformation) is the angle between the bowler's finger centerline and the ball's normal centerline. The degree reading is taken at the fingers; the alternative inch reading at the thumb isn't stored, because the chart below is keyed by degrees. It is only shown when the company setting `drillSheets.enableClt` is on. Auto-CLT then suggests the fingers' lateral pitch from the nearest chart line. Accepting fills in `holes.middle.pitch.lateral32` and `holes.ring.pitch.lateral32`, and a manual value always wins. Chart, right-handed (left-handed swaps Left and Right):
+
+  | Line | CLT | Middle | Ring |
+  |---|---|---|---|
+  | A | 8° | 3/8″ L | 1/2″ R |
+  | B | 16° | 5/16″ L | 9/16″ R |
+  | C | 24° | 1/4″ L | 5/8″ R |
+  | D | 32° | 3/16″ L | 11/16″ R |
+  | E | 40° | 1/8″ L | 3/4″ R |
+
+Inserts use one shape everywhere: `{ manufacturer: 'VISE'|'Turbo'|'JoPo'|'Other', insertSize64, type, model, color }`, with the outside hole drilled for it recorded on the hole as `outsideDiameter64` (7/8″ = 56, 31/32″ = 62, 1-1/32″ = 66). The current code has two insert definitions; this replaces both.
 
 Reference data (insert size ranges, manufacturer product lines) stays in code, not in `spec`.
 
