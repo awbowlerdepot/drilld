@@ -87,12 +87,12 @@ insert into drill_sheet (id, company_id, customer_id, name, grip_style) values
     ('60000000-0000-0000-0000-0000000000b1', '00000000-0000-0000-0000-00000000000b', '30000000-0000-0000-0000-0000000000b1', 'Bob conventional', 'CONVENTIONAL');
 
 insert into drill_sheet_revision (id, company_id, drill_sheet_id, version, created_by_user_id,
-                                  thumb_to_middle_fit, thumb_to_ring_fit, bridge, middle_size_64, ring_size_64,
+                                  thumb_to_middle_fit_32, thumb_to_ring_fit_32, bridge_32, middle_size_64, ring_size_64,
                                   spec, spec_schema_version) values
     ('70000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-00000000000a', '60000000-0000-0000-0000-0000000000a1', 1,
-     '20000000-0000-0000-0000-0000000000a2', 4.25, 4.5, 0.25, 31, 31, '{}', 1),
+     '20000000-0000-0000-0000-0000000000a2', 136, 144, 8, 31, 31, '{}', 1),
     ('70000000-0000-0000-0000-0000000000b1', '00000000-0000-0000-0000-00000000000b', '60000000-0000-0000-0000-0000000000b1', 1,
-     '20000000-0000-0000-0000-0000000000b1', 3.5, 3.75, 0.25, 30, 30, '{}', 1);
+     '20000000-0000-0000-0000-0000000000b1', 112, 120, 8, 30, 30, '{}', 1);
 
 update drill_sheet set current_revision_id = '70000000-0000-0000-0000-0000000000a1' where id = '60000000-0000-0000-0000-0000000000a1';
 update drill_sheet set current_revision_id = '70000000-0000-0000-0000-0000000000b1' where id = '60000000-0000-0000-0000-0000000000b1';
@@ -212,7 +212,7 @@ select test.fails($$update location set active = true where id = '10000000-0000-
                   '23514', 'reactivating past the limit is rejected');
 
 -- Drill sheet revisions are append-only
-select test.fails($$update drill_sheet_revision set thumb_to_middle_fit = 4.5
+select test.fails($$update drill_sheet_revision set thumb_to_middle_fit_32 = 144
                     where id = '70000000-0000-0000-0000-0000000000a1'$$,
                   '23001', 'revision measurements cannot change');
 update drill_sheet_revision
@@ -229,13 +229,13 @@ select test.fails($$insert into drill_sheet_revision (company_id, drill_sheet_id
                     values ('00000000-0000-0000-0000-00000000000a', '60000000-0000-0000-0000-0000000000a1', 1,
                             '20000000-0000-0000-0000-0000000000a2', '{}', 1)$$,
                   '23505', 'revision versions are unique per drill sheet');
-select test.fails($$insert into drill_sheet_revision (company_id, drill_sheet_id, version, created_by_user_id, bridge, spec, spec_schema_version)
+select test.fails($$insert into drill_sheet_revision (company_id, drill_sheet_id, version, created_by_user_id, bridge_32, spec, spec_schema_version)
                     values ('00000000-0000-0000-0000-00000000000a', '60000000-0000-0000-0000-0000000000a1', 2,
-                            '20000000-0000-0000-0000-0000000000a2', -0.25, '{}', 1)$$,
+                            '20000000-0000-0000-0000-0000000000a2', -8, '{}', 1)$$,
                   '23514', 'bridge cannot be negative');
-insert into drill_sheet_revision (id, company_id, drill_sheet_id, version, created_by_user_id, thumb_to_middle_fit, spec, spec_schema_version)
+insert into drill_sheet_revision (id, company_id, drill_sheet_id, version, created_by_user_id, thumb_to_middle_fit_32, spec, spec_schema_version)
     values ('70000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-00000000000a', '60000000-0000-0000-0000-0000000000a1', 2,
-            '20000000-0000-0000-0000-0000000000a2', 4.3125, '{}', 1);
+            '20000000-0000-0000-0000-0000000000a2', 138, '{}', 1);
 update drill_sheet set current_revision_id = '70000000-0000-0000-0000-0000000000a2'
     where id = '60000000-0000-0000-0000-0000000000a1';
 select test.ok((select current_revision_id from drill_sheet where id = '60000000-0000-0000-0000-0000000000a1')
@@ -245,9 +245,9 @@ select test.fails($$update drill_sheet set current_revision_id = '70000000-0000-
                   '23503', 'the current revision must belong to the same drill sheet');
 
 -- Draft revisions (0007): editable until approved or drilled
-update drill_sheet_revision set thumb_to_middle_fit = 4.375, revision_notes = 'Remeasured'
+update drill_sheet_revision set thumb_to_middle_fit_32 = 140, revision_notes = 'Remeasured'
     where id = '70000000-0000-0000-0000-0000000000a2';
-select test.ok((select thumb_to_middle_fit = 4.375 and updated_at > created_at
+select test.ok((select thumb_to_middle_fit_32 = 140 and updated_at > created_at
                 from drill_sheet_revision where id = '70000000-0000-0000-0000-0000000000a2'),
                'a draft revision can be edited in place, and updated_at moves');
 select test.fails($$update drill_sheet_revision set version = 9 where id = '70000000-0000-0000-0000-0000000000a2'$$,
@@ -261,17 +261,17 @@ update drill_sheet_revision
 select test.ok((select approved_by_user_id = created_by_user_id
                 from drill_sheet_revision where id = '70000000-0000-0000-0000-0000000000a2'),
                'the author can approve their own revision');
-select test.fails($$update drill_sheet_revision set thumb_to_middle_fit = 4.5
+select test.fails($$update drill_sheet_revision set thumb_to_middle_fit_32 = 144
                     where id = '70000000-0000-0000-0000-0000000000a2'$$,
                   '23001', 'an approved revision is locked');
 
-insert into drill_sheet_revision (id, company_id, drill_sheet_id, version, created_by_user_id, thumb_to_middle_fit, spec, spec_schema_version)
+insert into drill_sheet_revision (id, company_id, drill_sheet_id, version, created_by_user_id, thumb_to_middle_fit_32, spec, spec_schema_version)
     values ('70000000-0000-0000-0000-0000000000a3', '00000000-0000-0000-0000-00000000000a', '60000000-0000-0000-0000-0000000000a1', 3,
-            '20000000-0000-0000-0000-0000000000a2', 4.25, '{}', 1);
+            '20000000-0000-0000-0000-0000000000a2', 136, '{}', 1);
 insert into work_order (company_id, location_id, company_ball_id, customer_id, drill_sheet_revision_id, work_type, work_date)
     values ('00000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-0000000000a1', '50000000-0000-0000-0000-0000000000a1',
             '30000000-0000-0000-0000-0000000000a1', '70000000-0000-0000-0000-0000000000a3', 'PLUG_REDRILL', '2025-08-01');
-select test.fails($$update drill_sheet_revision set thumb_to_middle_fit = 4.5
+select test.fails($$update drill_sheet_revision set thumb_to_middle_fit_32 = 144
                     where id = '70000000-0000-0000-0000-0000000000a3'$$,
                   '23001', 'an unapproved revision is locked once drilled');
 update drill_sheet_revision
@@ -279,6 +279,26 @@ update drill_sheet_revision
     where id = '70000000-0000-0000-0000-0000000000a3';
 select test.ok((select approved_at is not null from drill_sheet_revision where id = '70000000-0000-0000-0000-0000000000a3'),
                'approval can still be recorded on a drilled revision');
+
+-- Spans in 32nds and the bowler's delivery (0009)
+insert into drill_sheet_revision (id, company_id, drill_sheet_id, version, created_by_user_id,
+                                  thumb_to_middle_full_32, thumb_to_middle_cut_32, thumb_to_middle_outer_32, spec, spec_schema_version)
+    values ('70000000-0000-0000-0000-0000000000a4', '00000000-0000-0000-0000-00000000000a', '60000000-0000-0000-0000-0000000000a1', 4,
+            '20000000-0000-0000-0000-0000000000a2', 141, 139, 140, '{}', 1);
+select test.ok((select thumb_to_middle_full_32 = 141 and thumb_to_middle_cut_32 = 139 and thumb_to_middle_outer_32 = 140
+                from drill_sheet_revision where id = '70000000-0000-0000-0000-0000000000a4'),
+               'each span type is stored exactly, in 32nds (4-3/8"+ = 141)');
+select test.fails($$update drill_sheet_revision set thumb_to_ring_outer_32 = 0
+                    where id = '70000000-0000-0000-0000-0000000000a4'$$,
+                  '23514', 'a span must be positive');
+update customer set axis_tilt_degrees = 12.5, axis_rotation_degrees = 45, pap_over_32 = 176, pap_up_32 = -16,
+                    speed_mph = 17.5, rev_rate_rpm = 350
+    where id = '30000000-0000-0000-0000-0000000000a1';
+select test.ok((select pap_over_32 = 176 and pap_up_32 = -16 and speed_mph = 17.5
+                from customer where id = '30000000-0000-0000-0000-0000000000a1'),
+               'a customer carries their current delivery (PAP below the center line is negative)');
+select test.fails($$update customer set axis_tilt_degrees = 95 where id = '30000000-0000-0000-0000-0000000000a1'$$,
+                  '23514', 'axis tilt is between 0 and 90 degrees');
 
 -- Layout templates (0007): shop standards and a bowler's go-to
 insert into layout_template (id, company_id, customer_id, name, layout, created_by_user_id) values
