@@ -80,11 +80,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     collapsed ? 'px-3.5 md:w-16 md:px-2' : 'px-3.5 md:w-64'
                 } ${open ? 'visible translate-x-0' : 'invisible -translate-x-full'}`}
             >
-                {/* Logo and the collapse toggle. Collapsed, the rail is too narrow for both in a row, so they stack. */}
-                <div className={`flex items-center gap-2 px-2 ${collapsed ? 'md:flex-col md:gap-3 md:px-0' : ''}`}>
-                    {/* Full logo in the phone drawer; mark only when collapsed on desktop. */}
+                {/* Logo and the collapse toggle. Collapsed on desktop, only the expand button shows. */}
+                <div className={`flex items-center gap-2 px-2 ${collapsed ? 'md:justify-center md:px-0' : ''}`}>
                     <span className={collapsed ? 'md:hidden' : undefined}><AppLogo /></span>
-                    {collapsed && <span className="hidden md:block"><AppLogo markOnly /></span>}
                     <button
                         onClick={onToggleCollapsed}
                         className={`hidden rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 md:block ${collapsed ? '' : 'ml-auto'}`}
