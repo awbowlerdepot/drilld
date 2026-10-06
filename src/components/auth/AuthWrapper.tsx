@@ -1,17 +1,24 @@
 import React from 'react';
 import { Authenticator, Theme, ThemeProvider } from '@aws-amplify/ui-react';
 import '@aws-amplify/ui-react/styles.css';
-import { Target } from 'lucide-react';
 import { SignedInUser } from '../../types';
+import { AppLogo } from '../layout/AppLogo';
 
 interface AuthWrapperProps {
     children: (user: SignedInUser) => React.ReactNode;
 }
 
-// The app's blue (Tailwind blue-50…800) instead of Amplify's default teal.
+// The app's font and blue (Tailwind blue-50…800) instead of Amplify's Inter and teal.
+const APP_FONT = '"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif';
 const theme: Theme = {
     name: 'drilld',
     tokens: {
+        fonts: {
+            default: {
+                variable: { value: APP_FONT },
+                static: { value: APP_FONT }
+            }
+        },
         colors: {
             primary: {
                 10: { value: '#eff6ff' },
@@ -29,8 +36,7 @@ const theme: Theme = {
 function SignInHeader() {
     return (
         <div className="flex items-center justify-center py-6">
-            <Target className="w-8 h-8 text-blue-600 mr-3" />
-            <span className="text-xl font-bold text-gray-900">Drill Sheet Pro</span>
+            <AppLogo />
         </div>
     );
 }

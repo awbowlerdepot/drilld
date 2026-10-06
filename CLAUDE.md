@@ -74,7 +74,8 @@ The agreed backend design (Postgres schema, tenant isolation, ball registry, dri
 ## UX
 
 - Use progressive disclosure.
-- Put admin functions, like settings, behind header icons, not in primary nav.
+- Root navigation is the left sidebar (`components/layout/Sidebar.tsx`): the location switcher, then the main sections. Admin functions like Settings and the signed-in user sit in its bottom area, apart from the main sections. On desktop it can collapse to icons, and the choice is remembered per browser. On phones it's a drawer opened from the top bar.
+- Visual style ("Clean Blue"): IBM Plex Sans for text and IBM Plex Mono for measurements, as Tailwind v4 `@theme` tokens in `src/index.css`. White cards on a gray-50 background, with blue-600 as the accent.
 - Use visual layouts over text for spatial things. Drill sheets render as ball hole layouts, with finger holes side by side.
 
 ## Code review focus
