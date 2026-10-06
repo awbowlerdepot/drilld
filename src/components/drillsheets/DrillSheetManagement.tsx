@@ -3,7 +3,7 @@ import { Plus } from 'lucide-react';
 import { DrillSheet } from '../../types';
 import { useDrillSheets } from '../../hooks/useDrillSheets';
 import { useCustomers } from '../../hooks/useCustomers';
-import { Button } from '../ui/Button';
+import { Button } from '../common/Button';
 import { DrillSheetForm } from './DrillSheetForm';
 import { DrillSheetCard } from './DrillSheetCard';
 

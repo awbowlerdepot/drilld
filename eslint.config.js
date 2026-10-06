@@ -20,4 +20,10 @@ export default tseslint.config([
       globals: globals.browser,
     },
   },
+  {
+    // shadcn/ui components (generated, then owned here) export their variant
+    // helpers (e.g. buttonVariants) next to the component.
+    files: ['src/components/ui/**/*.tsx'],
+    rules: { 'react-refresh/only-export-components': 'off' },
+  },
 ])

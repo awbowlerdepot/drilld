@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { useCompanySettings } from '../../hooks/useCompanySettings';
 import { CompanySettingsSection } from '../../types/settings';
-import { Button } from '../ui/Button';
+import { Button } from '../common/Button';
 import { GeneralSettingsTab } from './tabs/GeneralSettingsTab';
 import { BillingSettingsTab } from './tabs/BillingSettingsTab';
 import { WorkflowSettingsTab } from './tabs/WorkflowSettingsTab';

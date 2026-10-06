@@ -4,9 +4,9 @@
 import React, { useState } from 'react';
 import { Customer} from "@/types";
 import { DrillSheet, SpanMeasurement, BridgeMeasurement, HoleSize } from '../../types/drillsheet'; // UPDATED IMPORT
-import { Button } from '../ui/Button';
-import { Input } from '../ui/Input';
-import { Select } from '../ui/Select';
+import { Button } from '../common/Button';
+import { Input } from '../common/Input';
+import { Select } from '../common/Select';
 import { SpanMeasurementInput } from './SpanMeasurementInput';
 import { BridgeInput } from './BridgeInput';
 import { HoleSizeInput } from './HoleSizeInput'; // KEEP SAME NAME

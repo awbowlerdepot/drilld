@@ -1,6 +1,6 @@
 import React from 'react';
 import { SpanMeasurement } from '../../types';
-import { Input } from '../ui/Input';
+import { Input } from '../common/Input';
 
 interface SpanMeasurementInputProps {
     label: string;

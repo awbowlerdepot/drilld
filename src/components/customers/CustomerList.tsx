@@ -1,7 +1,7 @@
 import React from 'react';
 import { Edit, Trash2, ArrowRight } from 'lucide-react';
 import { Customer } from '../../types';
-import { Button } from '../ui/Button';
+import { Button } from '../common/Button';
 
 interface CustomerListProps {
     customers: Customer[];

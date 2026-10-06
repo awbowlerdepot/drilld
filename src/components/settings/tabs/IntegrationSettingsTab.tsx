@@ -1,8 +1,8 @@
 import React from 'react';
 import { Plug, CreditCard, Package, Mail, ShoppingCart, TestTube } from 'lucide-react';
 import { CompanyIntegrationSettings } from '../../../types/settings';
-import { Input } from '../../ui/Input';
-import { Select } from '../../ui/Select';
+import { Input } from '../../common/Input';
+import { Select } from '../../common/Select';
 
 const integrationDefaults = {
     posIntegration: { enabled: false, provider: '', syncInterval: 300 },

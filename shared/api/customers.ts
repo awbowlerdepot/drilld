@@ -13,9 +13,9 @@ const optionalText = (max: number) => z.string().trim().max(max).nullish().trans
 
 /** Body of POST /customers. */
 export const customerCreateSchema = z.object({
-    firstName: z.string().trim().min(1).max(100),
-    lastName: z.string().trim().min(1).max(100),
-    email: z.string().trim().email().max(254).nullish().or(z.literal('')).transform(value => value || null),
+    firstName: z.string().trim().min(1, 'First name is required').max(100),
+    lastName: z.string().trim().min(1, 'Last name is required').max(100),
+    email: z.string().trim().email('Enter a valid email address').max(254).nullish().or(z.literal('')).transform(value => value || null),
     phone: optionalText(40),
     dominantHand: dominantHandSchema,
     preferredGripStyle: gripStyleSchema,

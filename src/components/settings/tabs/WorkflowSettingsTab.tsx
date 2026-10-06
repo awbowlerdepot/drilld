@@ -1,7 +1,7 @@
 import React from 'react';
 import { Settings, DollarSign, FileText, Users, CheckSquare } from 'lucide-react';
 import { CompanyWorkflowSettings } from '../../../types/settings';
-import { Input } from '../../ui/Input';
+import { Input } from '../../common/Input';
 
 interface WorkflowSettingsTabProps {
     settings: CompanyWorkflowSettings;

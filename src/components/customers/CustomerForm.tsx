@@ -1,164 +1,209 @@
 import React, { useState } from 'react';
+import { customerCreateSchema } from '../../../shared/api/customers';
 import { Customer } from '../../types';
-import { Button } from '../ui/Button';
-import { Input } from '../ui/Input';
-import { Select } from '../ui/Select';
+import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle
+} from '@/components/ui/dialog';
+import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
+
+type CustomerFields = Omit<Customer, 'id' | 'createdAt'>;
 
 interface CustomerFormProps {
     customer?: Customer;
-    onSave: (customer: Omit<Customer, 'id' | 'createdAt'>) => void;
+    onSave: (customer: CustomerFields) => void | Promise<void>;
     onCancel: () => void;
 }
 
-export const CustomerForm: React.FC<CustomerFormProps> = ({
-                                                              customer,
-                                                              onSave,
-                                                              onCancel
-                                                          }) => {
-    const [formData, setFormData] = useState({
-        firstName: customer?.firstName || '',
-        lastName: customer?.lastName || '',
-        email: customer?.email || '',
-        phone: customer?.phone || '',
-        dominantHand: customer?.dominantHand || 'RIGHT' as const,
-        preferredGripStyle: customer?.preferredGripStyle || 'FINGERTIP' as const,
+const GRIP_STYLES: { value: Customer['preferredGripStyle']; label: string }[] = [
+    { value: 'FINGERTIP', label: 'Fingertip' },
+    { value: 'CONVENTIONAL', label: 'Conventional' },
+    { value: 'TWO_HANDED_NO_THUMB', label: 'Two-handed (no thumb)' }
+];
+
+/** Add or edit a customer, in a dialog. Validates with the same schema as the API. */
+export const CustomerForm: React.FC<CustomerFormProps> = ({ customer, onSave, onCancel }) => {
+    const [form, setForm] = useState({
+        firstName: customer?.firstName ?? '',
+        lastName: customer?.lastName ?? '',
+        email: customer?.email ?? '',
+        phone: customer?.phone ?? '',
+        dominantHand: customer?.dominantHand ?? 'RIGHT',
+        preferredGripStyle: customer?.preferredGripStyle ?? 'FINGERTIP',
         usesThumb: customer?.usesThumb ?? true,
-        notes: customer?.notes || ''
+        notes: customer?.notes ?? ''
     });
+    const [errors, setErrors] = useState<Partial<Record<keyof typeof form, string>>>({});
+    const [saving, setSaving] = useState(false);
 
-    const [errors, setErrors] = useState<Record<string, string>>({});
-
-    const validate = () => {
-        const newErrors: Record<string, string> = {};
-
-        if (!formData.firstName.trim()) {
-            newErrors.firstName = 'First name is required';
-        }
-
-        if (!formData.lastName.trim()) {
-            newErrors.lastName = 'Last name is required';
-        }
-
-        if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
-            newErrors.email = 'Invalid email format';
-        }
-
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
+    const update = <K extends keyof typeof form>(field: K, value: (typeof form)[K]) => {
+        setForm(prev => ({ ...prev, [field]: value }));
+        setErrors(prev => ({ ...prev, [field]: undefined }));
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        const result = customerCreateSchema.safeParse(form);
+        if (!result.success) {
+            const fieldErrors: Partial<Record<keyof typeof form, string>> = {};
+            for (const issue of result.error.issues) {
+                const field = issue.path[0] as keyof typeof form;
+                fieldErrors[field] ??= issue.message;
+            }
+            setErrors(fieldErrors);
+            return;
+        }
 
-        if (validate()) {
-            onSave(formData);
+        setSaving(true);
+        try {
+            await onSave({
+                ...form,
+                email: form.email.trim() || undefined,
+                phone: form.phone.trim() || undefined,
+                notes: form.notes.trim() || undefined
+            });
+        } finally {
+            setSaving(false);
         }
     };
 
-    const updateField = (field: string, value: any) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-        // Clear error when user starts typing
-        if (errors[field]) {
-            setErrors(prev => ({ ...prev, [field]: '' }));
-        }
-    };
+    const isEditing = Boolean(customer);
 
     return (
-        <div className="bg-white shadow rounded-lg p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-6">
-                {customer ? 'Edit Customer' : 'Add New Customer'}
-            </h3>
+        <Dialog open onOpenChange={open => { if (!open) onCancel(); }}>
+            <DialogContent className="sm:max-w-xl">
+                <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-6">
+                    <DialogHeader>
+                        <DialogTitle>{isEditing ? 'Edit customer' : 'Add customer'}</DialogTitle>
+                        <DialogDescription>
+                            Contact details and how they bowl. Drill sheets are added from the customer's profile.
+                        </DialogDescription>
+                    </DialogHeader>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input
-                        label="First Name"
-                        value={formData.firstName}
-                        onChange={(value) => updateField('firstName', value)}
-                        required
-                        error={errors.firstName}
-                    />
-                    <Input
-                        label="Last Name"
-                        value={formData.lastName}
-                        onChange={(value) => updateField('lastName', value)}
-                        required
-                        error={errors.lastName}
-                    />
-                </div>
+                    <FieldGroup>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <Field data-invalid={Boolean(errors.firstName)}>
+                                <FieldLabel htmlFor="customer-first-name">First name</FieldLabel>
+                                <Input
+                                    id="customer-first-name"
+                                    value={form.firstName}
+                                    onChange={e => update('firstName', e.target.value)}
+                                    aria-invalid={Boolean(errors.firstName)}
+                                    autoComplete="off"
+                                    autoFocus
+                                />
+                                {errors.firstName && <FieldError>{errors.firstName}</FieldError>}
+                            </Field>
+                            <Field data-invalid={Boolean(errors.lastName)}>
+                                <FieldLabel htmlFor="customer-last-name">Last name</FieldLabel>
+                                <Input
+                                    id="customer-last-name"
+                                    value={form.lastName}
+                                    onChange={e => update('lastName', e.target.value)}
+                                    aria-invalid={Boolean(errors.lastName)}
+                                    autoComplete="off"
+                                />
+                                {errors.lastName && <FieldError>{errors.lastName}</FieldError>}
+                            </Field>
+                        </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input
-                        label="Email"
-                        type="email"
-                        value={formData.email}
-                        onChange={(value) => updateField('email', value)}
-                        error={errors.email}
-                    />
-                    <Input
-                        label="Phone"
-                        type="tel"
-                        value={formData.phone}
-                        onChange={(value) => updateField('phone', value)}
-                    />
-                </div>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <Field data-invalid={Boolean(errors.email)}>
+                                <FieldLabel htmlFor="customer-email">Email</FieldLabel>
+                                <Input
+                                    id="customer-email"
+                                    type="email"
+                                    value={form.email}
+                                    onChange={e => update('email', e.target.value)}
+                                    aria-invalid={Boolean(errors.email)}
+                                    placeholder="Optional"
+                                />
+                                {errors.email && <FieldError>{errors.email}</FieldError>}
+                            </Field>
+                            <Field>
+                                <FieldLabel htmlFor="customer-phone">Phone</FieldLabel>
+                                <Input
+                                    id="customer-phone"
+                                    type="tel"
+                                    value={form.phone}
+                                    onChange={e => update('phone', e.target.value)}
+                                    placeholder="Optional"
+                                />
+                            </Field>
+                        </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Select
-                        label="Dominant Hand"
-                        value={formData.dominantHand}
-                        onChange={(value) => updateField('dominantHand', value)}
-                        options={[
-                            { value: 'RIGHT', label: 'Right' },
-                            { value: 'LEFT', label: 'Left' }
-                        ]}
-                        required
-                    />
-                    <Select
-                        label="Preferred Grip"
-                        value={formData.preferredGripStyle}
-                        onChange={(value) => updateField('preferredGripStyle', value)}
-                        options={[
-                            { value: 'CONVENTIONAL', label: 'Conventional' },
-                            { value: 'FINGERTIP', label: 'Fingertip' },
-                            { value: 'TWO_HANDED_NO_THUMB', label: 'Two-Handed (No Thumb)' }
-                        ]}
-                        required
-                    />
-                    <Select
-                        label="Uses Thumb"
-                        value={formData.usesThumb ? 'true' : 'false'}
-                        onChange={(value) => updateField('usesThumb', value === 'true')}
-                        options={[
-                            { value: 'true', label: 'Yes' },
-                            { value: 'false', label: 'No' }
-                        ]}
-                        required
-                    />
-                </div>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <Field>
+                                <FieldLabel htmlFor="customer-hand">Dominant hand</FieldLabel>
+                                <Select
+                                    value={form.dominantHand}
+                                    onValueChange={value => update('dominantHand', value as Customer['dominantHand'])}
+                                >
+                                    <SelectTrigger id="customer-hand" className="w-full">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="RIGHT">Right</SelectItem>
+                                        <SelectItem value="LEFT">Left</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </Field>
+                            <Field>
+                                <FieldLabel htmlFor="customer-grip">Preferred grip</FieldLabel>
+                                <Select
+                                    value={form.preferredGripStyle}
+                                    onValueChange={value => update('preferredGripStyle', value as Customer['preferredGripStyle'])}
+                                >
+                                    <SelectTrigger id="customer-grip" className="w-full">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {GRIP_STYLES.map(grip => (
+                                            <SelectItem key={grip.value} value={grip.value}>{grip.label}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </Field>
+                        </div>
 
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Notes
-                    </label>
-                    <textarea
-                        rows={3}
-                        value={formData.notes}
-                        onChange={(e) => updateField('notes', e.target.value)}
-                        className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="Any special preferences or notes..."
-                    />
-                </div>
+                        <Field orientation="horizontal">
+                            <Switch
+                                id="customer-uses-thumb"
+                                checked={form.usesThumb}
+                                onCheckedChange={checked => update('usesThumb', checked)}
+                            />
+                            <FieldLabel htmlFor="customer-uses-thumb">Uses thumb</FieldLabel>
+                        </Field>
 
-                <div className="flex justify-end space-x-3">
-                    <Button variant="secondary" onClick={onCancel}>
-                        Cancel
-                    </Button>
-                    <Button type="submit">
-                        {customer ? 'Update Customer' : 'Save Customer'}
-                    </Button>
-                </div>
-            </form>
-        </div>
+                        <Field>
+                            <FieldLabel htmlFor="customer-notes">Notes</FieldLabel>
+                            <Textarea
+                                id="customer-notes"
+                                rows={3}
+                                value={form.notes}
+                                onChange={e => update('notes', e.target.value)}
+                                placeholder="Preferences, history, anything the next tech should know"
+                            />
+                        </Field>
+                    </FieldGroup>
+
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
+                        <Button type="submit" disabled={saving}>
+                            {saving ? 'Saving…' : isEditing ? 'Save changes' : 'Add customer'}
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
     );
 };

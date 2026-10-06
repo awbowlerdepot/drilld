@@ -1,7 +1,7 @@
 import React from 'react';
 import { X, Calendar, DollarSign, Package, Wrench } from 'lucide-react';
 import { BowlingBall, Customer } from '../../types';
-import { Button } from '../ui/Button';
+import { Button } from '../common/Button';
 
 interface BallDetailModalProps {
     ball: BowlingBall;

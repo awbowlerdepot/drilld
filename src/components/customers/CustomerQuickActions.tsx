@@ -1,7 +1,7 @@
 import React from 'react';
 import { Plus, FileText, Target } from 'lucide-react';
 import { Customer } from '../../types';
-import { Button } from '../ui/Button';
+import { Button } from '../common/Button';
 
 interface CustomerQuickActionsProps {
     customer: Customer;
