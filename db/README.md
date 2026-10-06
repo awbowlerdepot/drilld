@@ -8,7 +8,7 @@ PostgreSQL schema for Drilld. The design and its reasoning are in [`docs/data-mo
 - `tests/schema_test.sql` — checks for row-level security, constraints, triggers and grants.
 - `test.sh` — runs the tests (see below).
 
-The migrations are the source of truth for the schema. They use features an ORM's migration tool can't express: row-level security, partial unique indexes, triggers and a `SECURITY DEFINER` function. A query client such as Prisma can introspect the schema, but must not generate migrations.
+The migrations are the source of truth for the schema. They use features an ORM's migration tool can't express: row-level security, partial unique indexes, triggers and a `SECURITY DEFINER` function. The API's query types are generated from them (`db/codegen.sh`); nothing generates migrations.
 
 ## Deployment (AWS)
 
@@ -34,6 +34,24 @@ A failed migration rolls back and fails the deploy.
 | `drilld_admin` | (cluster admin; owns the schema, runs migrations) | the cluster's generated secret |
 | `drilld_api` | `drilld_app` | `ApiUserSecret` |
 | `drilld_catalog_sync_job` | `drilld_catalog_sync` | `CatalogSyncUserSecret` |
+
+## Kysely types
+
+```bash
+db/codegen.sh
+```
+
+Applies the migrations to a throwaway Postgres and writes the Kysely table types to `amplify/api/db/schema.ts`. Run it after adding a migration and commit the result. CI fails if the file is stale.
+
+## Creating a company
+
+Companies are created by the platform, not through the API:
+
+```bash
+npx tsx db/scripts/create-company.ts --stack <database stack> --company "Name" --location "Main" --timezone America/Denver --owner-email owner@example.com --owner-first Pat --owner-last Owner
+```
+
+This creates the company, its first location and its owner (`OWNER`, and also Manager at that location), all in one transaction. The owner's Cognito login is linked on first sign-in with that email.
 
 ## Testing
 
