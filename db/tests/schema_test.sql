@@ -228,8 +228,63 @@ select test.fails($$update drill_sheet set current_revision_id = '70000000-0000-
                     where id = '60000000-0000-0000-0000-0000000000a1'$$,
                   '23503', 'the current revision must belong to the same drill sheet');
 
+-- Draft revisions (0007): editable until approved or drilled
+update drill_sheet_revision set thumb_to_middle_fit = 4.375, revision_notes = 'Remeasured'
+    where id = '70000000-0000-0000-0000-0000000000a2';
+select test.ok((select thumb_to_middle_fit = 4.375 and updated_at > created_at
+                from drill_sheet_revision where id = '70000000-0000-0000-0000-0000000000a2'),
+               'a draft revision can be edited in place, and updated_at moves');
+select test.fails($$update drill_sheet_revision set version = 9 where id = '70000000-0000-0000-0000-0000000000a2'$$,
+                  '23001', 'a draft''s version cannot change');
+select test.fails($$update drill_sheet_revision set created_by_user_id = '20000000-0000-0000-0000-0000000000a1'
+                    where id = '70000000-0000-0000-0000-0000000000a2'$$,
+                  '23001', 'a draft''s author cannot change');
+update drill_sheet_revision
+    set approved_at = now(), approved_by_user_id = '20000000-0000-0000-0000-0000000000a2'
+    where id = '70000000-0000-0000-0000-0000000000a2';
+select test.ok((select approved_by_user_id = created_by_user_id
+                from drill_sheet_revision where id = '70000000-0000-0000-0000-0000000000a2'),
+               'the author can approve their own revision');
+select test.fails($$update drill_sheet_revision set thumb_to_middle_fit = 4.5
+                    where id = '70000000-0000-0000-0000-0000000000a2'$$,
+                  '23001', 'an approved revision is locked');
+
+insert into drill_sheet_revision (id, company_id, drill_sheet_id, version, created_by_user_id, thumb_to_middle_fit, spec, spec_schema_version)
+    values ('70000000-0000-0000-0000-0000000000a3', '00000000-0000-0000-0000-00000000000a', '60000000-0000-0000-0000-0000000000a1', 3,
+            '20000000-0000-0000-0000-0000000000a2', 4.25, '{}', 1);
+insert into work_order (company_id, location_id, company_ball_id, customer_id, drill_sheet_revision_id, work_type, work_date)
+    values ('00000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-0000000000a1', '50000000-0000-0000-0000-0000000000a1',
+            '30000000-0000-0000-0000-0000000000a1', '70000000-0000-0000-0000-0000000000a3', 'PLUG_REDRILL', '2025-08-01');
+select test.fails($$update drill_sheet_revision set thumb_to_middle_fit = 4.5
+                    where id = '70000000-0000-0000-0000-0000000000a3'$$,
+                  '23001', 'an unapproved revision is locked once drilled');
+update drill_sheet_revision
+    set approved_at = now(), approved_by_user_id = '20000000-0000-0000-0000-0000000000a1'
+    where id = '70000000-0000-0000-0000-0000000000a3';
+select test.ok((select approved_at is not null from drill_sheet_revision where id = '70000000-0000-0000-0000-0000000000a3'),
+               'approval can still be recorded on a drilled revision');
+
+-- Layout templates (0007): shop standards and a bowler's go-to
+insert into layout_template (id, company_id, customer_id, name, layout, created_by_user_id) values
+    ('90000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-00000000000a', null, 'Shop standard', '{"system": "DUAL_ANGLE"}',
+     '20000000-0000-0000-0000-0000000000a1'),
+    ('90000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-00000000000a', '30000000-0000-0000-0000-0000000000a1', 'Alice go-to',
+     '{"system": "VLS"}', '20000000-0000-0000-0000-0000000000a2');
+select test.ok((select count(*) from layout_template) = 2, 'a company can save shop-standard and per-bowler layout templates');
+select test.fails($$insert into layout_template (company_id, customer_id, name, layout, created_by_user_id)
+                    values ('00000000-0000-0000-0000-00000000000a', '30000000-0000-0000-0000-0000000000b1', 'Bob go-to', '{}',
+                            '20000000-0000-0000-0000-0000000000a1')$$,
+                  '23503', 'a layout template cannot use another company''s customer');
+insert into work_order (company_id, location_id, company_ball_id, customer_id, work_type, work_date, based_on_layout_template_id, layout)
+    values ('00000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-0000000000a1', '50000000-0000-0000-0000-0000000000a1',
+            '30000000-0000-0000-0000-0000000000a1', 'MAINTENANCE', '2025-09-01',
+            '90000000-0000-0000-0000-0000000000a2', '{"system": "VLS"}');
+select test.ok((select count(*) from work_order where based_on_layout_template_id = '90000000-0000-0000-0000-0000000000a2') = 1,
+               'a work order records the layout template it started from');
+
 -- The one cross-company read: counts only, across every company
-select test.ok((select (s.drill_count, s.plug_count, s.last_worked_month) = (1, 1, date '2025-03-01')
+-- 1 initial drill (A), 2 plug & redrills (B in March, A in August); maintenance not counted.
+select test.ok((select (s.drill_count, s.plug_count, s.last_worked_month) = (1, 2, date '2025-08-01')
                 from ball_service_summary('40000000-0000-0000-0000-000000000001') s),
                'ball_service_summary counts drilling across companies, by month');
 
@@ -241,6 +296,12 @@ select set_config('app.company_id', '00000000-0000-0000-0000-00000000000b', fals
 select test.ok((select array_agg(first_name) from customer) = array['Bob'], 'company B sees only its customers');
 select test.ok((select notes from customer where first_name = 'Bob') is null, 'company B''s customer was not modified by company A');
 select test.ok((select count(*) from location) = 1, 'company B does not see company A''s locations');
+select test.ok((select count(*) from layout_template) = 0, 'company B does not see company A''s layout templates');
+select test.fails($$insert into work_order (company_id, location_id, company_ball_id, customer_id, work_type, work_date, based_on_layout_template_id)
+                    values ('00000000-0000-0000-0000-00000000000b', '10000000-0000-0000-0000-0000000000b1', '50000000-0000-0000-0000-0000000000b1',
+                            '30000000-0000-0000-0000-0000000000b1', 'MAINTENANCE', '2025-09-02',
+                            '90000000-0000-0000-0000-0000000000a1')$$,
+                  '23503', 'a work order cannot use another company''s layout template');
 
 -- ==========================================
 -- As the catalog sync job

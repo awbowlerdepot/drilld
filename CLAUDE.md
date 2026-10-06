@@ -90,8 +90,8 @@ Look for incorrect imports, circular dependencies, and unnecessary complexity.
   - customers
   - BowlerIQ catalog
   - ball registry
-  - drill sheet revisions
-  - work orders
+  - drill sheet revisions (drafts editable until approved or drilled)
+  - work orders and layout templates
   - row-level security
 - Cognito sign-in is defined (`amplify/auth`), wired into the frontend, and verified end to end on a sandbox (invitation email, first sign-in, sign-out). The hosted app deploys it through the `amplify.yml` backend phase.
 - The database is deployed per environment by `amplify/database` (Aurora Serverless v2). Migrations and login users are applied automatically on deploy.
@@ -113,5 +113,5 @@ Look for incorrect imports, circular dependencies, and unnecessary complexity.
      - the BowlerIQ catalog sync job
   2. Replace mock data with real services, starting with customers and drill sheets.
   3. Complete work order management, using `resolveLocationSettings` for labor rate and tax.
-  4. Resolve the remaining open items in `docs/data-model.md`.
+  4. Resolve the remaining open item in `docs/data-model.md` (customer sharing across locations).
   5. Clear the pre-existing lint errors.
