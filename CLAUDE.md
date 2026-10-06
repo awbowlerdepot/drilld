@@ -40,6 +40,9 @@ The agreed backend design (Postgres schema, tenant isolation, ball registry, dri
 - Frontend: Vite, React, TypeScript, Tailwind
 - Target backend (not built yet): AWS Amplify Gen 2 — Cognito (auth), GraphQL (API), Lambda, S3, PostgreSQL on RDS via Prisma, in a VPC
 - Hosting: Amplify Hosting app `d1fijf3mjtco4q` in **us-west-1**. It auto-builds `main`, using the service role `drilld-amplify-backend-role` (`AmplifyBackendDeployFullAccess` only).
+  - Production URL: **https://app.drilld.io**. It's the Amplify custom domain for `main`, with an Amplify-managed certificate.
+    - `drilld.io` is registered at GoDaddy, which also hosts its DNS (not Route 53). There are two CNAMEs there: `app` points to the Amplify CloudFront distribution, and an `_…acm-validations.aws` record is used for certificate renewal. Keep both.
+    - The apex `drilld.io` is not served by this app.
   - `amplify.yml` backend phase: `npm ci`, then `ampx pipeline-deploy`, which deploys `amplify/` and writes `amplify_outputs.json`.
   - Frontend phase: `npm run build`, serving `dist/`.
   - Env vars are documented in `.env.example`.
