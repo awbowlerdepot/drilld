@@ -15,8 +15,12 @@ Status: agreed design. The PostgreSQL schema is implemented in `db/migrations/`,
 | Ball products | Come from the **BowlerIQ Partner API** (v1). Drilld keeps a local copy, synced from its change feed, and references it by BowlerIQ ball id + weight. |
 | Physical balls | **Platform-wide registry** keyed on manufacturer + serial, so a ball can move between companies. |
 | Cross-company ball info | **Option 2**: another company sees only anonymous facts (drill count, plug count, month last worked). |
-| Drill sheets | The bowler's **fit**. Revisions are append-only, and work orders point at a specific revision. |
-| Layouts | Per ball, so they are stored on the **work order**, not the drill sheet. |
+| Drill sheets | The bowler's **fit**. Work orders point at the specific revision drilled. A sheet is **active or archived**; approval belongs to a **revision**; drilling progress belongs to the **work order**. |
+| Revisions | **Drafts are editable** until the revision is approved or used on a work order; after that it's locked, and further changes start a new draft revision. |
+| Approval | Records **who approved and when**; it's not a second-person check. Anyone who can edit drill sheets at that location may approve, the author included. Whether drilling requires an approved revision follows the **Require Supervisor Approval** workflow setting (company default, overridable per location). |
+| Pitch | **Inches only** (forward, reverse, lateral). |
+| Bridge | Measured **edge-to-edge**: the material left between the middle and ring finger holes. |
+| Layouts | Per ball: the exact layout used is stored on the **work order**. Layouts can also be saved for reuse as **layout templates**, either a bowler's go-to or shop standards. A drilling starts from one and is then adjusted. |
 | Storage of the spec | **Hybrid**: queryable measurements are real columns, and the full nested spec goes in `jsonb` with a schema version. |
 
 ## Overview
@@ -40,9 +44,9 @@ Platform
 
 ## Units
 
-- **Spans and bridge**: inches, `numeric(6,4)`. No floats.
+- **Spans and bridge**: inches, `numeric(6,4)`. No floats. Bridge is always edge-to-edge.
 - **Hole and bit sizes**: integer **64ths of an inch** (31/64" is stored as `31`, 1" as `64`). They are exact and sortable, and the UI renders them as fractions.
-- **Pitch**: value plus explicit unit (`IN` or `DEG`). See the open items.
+- **Pitch**: inches only, never degrees. `forward` is positive forward and negative reverse; `lateral` is positive right and negative left.
 - **Weights**: ball weight in pounds, static weights (top, side, finger) in ounces, both `numeric(5,2)`.
 - **Money**: `numeric(10,2)`.
 
@@ -306,28 +310,41 @@ alter table drill_sheet
     add foreign key (company_id, current_revision_id) references drill_sheet_revision(company_id, id);
 ```
 
-**Revision rules** (proposed, see open items):
+**Revision rules:**
 
-- Saving a sheet creates a new revision and moves `current_revision_id` to it.
-- Once a revision is approved, or referenced by a work order, it can never change. A trigger rejects `UPDATE` (except setting approval fields once) and all `DELETE`s.
-- The promoted columns are written from `spec` by the backend in the same insert. The backend validates `spec` against the schema for `spec_schema_version`, using zod (a TypeScript validation library) on both write and read.
+- **New sheets start as drafts.** A new sheet, or a change to a locked revision, creates a **draft** revision (version n+1) and makes it the sheet's current revision.
+- **Drafts are editable.** Saving a draft updates it in place.
+- **A revision locks** when it's approved, or when a work order references it. From then on a trigger rejects every `UPDATE` and `DELETE`. Approval can be set once, on a draft. (Migration 0005 currently locks revisions on insert; see "Pending schema changes".)
+- **Approval** sets `approved_by_user_id` and `approved_at`. Anyone with `write:drillsheets` at the revision's location can approve, the author included, as can company owners and admins. Under today's role permissions that means Technician and up; Apprentices can't.
+- **Drilling to an unapproved revision** is rejected when the effective **Require Supervisor Approval** setting is on: the company setting, or the location's override (`resolveLocationSettings`). This is enforced in the API.
+- **Promoted columns** are written from `spec` by the backend on every save. The backend validates `spec` against the schema for `spec_schema_version` with zod (a TypeScript validation library), on both write and read.
 
-**`spec` contents** (version 1):
+**`spec` contents** (version 1). Lengths are inches; sizes are 64ths:
 
 ```
 {
-  spans:   { thumbToMiddle: {fit, full, cutToCut, notes}, thumbToRing: {...}, custom: [...] },
-  bridge:  { distance, notes },
-  holes: {
-    thumb:  { enabled, shape: 'ROUND'|'OVAL', size64, depth, pitch: {forward, lateral, unit},
-              insert|slug, bevel, drillingSequence: [...] },
-    middle: { size64, depth, pitch, insert, bevel, drillingSequence },
-    ring:   { ... },
-    index?, pinky?
+  spans: {
+    thumbToMiddle: { fit, full, cutToCut, notes },
+    thumbToRing:   { fit, full, cutToCut, notes },
+    custom: [ { name, from: 'THUMB'|'INDEX'|'MIDDLE'|'RING'|'PINKY', to: …, fit, full, cutToCut, notes } ]
   },
-  axis:    { papHorizontal, papVertical, tilt, rotation },
+  bridge: { distance, notes },                 // edge-to-edge, middle ↔ ring
+  holes: {
+    thumb:  { enabled, shape: 'ROUND'|'OVAL', size64, ovalLength64?, depth,
+              pitch, slug?, bevel?, drillingSequence?, notes },
+    middle: { size64, depth, pitch, insert?, bevel?, drillingSequence?, notes },
+    ring:   { …same as middle },
+    index?: { …same as middle },
+    pinky?: { …same as middle }
+  },
+  axis: { papHorizontal, papVertical, tilt, rotation },
   notes, customerPreferences, restrictions: []
 }
+
+pitch            = { forward, lateral }      // inches; negative forward = reverse, negative lateral = left
+bevel            = { angleDegrees, depth }
+drillingSequence = [ { step, bitSize64, depth, notes } ]   // in drilling order
+slug             = { manufacturer, type, size64, tapered }
 ```
 
 Inserts use one shape everywhere: `{ manufacturer: 'VISE'|'Turbo'|'JoPo'|'Other', insertSize64, outsideHole: '7/8'|'31/32'|'1-1/32', type, model, color }`. The current code has two insert definitions; this replaces both.
@@ -384,6 +401,30 @@ create table work_order (
 ```
 
 Photos go in S3 with a `work_order_photo` table (`work_order_id`, `kind: BEFORE|AFTER`, `s3_key`).
+
+### Layout templates
+
+Reusable starting points for a work order's `layout`. A template is either **a bowler's go-to** (`customer_id` set) or a **shop standard** (`customer_id` null). Starting a drilling from one copies its layout onto the work order, where it can be adjusted. The work order keeps that copy, so editing or archiving a template never changes past work.
+
+```sql
+create table layout_template (
+    id                 uuid primary key default gen_random_uuid(),
+    company_id         uuid not null references company(id),
+    customer_id        uuid,                  -- null = shop standard
+    name               text not null,
+    layout             jsonb not null,        -- same shape as work_order.layout, without balanceHole and surface (those are per ball)
+    created_by_user_id uuid not null,
+    archived_at        timestamptz,
+    created_at, updated_at,
+    unique (company_id, id),
+    foreign key (company_id, customer_id)        references customer(company_id, id),
+    foreign key (company_id, created_by_user_id) references app_user(company_id, id)
+);
+
+-- on work_order:
+based_on_layout_template_id uuid,           -- which template the drilling started from, if any
+foreign key (company_id, based_on_layout_template_id) references layout_template(company_id, id)
+```
 
 ## Internal-first rollout
 
@@ -477,10 +518,14 @@ Tenant-scoped Prisma queries run in an interactive transaction that sets `app.co
 | `HoleSize.insert` and `FingerHole.insert` | single `Insert` shape |
 | `WorkOrder.drillSheetID`, `ballID`, `locationID` | `drillSheetRevisionID`, `companyBallID`, `locationID` |
 
+## Pending schema changes
+
+These decisions are agreed but not yet in `db/migrations`. They go in the next migration:
+
+1. **Editable draft revisions.** Replace `protect_drill_sheet_revision`: allow `UPDATE` while `approved_at` is null and no `work_order` references the revision; otherwise reject. Approval stays a one-time update on a draft. `DELETE` remains blocked for all revisions.
+2. **`layout_template` table** and `work_order.based_on_layout_template_id`, with row-level security and grants like the other tenant tables.
+3. **Column comments:** the bridge is edge-to-edge, and pitch is in inches.
+
 ## Open items
 
-1. **Reusable layouts.** Should a bowler's go-to layout or a shop's standard layouts be saved and reused? If so, add a `layout_template` table.
-2. **Revision semantics.** Should every save create a revision, or should drafts be editable until approved or drilled?
-3. **Pitch units.** Inches, degrees, or both (stored with an explicit unit)?
-4. **Drill sheet status.** The current `DrillSheetStatus` mixes sheet states with work states (`IN_PROGRESS`, `COMPLETED`). Proposal: the sheet is active or archived, approval belongs to the revision, and progress belongs to the work order.
-5. **Customer sharing setting.** Do customers stay shared across all of a company's locations, or should there be a company-level toggle for chains that run locations independently?
+1. **Customer sharing setting.** Do customers stay shared across all of a company's locations, or should there be a company-level toggle for chains that run locations independently?
