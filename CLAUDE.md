@@ -39,7 +39,12 @@ The agreed backend design (Postgres schema, tenant isolation, ball registry, dri
 
 - Frontend: Vite, React, TypeScript, Tailwind
 - Target backend (not built yet): AWS Amplify Gen 2 — Cognito (auth), GraphQL (API), Lambda, S3, PostgreSQL on RDS via Prisma, in a VPC
-- Hosting: Amplify (`amplify.yml` runs `npm ci` then `npm run build`, serves `dist/`); env vars documented in `.env.example`
+- Hosting: Amplify Hosting app `d1fijf3mjtco4q` in **us-west-1**. It auto-builds `main`, using the service role `drilld-amplify-backend-role` (`AmplifyBackendDeployFullAccess` only).
+  - `amplify.yml` backend phase: `npm ci`, then `ampx pipeline-deploy`, which deploys `amplify/` and writes `amplify_outputs.json`.
+  - Frontend phase: `npm run build`, serving `dist/`.
+  - A duplicate app (`d1lpo0nl0hnby8`, us-east-1) has auto-build turned off. It's not the real site.
+  - Env vars are documented in `.env.example`.
+- Local backend: `npx ampx sandbox --once` deploys a personal sandbox (us-west-1) and writes `amplify_outputs.json`. `npx ampx sandbox delete` removes it.
 
 ## Domain rules (get these right)
 
@@ -84,7 +89,7 @@ Look for incorrect imports, circular dependencies, and unnecessary complexity.
   - drill sheet revisions
   - work orders
   - row-level security
-- Cognito sign-in is defined (`amplify/auth`) and wired into the frontend. It has not been deployed yet: no sandbox, and `amplify.yml` has no backend phase.
+- Cognito sign-in is defined (`amplify/auth`), wired into the frontend, and verified end to end on a sandbox (invitation email, first sign-in, sign-out). The hosted app deploys it through the `amplify.yml` backend phase.
 - No API code yet: `amplify/data`, `amplify/functions` and `src/services/` are empty.
 - `npm run build` passes.
 - Done on the frontend:
@@ -100,7 +105,6 @@ Look for incorrect imports, circular dependencies, and unnecessary complexity.
 - Next:
   1. Stand up the rest of the backend:
      - RDS and the migration runner
-     - deploy Cognito (sandbox, then the `amplify.yml` backend phase)
      - the API layer (choose the query client, invitation and first-sign-in linking)
      - the BowlerIQ catalog sync job
   2. Replace mock data with real services, starting with customers and drill sheets.
