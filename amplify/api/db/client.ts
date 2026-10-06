@@ -3,6 +3,34 @@ import { Kysely, Transaction, sql } from 'kysely';
 import { DataApiDialect } from 'kysely-data-api';
 import type { DB } from './schema';
 
+/** Waits between retries while a paused database resumes: about 17s in total, inside the 29s Lambda timeout. */
+const RESUME_RETRY_DELAYS_MS = [1000, 2000, 4000, 5000, 5000];
+
+/**
+ * A Data API client that retries while an auto-paused Aurora Serverless
+ * database resumes (DatabaseResumingException), instead of failing the
+ * request. Only that error is retried; it happens before any statement runs.
+ */
+const createDataApiClient = (): RDSData => {
+    const client = new RDSData({});
+    client.middlewareStack.add(
+        next => async args => {
+            for (let attempt = 0; ; attempt++) {
+                try {
+                    return await next(args);
+                } catch (error) {
+                    const delay = RESUME_RETRY_DELAYS_MS[attempt];
+                    if ((error as Error).name !== 'DatabaseResumingException' || delay === undefined) throw error;
+                    console.log(`Database is resuming; retrying in ${delay}ms`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+        },
+        { step: 'initialize', name: 'retryWhileDatabaseResumes' }
+    );
+    return client;
+};
+
 /**
  * Kysely over the RDS Data API, connected as drilld_api (member of
  * drilld_app), so every tenant table is subject to row-level security.
@@ -12,7 +40,7 @@ export const createDb = (config: { clusterArn: string; secretArn: string; databa
         dialect: new DataApiDialect({
             mode: 'postgres',
             driver: {
-                client: new RDSData({}),
+                client: createDataApiClient(),
                 resourceArn: config.clusterArn,
                 secretArn: config.secretArn,
                 database: config.database
