@@ -93,7 +93,7 @@ export const DrillPressView = ({ sheet, spec, customer, press, onExit }: DrillPr
                                 <div className="rounded-xl bg-[#0B1220] p-4">
                                     <span className="text-base text-[#A7B4C8]">{nextStep ? `Now: ${nextStep.title}` : 'Hole done'}</span>
                                     <span className="block font-mono text-6xl font-bold leading-tight text-[#60A5FA]">
-                                        {nextStep ? `${format64(nextStep.bit64)}″` : '✓'}
+                                        {!nextStep ? '✓' : nextStep.bit64 ? `${format64(nextStep.bit64)}″` : nextStep.title}
                                     </span>
                                     {nextStep?.depth32 && <span className="text-lg text-[#C7D6F0]">{describeBit(nextStep)}</span>}
                                     {nextStep?.note && <span className="block text-base text-[#C7D6F0]">{nextStep.note}</span>}
@@ -130,7 +130,7 @@ export const DrillPressView = ({ sheet, spec, customer, press, onExit }: DrillPr
                                                     isDone && 'text-[#7C8BA3]')}>
                                                 <span className="text-base">{step.title}</span>
                                                 <span className="font-mono text-lg font-semibold">
-                                                    {format64(step.bit64)}
+                                                    {step.bit64 ? format64(step.bit64) : '—'}
                                                     {step.depth32 && <span className="block text-sm font-normal text-[#A7B4C8]">{format32(step.depth32)}″ deep</span>}
                                                 </span>
                                                 <span className="font-mono text-2xl font-bold">{signed(position.vertical)}</span>

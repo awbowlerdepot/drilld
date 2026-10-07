@@ -10,7 +10,8 @@ export interface DrillStep {
     id: string
     /** What this step is: "O.D.", "Vacu", "Drill", "Pilot", "Cut 2 of 4". */
     title: string
-    bit64: number
+    /** The bit; absent for a step without drilling (installing hardware). */
+    bit64?: number
     /** Drill depth in 32nds, when it's not the full hole (vacu). */
     depth32?: number | null
     /** Where the readout should be, physical. */
@@ -35,6 +36,9 @@ type Pitch = DrillSheetSpec['holes']['thumb']['pitch']
 
 /** How deep a finger insert's O.D. is drilled, unless the hole sets a depth: 2". */
 export const INSERT_DEPTH32 = 64
+
+/** The pilot for interchangeable thumb hardware, before the collar bit: 1/2". */
+export const INTERCHANGEABLE_PILOT64 = 32
 
 const MAKERS: Record<string, string> = { VISE: 'VISE', TURBO: 'Turbo', JOPO: 'JoPo' }
 const maker = (code: string) => MAKERS[code] ?? code
@@ -101,6 +105,24 @@ const thumbHole = (spec: DrillSheetSpec, hand: Hand): DrillHole | null => {
     const steps: DrillStep[] = []
     const hardware = thumb.hardware
 
+    // Interchangeable hardware: pilot, collar bit, install. The thumb hole and its
+    // oval are drilled into the inner, not the ball.
+    if (hardware?.kind === 'INTERCHANGEABLE_THUMB') {
+        steps.push(
+            { id: 'thumb-pilot', title: 'Pilot', bit64: INTERCHANGEABLE_PILOT64, position: center, note: 'Pilot for the hardware' },
+            { id: 'thumb-od', title: 'Collar bit', bit64: hardware.od64, position: center, note: 'Down to the collar' },
+            { id: 'thumb-install', title: 'Install hardware', position: center, note: `${maker(hardware.manufacturer)} ${hardware.line}`.trim() }
+        )
+        return {
+            key: 'thumb',
+            name: 'Thumb',
+            grip: [`${maker(hardware.manufacturer)} ${hardware.line}`.trim(), hardware.label].filter(Boolean).join(' · '),
+            center,
+            pitch: describePitch(thumb.pitch),
+            steps
+        }
+    }
+
     if (hardware) {
         steps.push({
             id: 'thumb-od', title: hardware.collar ? 'Collar bit' : 'O.D.', bit64: hardware.od64, position: center,
@@ -112,7 +134,7 @@ const thumbHole = (spec: DrillSheetSpec, hand: Hand): DrillHole | null => {
     if (!insertSetsHole && holeBit) {
         steps.push({
             id: 'thumb-hole', title: thumb.oval ? 'Pilot' : 'Drill', bit64: holeBit, position: center,
-            note: hardware ? `Drilled into the ${hardware.kind === 'THUMB_SLUG' ? 'slug' : 'inner'}` : undefined
+            note: hardware ? 'Drilled into the slug' : undefined
         })
         if (thumb.oval && thumb.oval.width64 > thumb.oval.pilotHole64) {
             steps.push(...cutSteps('thumb', thumb.oval.pilotHole64, center, thumbOvalCuts(thumb.oval, hand)))
@@ -138,6 +160,6 @@ export const buildDrillPlan = (spec: DrillSheetSpec, hand: Hand): DrillHole[] =>
         .filter((hole): hole is DrillHole => hole !== null)
 }
 
-/** "61/64″" or "1-5/16″ · 1″ deep" */
+/** "61/64″" or "1-5/16″ · 1″ deep"; empty for a step without a bit. */
 export const describeBit = (step: DrillStep) =>
-    `${format64(step.bit64)}″${step.depth32 ? ` · ${format32(step.depth32)}″ deep` : ''}`
+    step.bit64 ? `${format64(step.bit64)}″${step.depth32 ? ` · ${format32(step.depth32)}″ deep` : ''}` : ''
