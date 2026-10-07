@@ -1,4 +1,5 @@
-import { ArrowLeft } from 'lucide-react'
+import { useState } from 'react'
+import { ArrowLeft, Drill } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useCompanySettings } from '../../../hooks/useCompanySettings'
@@ -6,6 +7,7 @@ import { useDrillSheetEditor } from '../../../hooks/useDrillSheetEditor'
 import { useLocations } from '../../../hooks/useLocations'
 import type { Customer } from '../../../types'
 import { resolveLocationSettings } from '../../../utils/LocationSettings'
+import { DrillPressView } from '../press/DrillPressView'
 import { DeliveryPanel } from './DeliveryPanel'
 import { FingerHoleCard } from './FingerHoleCard'
 import { FitPanel } from './FitPanel'
@@ -35,6 +37,7 @@ export const DrillSheetEditor = ({ sheetId, customer, locationID, onBack }: Dril
     const { locations } = useLocations()
     const location = locations.find(l => l.id === locationID)
     const drillSheetSettings = resolveLocationSettings(settings, location?.settingsOverrides).drillSheets
+    const [pressView, setPressView] = useState(false)
 
     if (loading) return <p className="py-12 text-center text-gray-500">Loading drill sheet…</p>
     if (!sheet || !spec) {
@@ -47,6 +50,11 @@ export const DrillSheetEditor = ({ sheetId, customer, locationID, onBack }: Dril
     }
 
     const revision = sheet.currentRevision
+
+    // The press works from the saved revision, never from unsaved edits.
+    if (pressView && revision) {
+        return <DrillPressView sheet={sheet} spec={revision.spec} customer={customer} press={drillSheetSettings} onExit={() => setPressView(false)} />
+    }
     const locked = revision ? !revision.editable : false
     const hand = customer.dominantHand
     const sides = fingersBySide(hand)
@@ -75,7 +83,13 @@ export const DrillSheetEditor = ({ sheetId, customer, locationID, onBack }: Dril
                                 : 'Tap any value to set it'}
                     </span>
                     {!sheet.archived && (
-                        <div className="ml-auto flex gap-2">
+                        <div className="ml-auto flex flex-wrap gap-2">
+                            {revision && (
+                                <Button variant="outline" disabled={saving} onClick={() => setPressView(true)}
+                                    title={dirty ? 'Shows the saved revision, not unsaved changes' : undefined}>
+                                    <Drill data-icon="inline-start" /> Drill press
+                                </Button>
+                            )}
                             {dirty && <Button variant="ghost" disabled={saving} onClick={discard}>Discard</Button>}
                             <Button variant="outline" disabled={!dirty || saving} onClick={() => save()}>
                                 {saving ? 'Saving…' : 'Save'}

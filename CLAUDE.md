@@ -24,6 +24,7 @@ The agreed backend design (Postgres schema, tenant isolation, ball registry, dri
   - Hole cards, fit, delivery and notes panels sit below it.
   - Every value opens a picker through `usePicker()` (`PickerHost`): lengths in 32nds with "+", bits in 64ths, plain numbers.
   - The editor works on a local copy of the spec, and Save sends the whole spec.
+- `src/components/drillsheets/press/` — the drill press view (canvas design F): dark tablet screen, one hole at a time, each step with its bit and signed readout. Opened from the editor, using the saved revision. Progress is kept on screen only, until work orders record it.
 - `src/components/ui/` — **shadcn/ui** components (Radix based, "nova" style), owned and editable here; add more with `npx shadcn@latest add <name>`. `src/lib/utils.ts` re-exports `cn`.
 - `src/components/common/` — the older hand-rolled `Button`, `Input`, `Select` and `Textarea`, being replaced screen by screen with `components/ui`. Don't use them in new code.
 - `src/hooks/use<Feature>.ts` — one data hook per feature; currently all read from mock data
@@ -37,6 +38,7 @@ The agreed backend design (Postgres schema, tenant isolation, ball registry, dri
   - `Fractions.ts` — formats 32nds ("4-3/8+"), 64ths and readout decimals
   - `DrillReadouts.ts` — pitch centers, thumb and finger oval cuts, and drill press readout signs
   - `Clt.ts` — the CLT chart (hidden unless `drillSheets.enableClt`)
+  - `DrillPlan.ts` — a sheet's drilling plan: holes in order, each step's bit, depth and readout position
   - `DrillBits.ts` — the bits a shop has: 1/2–1-1/8 in 64ths, 1-1/4, 1-3/8, 1-1/2, and the interchangeable-hardware collar bits
 - `docs/data-model.md` — backend data model design and open questions
 - `db/` — PostgreSQL migrations (plain SQL, dbmate format) and schema tests; see `db/README.md`. `db/seed/grip_catalog.py` generates the grip catalog rows for a migration. The migrations are the source of truth for the schema; never generate migrations from an ORM.
@@ -158,7 +160,7 @@ Look for incorrect imports, circular dependencies, and unnecessary complexity.
 - Next:
   1. Stand up the rest of the backend:
      - the BowlerIQ catalog sync job
-  2. The drill press view (canvas design F), revision history, and bevel, depth and step drilling. Then replace the remaining mock data (balls, work orders, employees).
+  2. Revision history, and bevel, depth and step drilling. Then replace the remaining mock data (balls, work orders, employees).
   3. Complete work order management, using `resolveLocationSettings` for labor rate and tax.
   4. Resolve the remaining open item in `docs/data-model.md` (customer sharing across locations).
   5. Clear the pre-existing lint errors.
