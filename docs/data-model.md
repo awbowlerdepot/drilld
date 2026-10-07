@@ -465,7 +465,7 @@ pitch            = { forward32, lateral32 }  // negative forward = reverse, nega
 oval             = { angleDegrees, pilotHole64, width64 }   // thumb cuts are derived, not stored
 fingerOval       = { width64 }                            // bit that fits the hole across; size64 is the pilot and sets the height
 slug             = { manufacturer, type, size64, interchangeable, notes }
-bevel            = { amount: LIGHT|MEDIUM|HEAVY, palmSide?, width32?, tool?: KNIFE|SANDER, notes }   // null = the company's standard
+bevel            = { amount: LIGHT|MEDIUM|HEAVY, palmSide?, width32?, tools: (KNIFE|SANDER)[], notes }   // null = the company's standard
 drillingSequence = [ { step, bitSize64, depth32, notes } ]   // in drilling order
 ```
 
@@ -501,7 +501,7 @@ drillingSequence = [ { step, bitSize64, depth32, notes } ]   // in drilling orde
 - **Bevel** is the top edge of a hole, finished at the bench after drilling (not a press step).
   - Every hole gets the company's standard bevel (`drillSheets.standardBevel`, Medium to start), insert holes too, unless the sheet sets its own.
   - A bevel can differ around the hole. The palm / hinge side, where the thumb or finger hinges, matters most, so it can have its own amount.
-  - Width is measured from the wall of the hole out. The tool is a bevel knife or a bevel sander.
+  - Width is measured from the wall of the hole out. The tools are a bevel knife, a bevel sander, or both.
   - The drill press view lists each hole's bevel under "Finishing at the bench".
 - **Hole depth** is a standard by hole type, set by the company (`drillSheets.holeDepths`), overridable per location, then per hole on the sheet (`depth32`; e.g. deeper for long fingernails). Depths are in 1/16″ steps.
   - Fingertip finger: 2″ with an insert, 1-1/2″ without.
