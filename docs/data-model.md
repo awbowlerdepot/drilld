@@ -226,7 +226,7 @@ Finger inserts, thumb inserts, thumb slugs and interchangeable thumb systems com
 | 7/8″ O.D. finger lines (VISE P/O, P/S, O/PO 7/8″; Turbo Ms. Quad) | 7/8″ | 17/32″–3/4″ (VISE P/S and O/PO to 49/64″) |
 | Thumb inserts (VISE Pro V2, Tapered Oval/Round; Turbo Xcel) | 1-1/8″ for 51/64″–63/64″ (Xcel to 61/64″); 1-1/4″ for 1″–1-7/64″ (Xcel 31/32″–1-1/16″) | |
 | Thumb slugs and solids (VISE, Turbo urethane, JoPo) | the slug size: 1-1/8″, 1-1/4″, 1-3/8″, 1-1/2″ | |
-| Interchangeable thumb (VISE IT, Turbo Switch Grip / NX, JoPo Twist) | a **collar bit**: VISE IT slug + 1/16″ (1-3/16″, 1-5/16″, 1-7/16″, 1-9/16″); Switch Grip and Twist 1-1/2″ | |
+| Interchangeable thumb (VISE IT, Turbo Switch Grip / NX, JoPo Twist) | a **collar bit**, each its own tool with a collar set to its own depth: VISE IT one per slug size (slug + 1/16″: 1-3/16″, 1-5/16″, 1-7/16″, 1-9/16″); Turbo and JoPo both 1-1/2″ but collared differently | |
 
 ```sql
 -- Platform data: no company_id, read-only to the API (drilld_app has select only).

@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 import type { GripKind, GripLineDto, GripManufacturer } from '../../../../shared/api/grips'
 import { useGripCatalog } from '../../../hooks/useGripCatalog'
 import { useLocationGripStock } from '../../../hooks/useLocationGripStock'
-import { FINE_BITS, HARDWARE_BITS, LARGE_BITS } from '../../../utils/DrillBits'
+import { collarBitName, FINE_BITS, HARDWARE_BITS, LARGE_BITS } from '../../../utils/DrillBits'
 import { format64 } from '../../../utils/Fractions'
 import type { Insert, ThumbHardware } from './editorTypes'
 import type { InsertPickerRequest, ThumbHardwarePickerRequest } from './pickers'
@@ -214,7 +214,7 @@ export const GripPickerDialog = ({ request, onClose }: GripPickerDialogProps) =>
 
                         {size && (
                             <p className="rounded-lg bg-blue-50 px-3 py-2 text-sm">
-                                {size.collar ? 'Collar bit' : 'O.D.'} <span className="font-mono font-semibold text-primary">{chosenOd ? format64(chosenOd) : '—'}″</span>
+                                {size.collar && line ? collarBitName({ manufacturer: line.manufacturer, size64: size.size64 }) : 'O.D.'} <span className="font-mono font-semibold text-primary">{chosenOd ? format64(chosenOd) : '—'}″</span>
                                 <span className="text-gray-600">
                                     {line?.kind === 'THUMB_SLUG' || line?.kind === 'INTERCHANGEABLE_THUMB'
                                         ? ' · the thumb hole is drilled into it'

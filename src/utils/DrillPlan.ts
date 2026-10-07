@@ -4,6 +4,7 @@
 
 import type { DrillSheetSpec } from '../../shared/api/drillSheetSpec'
 import { addOffsets, fingerOvalCuts, pitchCenter, thumbOvalCuts, type Hand, type Offset } from './DrillReadouts'
+import { collarBitName } from './DrillBits'
 import { format32, format64 } from './Fractions'
 
 export interface DrillStep {
@@ -124,7 +125,7 @@ const thumbHole = (spec: DrillSheetSpec, hand: Hand): DrillHole | null => {
                 depth32: interchangeablePilot(hardware.manufacturer).depth32, position: center,
                 note: interchangeablePilot(hardware.manufacturer).note
             },
-            { id: 'thumb-od', title: 'Collar bit', bit64: hardware.od64, position: center, note: 'Down to the collar' },
+            { id: 'thumb-od', title: collarBitName(hardware), bit64: hardware.od64, position: center, note: 'Down to the collar' },
             { id: 'thumb-install', title: 'Install hardware', position: center, note: `${maker(hardware.manufacturer)} ${hardware.line}`.trim() }
         )
         return {
@@ -139,7 +140,7 @@ const thumbHole = (spec: DrillSheetSpec, hand: Hand): DrillHole | null => {
 
     if (hardware) {
         steps.push({
-            id: 'thumb-od', title: hardware.collar ? 'Collar bit' : 'O.D.', bit64: hardware.od64, position: center,
+            id: 'thumb-od', title: hardware.collar ? collarBitName(hardware) : 'O.D.', bit64: hardware.od64, position: center,
             note: hardware.collar ? 'Preset collar sets the depth' : 'Outer hole for the hardware'
         })
     }
