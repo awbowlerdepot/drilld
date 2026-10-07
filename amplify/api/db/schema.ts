@@ -27,7 +27,6 @@ export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
 export interface AppUser {
   active: Generated<boolean>;
-  certifications: Generated<Json>;
   cognito_sub: string | null;
   company_id: string;
   company_role: string | null;
@@ -37,6 +36,10 @@ export interface AppUser {
   hire_date: Timestamp | null;
   hourly_rate: Numeric | null;
   id: Generated<string>;
+  /**
+   * When the last invitation email was sent. Null for users created by the seed script.
+   */
+  invited_at: Timestamp | null;
   last_name: string;
   phone: string | null;
   specialties: Generated<string[]>;

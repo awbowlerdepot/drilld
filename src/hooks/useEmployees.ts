@@ -1,210 +1,90 @@
-import { useState, useEffect } from 'react';
-import { Employee, EmployeeFormData, EmployeeRole } from '../types';
-import { getHighestRole, hasPermission, hasRoleAnywhere, isAssignedToLocation } from '../utils/EmployeeRoles';
-import { mockEmployees } from '../data/mockData';
+import { useCallback, useEffect, useState } from 'react'
+import type { EmployeeCreate, EmployeeUpdate } from '../../shared/api/employees'
+import { mockEmployees } from '../data/mockData'
+import { apiEnabled } from '../services/config'
+import { employeesService } from '../services/employeesService'
+import type { Employee } from '../types'
 
+const statusOf = (employee: Employee): Employee['status'] =>
+    !employee.active ? 'INACTIVE' : employee.status === 'INVITED' ? 'INVITED' : 'ACTIVE'
+
+/**
+ * The company's employees. Reads and writes through the REST API when signed
+ * in; otherwise (local development without auth) works on mock data. Changes
+ * return promises and reject with the API's message if it refuses.
+ */
 export const useEmployees = () => {
-    const [employees, setEmployees] = useState<Employee[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error] = useState<string | null>(null);
+    const [employees, setEmployees] = useState<Employee[]>([])
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
-        // Simulate API call
-        setTimeout(() => {
-            setEmployees(mockEmployees);
-            setLoading(false);
-        }, 500);
-    }, []);
+        let cancelled = false
+        const load = apiEnabled
+            ? employeesService.list()
+            : new Promise<Employee[]>(resolve => setTimeout(() => resolve(mockEmployees), 300))
+        load
+            .then(result => { if (!cancelled) setEmployees(result) })
+            .catch((err: Error) => { if (!cancelled) setError(err.message) })
+            .finally(() => { if (!cancelled) setLoading(false) })
+        return () => { cancelled = true }
+    }, [])
 
-    const addEmployee = (employee: EmployeeFormData) => {
-        const now = new Date().toISOString();
-        // System-managed fields; the real API will assign these server-side
-        const newEmployee: Employee = {
-            ...employee,
-            id: Date.now().toString(),
-            companyID: 'company1',
-            cognitoUserID: '',
+    const replace = (employee: Employee) =>
+        setEmployees(prev => prev.map(e => (e.id === employee.id ? employee : e)))
+
+    /** Adds and invites; resolves to whether an invitation email went out. */
+    const addEmployee = useCallback(async (input: EmployeeCreate): Promise<boolean> => {
+        if (apiEnabled) {
+            const { inviteSent, ...employee } = await employeesService.create(input)
+            setEmployees(prev => [...prev, employee])
+            return inviteSent
+        }
+        const now = new Date().toISOString()
+        setEmployees(prev => [...prev, {
+            id: crypto.randomUUID(),
+            email: input.email.trim().toLowerCase(),
+            firstName: input.firstName,
+            lastName: input.lastName,
+            phone: input.phone ?? null,
+            companyRole: input.companyRole ?? null,
+            memberships: input.memberships ?? [],
+            hireDate: input.hireDate ?? null,
+            hourlyRate: input.hourlyRate ?? null,
+            specialties: input.specialties ?? [],
+            status: 'INVITED',
             active: true,
+            invitedAt: now,
             createdAt: now,
             updatedAt: now
-        };
-        setEmployees(prev => [...prev, newEmployee]);
-        return newEmployee;
-    };
+        }])
+        return true
+    }, [])
 
-    const updateEmployee = (id: string, updates: Partial<Employee>) => {
-        setEmployees(prev =>
-            prev.map(employee =>
-                employee.id === id ? { ...employee, ...updates, updatedAt: new Date().toISOString() } : employee
-            )
-        );
-    };
+    const updateEmployee = useCallback(async (id: string, changes: EmployeeUpdate) => {
+        if (apiEnabled) {
+            replace(await employeesService.update(id, changes))
+            return
+        }
+        setEmployees(prev => prev.map(e => {
+            if (e.id !== id) return e
+            const updated = { ...e, ...changes, updatedAt: new Date().toISOString() } as Employee
+            return { ...updated, status: statusOf(updated) }
+        }))
+    }, [])
 
-    const deleteEmployee = (id: string) => {
-        setEmployees(prev => prev.filter(employee => employee.id !== id));
-    };
+    const resendInvite = useCallback(async (id: string) => {
+        if (apiEnabled) {
+            replace(await employeesService.resendInvite(id))
+            return
+        }
+        setEmployees(prev => prev.map(e => (e.id === id ? { ...e, invitedAt: new Date().toISOString() } : e)))
+    }, [])
 
-    const deactivateEmployee = (id: string) => {
-        updateEmployee(id, { active: false });
-    };
+    const cancelInvite = useCallback(async (id: string) => {
+        if (apiEnabled) await employeesService.cancelInvite(id)
+        setEmployees(prev => prev.filter(e => e.id !== id))
+    }, [])
 
-    const activateEmployee = (id: string) => {
-        updateEmployee(id, { active: true });
-    };
-
-    const getEmployeeById = (id: string) => {
-        return employees.find(employee => employee.id === id);
-    };
-
-    const getEmployeesByRole = (role: EmployeeRole) => {
-        return employees.filter(employee => hasRoleAnywhere(employee, role) && employee.active);
-    };
-
-    const getEmployeesByLocation = (locationId: string) => {
-        return employees.filter(employee =>
-            isAssignedToLocation(employee, locationId) && employee.active
-        );
-    };
-
-    const getEmployeesBySpecialty = (specialty: string) => {
-        return employees.filter(employee =>
-            employee.specialties.includes(specialty) && employee.active
-        );
-    };
-
-    const getActiveEmployees = () => {
-        return employees.filter(employee => employee.active);
-    };
-
-    const getInactiveEmployees = () => {
-        return employees.filter(employee => !employee.active);
-    };
-
-    const getEmployeesByPermission = (permission: string) => {
-        return employees.filter(employee =>
-            hasPermission(employee, permission) && employee.active
-        );
-    };
-
-    const getEmployeesWithCertification = (certification: string) => {
-        return employees.filter(employee =>
-            employee.certifications &&
-            Object.keys(employee.certifications).includes(certification) &&
-            employee.active
-        );
-    };
-
-    const getEmployeeWorkload = (employeeId: string, workOrders: Array<{performedByEmployeeID?: string, workDate: string}>) => {
-        const today = new Date();
-        const thisMonth = workOrders.filter(wo => {
-            const workDate = new Date(wo.workDate);
-            return wo.performedByEmployeeID === employeeId &&
-                workDate.getMonth() === today.getMonth() &&
-                workDate.getFullYear() === today.getFullYear();
-        });
-
-        const thisWeek = workOrders.filter(wo => {
-            const workDate = new Date(wo.workDate);
-            const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-            return wo.performedByEmployeeID === employeeId && workDate >= weekAgo;
-        });
-
-        return {
-            thisMonth: thisMonth.length,
-            thisWeek: thisWeek.length,
-            total: workOrders.filter(wo => wo.performedByEmployeeID === employeeId).length
-        };
-    };
-
-    const getEmployeeStats = () => {
-        const activeCount = employees.filter(e => e.active).length;
-        const inactiveCount = employees.filter(e => !e.active).length;
-
-        const roleBreakdown = employees.reduce((acc, emp) => {
-            const role = getHighestRole(emp);
-            if (emp.active && role) {
-                acc[role] = (acc[role] || 0) + 1;
-            }
-            return acc;
-        }, {} as Record<string, number>);
-
-        const avgHourlyRate = employees
-                .filter(e => e.active && e.hourlyRate)
-                .reduce((sum, e) => sum + (e.hourlyRate || 0), 0) /
-            employees.filter(e => e.active && e.hourlyRate).length || 0;
-
-        const specialtyBreakdown = employees
-            .filter(e => e.active)
-            .flatMap(e => e.specialties)
-            .reduce((acc, specialty) => {
-                acc[specialty] = (acc[specialty] || 0) + 1;
-                return acc;
-            }, {} as Record<string, number>);
-
-        const locationCoverage = employees
-            .filter(e => e.active)
-            .flatMap(e => e.memberships.map(membership => membership.locationID))
-            .reduce((acc, location) => {
-                acc[location] = (acc[location] || 0) + 1;
-                return acc;
-            }, {} as Record<string, number>);
-
-        return {
-            total: employees.length,
-            active: activeCount,
-            inactive: inactiveCount,
-            roleBreakdown,
-            avgHourlyRate: Number(avgHourlyRate.toFixed(2)),
-            specialtyBreakdown,
-            locationCoverage
-        };
-    };
-
-    const searchEmployees = (searchTerm: string) => {
-        const term = searchTerm.toLowerCase();
-        return employees.filter(employee =>
-            employee.firstName.toLowerCase().includes(term) ||
-            employee.lastName.toLowerCase().includes(term) ||
-            employee.email.toLowerCase().includes(term) ||
-            employee.username.toLowerCase().includes(term) ||
-            employee.specialties.some(specialty => specialty.toLowerCase().includes(term))
-        );
-    };
-
-    const getEmployeesAvailableForLocation = (locationId: string) => {
-        return employees.filter(employee =>
-            employee.active && isAssignedToLocation(employee, locationId)
-        );
-    };
-
-    const getTechnicians = () => {
-        return employees.filter(employee =>
-            employee.active &&
-            employee.memberships.some(membership => membership.role !== 'APPRENTICE')
-        );
-    };
-
-    return {
-        employees,
-        loading,
-        error,
-        addEmployee,
-        updateEmployee,
-        deleteEmployee,
-        deactivateEmployee,
-        activateEmployee,
-        getEmployeeById,
-        getEmployeesByRole,
-        getEmployeesByLocation,
-        getEmployeesBySpecialty,
-        getActiveEmployees,
-        getInactiveEmployees,
-        getEmployeesByPermission,
-        getEmployeesWithCertification,
-        getEmployeeWorkload,
-        getEmployeeStats,
-        searchEmployees,
-        getEmployeesAvailableForLocation,
-        getTechnicians
-    };
-};
+    return { employees, loading, error, addEmployee, updateEmployee, resendInvite, cancelInvite }
+}

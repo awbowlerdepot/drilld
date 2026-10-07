@@ -1,6 +1,6 @@
 # Drilld data model
 
-Status: agreed design. The PostgreSQL schema is implemented in `db/migrations/`, tested by `db/test.sh`, and deployed per environment on Aurora Serverless v2 (see `db/README.md`); where this doc and the migrations differ, the migrations win. The API and services are not built yet. Last updated 2026-10-06.
+Status: agreed design. The PostgreSQL schema is implemented in `db/migrations/`, tested by `db/test.sh`, and deployed per environment on Aurora Serverless v2 (see `db/README.md`); where this doc and the migrations differ, the migrations win. Last updated 2026-10-07.
 
 ## Decisions
 
@@ -116,10 +116,10 @@ create table app_user (
     phone         text,
     company_role  text check (company_role in ('OWNER','ADMIN')),  -- null = location roles only
     hire_date     date,
-    hourly_rate   numeric(8,2),
+    hourly_rate   numeric(8,2),                       -- owners and admins only see or set it
     specialties   text[] not null default '{}',
-    certifications jsonb not null default '{}',
-    active        boolean not null default true,
+    invited_at    timestamptz,                        -- when the last invitation went out
+    active        boolean not null default true,      -- false = deactivated, Cognito login disabled
     created_at    timestamptz not null default now(),
     updated_at    timestamptz not null default now(),
     unique (company_id, id)
@@ -658,11 +658,20 @@ Defined in `amplify/auth/resource.ts` and `amplify/backend.ts`.
 - **Cognito holds identity only.** Company, roles and permissions live in the database and are looked up by the Cognito `sub` through `resolve_app_user`. Nothing about tenancy is stored in Cognito attributes or groups.
 - **The one group: `platform-admin`** (Drilld staff; see Platform admins below). It's not tenancy, and nothing in the app can grant it.
 
-**Invitation flow** (API work, not built yet):
+**Invitation flow** (`POST /employees`, `amplify/api/logins.ts`):
 
-1. An owner or admin adds an employee. The API creates the `app_user` row (with `cognito_sub` null) and calls `AdminCreateUser` with their email.
-2. On first sign-in, `resolve_app_user(sub)` finds nothing. The API then matches the token's **verified** email to the `app_user` row, case-insensitively, and saves the `sub`.
-3. That match needs a second narrow `SECURITY DEFINER` function, because no company is set yet.
+1. An owner, admin or location manager adds an employee. The API creates the `app_user` row (with `cognito_sub` null) and their location roles, then calls `AdminCreateUser` with their email (marked verified), which emails a temporary password. If the invitation fails, the transaction rolls back. If a login for that email already exists, no email is sent.
+2. On first sign-in, `resolve_app_user(sub)` finds nothing. The API then matches the token's **verified** email to the `app_user` row, case-insensitively, and saves the `sub` (`link_app_user`, a second narrow `SECURITY DEFINER` function, because no company is set yet).
+3. Until then the employee shows as **Invited**: the invitation can be resent (`POST /employees/:id/invite`, a new temporary password) or cancelled (`DELETE /employees/:id`, which removes the row and the unused login).
+4. Someone who has signed in is never deleted, only **deactivated** (`active = false`): the API disables their Cognito login and refuses their token. Reactivating re-enables it. Their name stays on the work they did.
+
+**Who may change whom** (`shared/api/employees.ts`, enforced by the API, mirrored by the screen):
+
+- Owners and admins manage everyone, except that only an owner can edit an owner, or make or remove one.
+- A location manager (a role with `write:employees`) invites and edits people without company access who work at a location they manage, and sets roles only at those locations. They deactivate someone only if every location the person works at is one they manage.
+- Nobody changes their own company access or deactivates themselves, so a company always keeps an owner.
+- Everyone with `read:employees` sees the list; the hourly rate is only returned to owners and admins.
+- Email is the login and can't be changed; to fix a typo, cancel the invitation and add them again.
 
 The first company and its owner are created by a platform seed/admin script.
 

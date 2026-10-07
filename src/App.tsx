@@ -9,6 +9,7 @@ import { LeadsPage } from './components/leads/LeadsPage'
 import { useLocations } from './hooks/useLocations'
 import { useMe } from './hooks/useMe'
 import { useSidebarCollapsed } from './hooks/useSidebarCollapsed'
+import { toEmployeeManager } from './utils/EmployeeRoles'
 import { AppSection, SignedInUser } from './types'
 
 interface AppProps {
@@ -55,7 +56,7 @@ function App({ user }: AppProps) {
             case 'analytics':
                 return <div className="text-center py-12">Analytics Dashboard - Coming soon...</div>
             case 'settings':
-                return <SettingsPage searchTerm={searchTerm} />
+                return <SettingsPage searchTerm={searchTerm} employeeManager={toEmployeeManager(me, !!user)} />
             case 'leads':
                 return platformAdmin && user
                     ? <LeadsPage searchTerm={searchTerm} platformAdmin={platformAdmin} email={user.email} onTwoFactorReady={refreshMe} />

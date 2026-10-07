@@ -94,9 +94,16 @@ export const defineApi = (stack: Stack, options: ApiOptions) => {
     }));
     options.apiSecret.grantRead(fn);
 
-    // Platform admins must have TOTP set up: the API checks with AdminGetUser.
+    // Platform admins must have TOTP set up (AdminGetUser). Employees are
+    // invited, blocked and unblocked, and cancelled invitations removed (amplify/api/logins.ts).
     fn.addToRolePolicy(new iam.PolicyStatement({
-        actions: ['cognito-idp:AdminGetUser'],
+        actions: [
+            'cognito-idp:AdminGetUser',
+            'cognito-idp:AdminCreateUser',
+            'cognito-idp:AdminDisableUser',
+            'cognito-idp:AdminEnableUser',
+            'cognito-idp:AdminDeleteUser'
+        ],
         resources: [options.userPool.userPoolArn]
     }));
     // New-signup emails, from this account's verified SES identities.

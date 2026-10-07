@@ -1,77 +1,25 @@
-/**
- * Job role at a location, in order of seniority.
- */
-export type EmployeeRole =
-    | 'MANAGER'
-    | 'SENIOR_TECH'
-    | 'TECHNICIAN'
-    | 'APPRENTICE';
+import type { CompanyRoleCode, EmployeeDto, EmployeeRoleCode, EmployeeStatus, Membership } from '../../shared/api/employees';
+
+/** Job role at a location, in order of seniority. */
+export type EmployeeRole = EmployeeRoleCode;
 
 /**
  * Company-wide administrative access. Not a job role: owners and admins
  * can manage the whole company and every location. Everyone else gets
  * their permissions from their role at each location.
  */
-export type CompanyRole = 'OWNER' | 'ADMIN';
+export type CompanyRole = CompanyRoleCode;
+
+/** An employee's role at one location. */
+export type LocationMembership = Membership;
+
+export type { EmployeeStatus };
 
 /**
- * An employee's role at one location.
+ * An employee (an app_user), as the API returns them. `hourlyRate` is only
+ * present for owners and admins.
  */
-export interface LocationMembership {
-    locationID: string;
-    role: EmployeeRole;
-}
-
-export interface Employee {
-    id: string;
-    companyID: string;
-    cognitoUserID: string;
-    username: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    phone?: string;
-    companyRole?: CompanyRole;
-    memberships: LocationMembership[];
-    certifications: Record<string, any>;
-    hireDate?: string;
-    hourlyRate?: number;
-    specialties: string[];
-    active: boolean;
-    createdAt: string;
-    updatedAt: string;
-}
-
-export interface EmployeeFormData {
-    username: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    phone: string;
-    companyRole?: CompanyRole;
-    memberships: LocationMembership[];
-    certifications: Record<string, any>;
-    hireDate: string;
-    hourlyRate: number;
-    specialties: string[];
-}
-
-export interface EmployeeStats {
-    totalEmployees: number;
-    activeEmployees: number;
-    inactiveEmployees: number;
-    employeesByRole: Record<EmployeeRole, number>;
-    averageHourlyRate: number;
-    totalSpecialties: number;
-}
-
-export interface EmployeeWorkload {
-    employeeId: string;
-    activeWorkOrders: number;
-    completedWorkOrders: number;
-    averageCompletionTime: number;
-    specialtyUtilization: Record<string, number>;
-}
+export type Employee = EmployeeDto;
 
 // Permission categories for easier management
 export const PERMISSION_CATEGORIES = {

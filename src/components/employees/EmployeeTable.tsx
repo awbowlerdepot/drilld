@@ -1,122 +1,53 @@
-import React from 'react';
-import { User, Edit, UserCheck, UserX } from 'lucide-react';
-import { Employee } from '../../types/employee';
-import { EmployeeRoleBadges } from './EmployeeRoleBadges';
+import type { Employee } from '../../types'
+import { EmployeeRoleBadges } from './EmployeeRoleBadges'
+import { EmployeeStatusBadge } from './EmployeeStatusBadge'
 
 interface EmployeeTableProps {
-    employees: Employee[];
-    onEdit: (employee: Employee) => void;
-    onDelete: (employeeId: string) => void;
-    onToggleStatus: (employee: Employee) => void;
-    onRowClick: (employee: Employee) => void;
-    locationNames: Record<string, string>;
+    employees: Employee[]
+    locationNames: Record<string, string>
+    /** Owners and admins see pay. */
+    showPay: boolean
+    onOpen: (employee: Employee) => void
 }
 
-export const EmployeeTable: React.FC<EmployeeTableProps> = ({
-                                                                employees,
-                                                                onEdit,
-                                                                onToggleStatus,
-                                                                onRowClick,
-                                                                locationNames
-                                                            }) => {
-    return (
-        <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+const formatDate = (date: string | null) =>
+    date ? new Date(`${date}T00:00:00`).toLocaleDateString(undefined, { dateStyle: 'medium' }) : '—'
+
+/** One row per employee: who, their roles, sign-in status. Tap a row to open it. */
+export const EmployeeTable = ({ employees, locationNames, showPay, onOpen }: EmployeeTableProps) => (
+    <div className="overflow-x-auto rounded-lg border border-border bg-white">
+        <table className="w-full min-w-[640px] text-sm">
+            <thead className="border-b border-border bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
                 <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Employee
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Roles
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Contact
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Rate
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                    </th>
+                    <th scope="col" className="px-3 py-2.5">Name</th>
+                    <th scope="col" className="px-3 py-2.5">Roles</th>
+                    <th scope="col" className="px-3 py-2.5">Status</th>
+                    <th scope="col" className="px-3 py-2.5">Hired</th>
+                    {showPay && <th scope="col" className="px-3 py-2.5 text-right">Rate</th>}
                 </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                {employees.map((employee) => (
-                    <tr
-                        key={employee.id}
-                        onClick={() => onRowClick(employee)}
-                        className="hover:bg-gray-50 cursor-pointer"
-                    >
-                        <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${
-                                    employee.active ? 'bg-green-100' : 'bg-gray-100'
-                                }`}>
-                                    <User className={`w-4 h-4 ${
-                                        employee.active ? 'text-green-600' : 'text-gray-400'
-                                    }`} />
-                                </div>
-                                <div>
-                                    <div className="text-sm font-medium text-gray-900">
-                                        {employee.firstName} {employee.lastName}
-                                    </div>
-                                    <div className="text-sm text-gray-500">
-                                        @{employee.username}
-                                    </div>
-                                </div>
-                            </div>
+            </thead>
+            <tbody>
+                {employees.map(employee => (
+                    <tr key={employee.id} onClick={() => onOpen(employee)}
+                        className="cursor-pointer border-b border-gray-100 align-top last:border-0 hover:bg-blue-50/40">
+                        <td className="px-3 py-2.5">
+                            <button type="button" onClick={event => { event.stopPropagation(); onOpen(employee) }}
+                                className="text-left font-medium text-gray-900 hover:text-primary hover:underline">
+                                {employee.firstName} {employee.lastName}
+                            </button>
+                            <span className="block text-xs text-gray-500">{employee.email}</span>
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-900">
-                            <EmployeeRoleBadges employee={employee} locationNames={locationNames} />
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            <div>{employee.email}</div>
-                            {employee.phone && <div>{employee.phone}</div>}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                    employee.active
-                                        ? 'bg-green-100 text-green-800'
-                                        : 'bg-gray-100 text-gray-800'
-                                }`}>
-                                    {employee.active ? 'Active' : 'Inactive'}
-                                </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {employee.hourlyRate ? `$${employee.hourlyRate}/hr` : '—'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <div className="flex items-center justify-end gap-2">
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onEdit(employee);
-                                    }}
-                                    className="text-blue-600 hover:text-blue-900"
-                                    title="Edit Employee"
-                                >
-                                    <Edit className="w-4 h-4" />
-                                </button>
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onToggleStatus(employee);
-                                    }}
-                                    className={employee.active ? 'text-yellow-600 hover:text-yellow-900' : 'text-green-600 hover:text-green-900'}
-                                    title={employee.active ? 'Deactivate Employee' : 'Activate Employee'}
-                                >
-                                    {employee.active ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
-                                </button>
-                            </div>
-                        </td>
+                        <td className="px-3 py-2.5"><EmployeeRoleBadges employee={employee} locationNames={locationNames} /></td>
+                        <td className="px-3 py-2.5"><EmployeeStatusBadge status={employee.status} /></td>
+                        <td className="px-3 py-2.5 text-gray-600">{formatDate(employee.hireDate)}</td>
+                        {showPay && (
+                            <td className="px-3 py-2.5 text-right font-mono text-gray-700">
+                                {employee.hourlyRate != null ? `$${employee.hourlyRate.toFixed(2)}` : '—'}
+                            </td>
+                        )}
                     </tr>
                 ))}
-                </tbody>
-            </table>
-        </div>
-    );
-};
+            </tbody>
+        </table>
+    </div>
+)

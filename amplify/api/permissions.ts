@@ -1,3 +1,4 @@
+import type { EmployeeManager } from '../../shared/api/employees';
 import { DEFAULT_PERMISSIONS_BY_ROLE, EmployeeRole } from '../../src/types/employee';
 import { uuid, type Tx } from './db/client';
 import { HttpError } from './errors';
@@ -45,3 +46,12 @@ export const requirePermission = (access: Access, permission: string, locationID
 export const requireCompanyAccess = (access: Access) => {
     if (!access.companyRole) throw new HttpError(403, 'Only company owners and admins can do this');
 };
+
+/** The user as an employee manager: company access, and where their role lets them manage employees. */
+export const toEmployeeManager = (access: Access, user: CurrentUser): EmployeeManager => ({
+    userId: user.userId,
+    companyRole: access.companyRole,
+    managedLocationIDs: access.memberships
+        .filter(m => DEFAULT_PERMISSIONS_BY_ROLE[m.role].includes('write:employees'))
+        .map(m => m.locationID)
+});

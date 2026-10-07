@@ -16,7 +16,7 @@ export const auth = defineAuth({
             userInvitation: {
                 emailSubject: 'Your Drilld account',
                 emailBody: (username, code) =>
-                    `You've been invited to Drilld. Sign in with ${username()} and the temporary password ${code()}. You'll be asked to choose a new password.`
+                    `You've been invited to Drilld. Sign in at https://app.drilld.io with ${username()} and the temporary password ${code()}. You'll be asked to choose a new password.`
             }
         }
     },
