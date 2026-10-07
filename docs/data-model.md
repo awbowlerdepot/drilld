@@ -281,14 +281,23 @@ create table thumb_inner (
     label                   text,                  -- what the bowler calls it: "tight", "#3"
     made_on_work_order_id   uuid,                  -- the work order that made it
     drill_sheet_revision_id uuid,                  -- the spec it was drilled to
-    made                    jsonb not null,        -- as made: hole size, oval (pilot, width, angle) and its cuts, bevel, pitch, notes
+    made                    jsonb not null,        -- the process as made (below)
     made_at                 timestamptz not null default now(),
     retired_at              timestamptz,           -- worn out or lost
     foreign key (company_id, customer_id) references customer(company_id, id)
 );
 ```
 
-  - **`made` is a copy** of what was actually drilled, including any change from the drill sheet. A repeat order starts a new work order from it.
+  - **`made` records the process** as it was actually drilled, including any change from the drill sheet:
+    - the bits in drilling order
+    - the hole size
+    - the oval's pilot, width and **angle**
+    - the number of cuts, each with its readout position
+    - the pitch
+    - the bevel
+    - notes
+
+    A repeat order starts a new work order from it.
 
 ### Balls
 
