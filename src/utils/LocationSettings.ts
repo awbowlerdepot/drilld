@@ -33,7 +33,11 @@ export const resolveLocationSettings = (
     taxRate: overrides.taxRate ?? company.general.taxRate,
     defaultWarrantyPeriod: overrides.defaultWarrantyPeriod ?? company.general.defaultWarrantyPeriod,
     workflow: { ...company.workflow, ...withoutUndefined(overrides.workflow) },
-    drillSheets: { ...company.drillSheets, ...withoutUndefined(overrides.drillSheets) },
+    drillSheets: {
+        ...company.drillSheets,
+        ...withoutUndefined(overrides.drillSheets),
+        holeDepths: { ...company.drillSheets.holeDepths, ...withoutUndefined(overrides.drillSheets?.holeDepths) }
+    },
     notifications: { ...company.notifications, ...withoutUndefined(overrides.notifications) }
 });
 

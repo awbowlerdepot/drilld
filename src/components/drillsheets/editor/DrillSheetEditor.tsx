@@ -55,7 +55,7 @@ export const DrillSheetEditor = ({ sheetId, customer, locationID, onBack }: Dril
 
     // The press works from the saved revision, never from unsaved edits.
     if (pressView && revision) {
-        return <DrillPressView sheet={sheet} spec={revision.spec} customer={customer} press={drillSheetSettings} onExit={() => setPressView(false)} />
+        return <DrillPressView sheet={sheet} spec={revision.spec} customer={customer} press={drillSheetSettings} standardBevel={drillSheetSettings.standardBevel} holeDepths={drillSheetSettings.holeDepths} onExit={() => setPressView(false)} />
     }
     const locked = revision ? !revision.editable : false
     const hand = customer.dominantHand
@@ -126,9 +126,12 @@ export const DrillSheetEditor = ({ sheetId, customer, locationID, onBack }: Dril
                 </section>
 
                 <section aria-label="Hole details" className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] items-start gap-4">
-                    <FingerHoleCard {...editProps} finger={sides.left} side="LEFT" press={drillSheetSettings} />
-                    <ThumbHoleCard {...editProps} press={drillSheetSettings} />
-                    <FingerHoleCard {...editProps} finger={sides.right} side="RIGHT" press={drillSheetSettings} />
+                    <FingerHoleCard {...editProps} finger={sides.left} side="LEFT" press={drillSheetSettings}
+                        standardBevel={drillSheetSettings.standardBevel} gripStyle={sheet.gripStyle} holeDepths={drillSheetSettings.holeDepths} />
+                    <ThumbHoleCard {...editProps} press={drillSheetSettings}
+                        standardBevel={drillSheetSettings.standardBevel} holeDepths={drillSheetSettings.holeDepths} />
+                    <FingerHoleCard {...editProps} finger={sides.right} side="RIGHT" press={drillSheetSettings}
+                        standardBevel={drillSheetSettings.standardBevel} gripStyle={sheet.gripStyle} holeDepths={drillSheetSettings.holeDepths} />
                 </section>
 
                 <section aria-label="Fit and delivery" className="grid grid-cols-[repeat(auto-fit,minmax(360px,1fr))] items-start gap-4">

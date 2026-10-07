@@ -4,7 +4,10 @@
 
 import type { DrillSheetSpec } from '../../shared/api/drillSheetSpec'
 import { addOffsets, fingerOvalCuts, pitchCenter, thumbOvalCuts, type Hand, type Offset } from './DrillReadouts'
+import { describeBevel, type BevelAmount } from './Bevel'
 import { collarBitName } from './DrillBits'
+import { DEFAULT_HOLE_DEPTHS, standardFingerDepth, standardThumbDepth, type GripStyle } from './HoleDepth'
+import type { CompanyHoleDepths } from '../types/settings'
 import { format32, format64 } from './Fractions'
 
 export interface DrillStep {
@@ -31,12 +34,32 @@ export interface DrillHole {
     /** "3/8 reverse · 1/8 left" */
     pitch: string
     steps: DrillStep[]
+    /** Done at the bench after drilling, not a press step: the bevel. */
+    finishing: { label: string; value: string }[]
 }
 
 type Pitch = DrillSheetSpec['holes']['thumb']['pitch']
 
-/** How deep a finger insert's O.D. is drilled, unless the hole sets a depth: 2". */
-export const INSERT_DEPTH32 = 64
+/** What the plan needs besides the sheet: the grip, the standard depths and the standard bevel that apply. */
+export interface DrillPlanOptions {
+    gripStyle?: GripStyle
+    holeDepths?: CompanyHoleDepths
+    standardBevel?: BevelAmount
+}
+
+/** Step drilling (any hole without an insert or hardware): each step's bit to its depth, before the hole. */
+const sequenceSteps = (key: string, hole: { drillingSequence?: { step: number; bitSize64: number; depth32?: number | null; notes?: string | null }[] | null }, center: Offset): DrillStep[] =>
+    (hole.drillingSequence ?? [])
+        .slice()
+        .sort((a, b) => a.step - b.step)
+        .map((step, index, all) => ({
+            id: `${key}-step-${index}`,
+            title: `Step ${index + 1} of ${all.length}`,
+            bit64: step.bitSize64,
+            depth32: step.depth32 ?? null,
+            position: center,
+            note: step.notes ?? 'Step drilling, before the hole'
+        }))
 
 /** The pilot for interchangeable thumb hardware is about 1/2" smaller than the collar bit. */
 export const PILOT_UNDER_COLLAR64 = 32
@@ -70,8 +93,12 @@ const cutSteps = (key: string, bit64: number, center: Offset, cuts: Offset[]): D
         offset: cut
     }))
 
-const fingerHole = (spec: DrillSheetSpec, finger: 'middle' | 'ring', side: 'LEFT' | 'RIGHT'): DrillHole | null => {
+type PlannedHole = Omit<DrillHole, 'finishing'>
+
+const fingerHole = (spec: DrillSheetSpec, finger: 'middle' | 'ring', side: 'LEFT' | 'RIGHT', grip: GripStyle, depths: CompanyHoleDepths): PlannedHole | null => {
     const hole = spec.holes[finger]
+    // The sheet's depth for this hole, or the standard for its type.
+    const depth32 = hole.depth32 ?? standardFingerDepth(hole, grip, depths)
     const key = side === 'LEFT' ? 'left' : 'right'
     const center = pitchCenter('FINGER', hole.pitch)
     const steps: DrillStep[] = []
@@ -86,11 +113,12 @@ const fingerHole = (spec: DrillSheetSpec, finger: 'middle' | 'ring', side: 'LEFT
             })
         }
         steps.push({
-            id: `${key}-od`, title: 'O.D.', bit64: insert.od64, depth32: hole.depth32 ?? INSERT_DEPTH32, position: center,
+            id: `${key}-od`, title: 'O.D.', bit64: insert.od64, depth32, position: center,
             note: 'Outer hole for the insert'
         })
     } else if (hole.size64) {
-        steps.push({ id: `${key}-hole`, title: 'Drill', bit64: hole.size64, position: center })
+        steps.push(...sequenceSteps(key, hole, center))
+        steps.push({ id: `${key}-hole`, title: 'Drill', bit64: hole.size64, depth32, position: center })
         if (hole.fingerOval && hole.fingerOval.width64 > hole.size64) {
             steps.push(...cutSteps(key, hole.size64, center, fingerOvalCuts({ size64: hole.size64, width64: hole.fingerOval.width64 }, side)))
         }
@@ -109,8 +137,9 @@ const fingerHole = (spec: DrillSheetSpec, finger: 'middle' | 'ring', side: 'LEFT
     }
 }
 
-const thumbHole = (spec: DrillSheetSpec, hand: Hand): DrillHole | null => {
+const thumbHole = (spec: DrillSheetSpec, hand: Hand, depths: CompanyHoleDepths): PlannedHole | null => {
     const thumb = spec.holes.thumb
+    const depth32 = thumb.depth32 ?? standardThumbDepth(thumb, depths)
     if (!thumb.enabled) return null
     const center = pitchCenter('THUMB', thumb.pitch)
     const steps: DrillStep[] = []
@@ -140,7 +169,7 @@ const thumbHole = (spec: DrillSheetSpec, hand: Hand): DrillHole | null => {
 
     if (hardware) {
         steps.push({
-            id: 'thumb-od', title: hardware.collar ? collarBitName(hardware) : 'O.D.', bit64: hardware.od64, position: center,
+            id: 'thumb-od', title: hardware.collar ? collarBitName(hardware) : 'O.D.', bit64: hardware.od64, depth32, position: center,
             note: hardware.collar ? 'Preset collar sets the depth' : 'Outer hole for the hardware'
         })
     }
@@ -148,7 +177,7 @@ const thumbHole = (spec: DrillSheetSpec, hand: Hand): DrillHole | null => {
     const holeBit = thumb.oval?.pilotHole64 ?? thumb.size64
     if (!insertSetsHole && holeBit) {
         const centerStep: DrillStep = {
-            id: 'thumb-hole', title: thumb.oval ? 'Starting bit · center' : 'Drill', bit64: holeBit, position: center,
+            id: 'thumb-hole', title: thumb.oval ? 'Starting bit · center' : 'Drill', bit64: holeBit, depth32, position: center,
             note: hardware ? 'Drilled into the slug' : undefined
         }
         const cuts = thumb.oval && thumb.oval.width64 > thumb.oval.pilotHole64
@@ -156,6 +185,8 @@ const thumbHole = (spec: DrillSheetSpec, hand: Hand): DrillHole | null => {
             : []
         // An oval is drilled in order across the hole: the up-side cuts, the center, then the down-side cuts.
         const half = cuts.length / 2
+        // Step drilling (no hardware) comes first, like a vacu; then the hole and its oval.
+        if (!hardware) steps.push(...sequenceSteps('thumb', thumb, center))
         steps.push(...cuts.slice(0, half), centerStep, ...cuts.slice(half))
     }
     if (steps.length === 0) return null
@@ -170,12 +201,23 @@ const thumbHole = (spec: DrillSheetSpec, hand: Hand): DrillHole | null => {
     }
 }
 
-/** The holes to drill, fingers then thumb, each with its steps in order. */
-export const buildDrillPlan = (spec: DrillSheetSpec, hand: Hand): DrillHole[] => {
+/**
+ * The holes to drill, fingers then thumb, each with its steps in order, and
+ * what's finished at the bench afterwards (the bevel; the company's standard
+ * unless the sheet sets one).
+ */
+export const buildDrillPlan = (spec: DrillSheetSpec, hand: Hand, options: DrillPlanOptions = {}): DrillHole[] => {
+    const { gripStyle = 'FINGERTIP', holeDepths = DEFAULT_HOLE_DEPTHS, standardBevel } = options
     const leftFinger = hand === 'RIGHT' ? 'middle' : 'ring'
     const rightFinger = hand === 'RIGHT' ? 'ring' : 'middle'
-    return [fingerHole(spec, leftFinger, 'LEFT'), fingerHole(spec, rightFinger, 'RIGHT'), thumbHole(spec, hand)]
-        .filter((hole): hole is DrillHole => hole !== null)
+    const bevelOf = { left: spec.holes[leftFinger].bevel, right: spec.holes[rightFinger].bevel, thumb: spec.holes.thumb.bevel }
+    return [
+        fingerHole(spec, leftFinger, 'LEFT', gripStyle, holeDepths),
+        fingerHole(spec, rightFinger, 'RIGHT', gripStyle, holeDepths),
+        thumbHole(spec, hand, holeDepths)
+    ]
+        .filter((hole): hole is PlannedHole => hole !== null)
+        .map(hole => ({ ...hole, finishing: [{ label: 'Bevel', value: describeBevel(bevelOf[hole.key], standardBevel) }] }))
 }
 
 /** "61/64″" or "1-5/16″ · 1″ deep"; empty for a step without a bit. */

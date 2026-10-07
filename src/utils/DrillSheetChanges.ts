@@ -3,6 +3,7 @@
 // Power Oval"), and the labels whose values differ are the changes.
 
 import type { DrillSheetSpec } from '../../shared/api/drillSheetSpec'
+import { describeBevel } from './Bevel'
 import { format32, format64 } from './Fractions'
 
 export interface SpecChange {
@@ -61,7 +62,7 @@ export const describeSpec = (spec: DrillSheetSpec): Entry[] => {
         add(group, 'Depth', length(hole.depth32))
         add(group, 'Pitch', forward(hole.pitch.forward32))
         add(group, 'Lateral pitch', lateral(hole.pitch.lateral32))
-        add(group, 'Bevel', hole.bevel ? `${hole.bevel.angleDegrees}° · ${format32(hole.bevel.depth32)}″ deep` : NONE)
+        add(group, 'Bevel', describeBevel(hole.bevel))
         add(group, 'Step drilling', hole.drillingSequence?.length
             ? hole.drillingSequence.map(step => `${format64(step.bitSize64)}″${step.depth32 ? ` to ${format32(step.depth32)}″` : ''}`).join(' → ')
             : NONE)

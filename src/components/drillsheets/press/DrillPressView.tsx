@@ -7,12 +7,16 @@ import { buildDrillPlan, describeBit } from '../../../utils/DrillPlan'
 import { toReadout, type PressReadout } from '../../../utils/DrillReadouts'
 import { format32, format64, formatDecimal } from '../../../utils/Fractions'
 import { PressHoleNav } from './PressHoleNav'
+import type { BevelAmount } from '../../../utils/Bevel'
+import type { CompanyHoleDepths } from '../../../types/settings'
 
 interface DrillPressViewProps {
     sheet: DrillSheetDto
     spec: DrillSheetSpec
     customer: Customer
     press: PressReadout
+    standardBevel: BevelAmount
+    holeDepths: CompanyHoleDepths
     onExit: () => void
 }
 
@@ -24,8 +28,8 @@ const signed = (value: number) => formatDecimal(value, { signed: true })
  * should be, signed for this press. Progress is kept on screen until work
  * orders record it.
  */
-export const DrillPressView = ({ sheet, spec, customer, press, onExit }: DrillPressViewProps) => {
-    const holes = buildDrillPlan(spec, customer.dominantHand)
+export const DrillPressView = ({ sheet, spec, customer, press, standardBevel, holeDepths, onExit }: DrillPressViewProps) => {
+    const holes = buildDrillPlan(spec, customer.dominantHand, { gripStyle: sheet.gripStyle, holeDepths, standardBevel })
     const [current, setCurrent] = useState(0)
     const [done, setDone] = useState<Set<string>>(new Set())
     const revision = sheet.currentRevision
@@ -142,6 +146,18 @@ export const DrillPressView = ({ sheet, spec, customer, press, onExit }: DrillPr
                                         )
                                     })}
                                 </ol>
+                            </div>
+
+                            {/* Not press steps: finished at the bench, listed so they aren't missed. */}
+                            <div className="rounded-xl border-2 border-dashed border-[#334766] px-4 py-3">
+                                <span className="text-sm font-semibold uppercase tracking-wide text-[#A7B4C8]">Finishing at the bench</span>
+                                <ul className="mt-1 flex flex-col gap-1">
+                                    {hole.finishing.map(item => (
+                                        <li key={item.label} className="text-lg">
+                                            <span className="text-[#A7B4C8]">{item.label}:</span> {item.value}
+                                        </li>
+                                    ))}
+                                </ul>
                             </div>
                         </section>
 
