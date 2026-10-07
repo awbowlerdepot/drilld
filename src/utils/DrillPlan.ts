@@ -8,7 +8,7 @@ import { format32, format64 } from './Fractions'
 
 export interface DrillStep {
     id: string
-    /** What this step is: "O.D.", "Vacu", "Drill", "Pilot", "Cut 2 of 4". */
+    /** What this step is: "O.D.", "Vacu", "Drill", "Starting bit", "Pilot", "Cut 2 of 4". */
     title: string
     /** The bit; absent for a step without drilling (installing hardware). */
     bit64?: number
@@ -147,7 +147,7 @@ const thumbHole = (spec: DrillSheetSpec, hand: Hand): DrillHole | null => {
     const holeBit = thumb.oval?.pilotHole64 ?? thumb.size64
     if (!insertSetsHole && holeBit) {
         steps.push({
-            id: 'thumb-hole', title: thumb.oval ? 'Pilot' : 'Drill', bit64: holeBit, position: center,
+            id: 'thumb-hole', title: thumb.oval ? 'Starting bit' : 'Drill', bit64: holeBit, position: center,
             note: hardware ? 'Drilled into the slug' : undefined
         })
         if (thumb.oval && thumb.oval.width64 > thumb.oval.pilotHole64) {

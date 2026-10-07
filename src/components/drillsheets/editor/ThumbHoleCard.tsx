@@ -94,8 +94,8 @@ export const ThumbHoleCard = ({ spec, edit, readOnly, hand, press, locationId }:
             <div className="space-y-1.5">
                 <span className="text-[13px] font-semibold text-gray-700">Oval, measured with bits</span>
                 <div className="grid grid-cols-3 gap-2">
-                    <DetailRow stacked readOnly={readOnly} label="Pilot" value={pilot ? format64(pilot) : null}
-                        onClick={() => pickBit('Thumb oval: pilot', pilot, value => setOvalField('pilotHole64', value), 'The bit that fits the narrow side')} />
+                    <DetailRow stacked readOnly={readOnly} label="Starting bit" value={pilot ? format64(pilot) : null}
+                        onClick={() => pickBit('Thumb oval: starting bit', pilot, value => setOvalField('pilotHole64', value), 'The bit the oval starts from: it fits the narrow side')} />
                     <DetailRow stacked readOnly={readOnly} label="Width" value={width ? format64(width) : null}
                         onClick={() => pickBit('Thumb oval: width', width, value => setOvalField('width64', value), 'The bit that fits the wide side')} />
                     <DetailRow stacked readOnly={readOnly} label="Angle" value={angle !== null ? `${angle}°` : null}
@@ -106,7 +106,7 @@ export const ThumbHoleCard = ({ spec, edit, readOnly, hand, press, locationId }:
                         })} />
                 </div>
                 {Object.keys(partialOval).length > 0 && (
-                    <p className="text-xs text-amber-700">Set the pilot, a wider width and the angle to calculate the cuts.</p>
+                    <p className="text-xs text-amber-700">Set the starting bit, a wider width and the angle to calculate the cuts.</p>
                 )}
             </div>
 
