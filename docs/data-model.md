@@ -264,7 +264,31 @@ create table location_grip_stock (
 - **On the drill sheet,** choosing a finger insert lists the lines and sizes the location carries, with a "show all" for special orders. The choice is copied into the spec (below), so the sheet still reads correctly if the catalog changes. It also sets the hole's O.D. For IF you pick one of its three fits.
 - **"Other".** An insert that isn't in the catalog can be entered by hand (manufacturer, name, size, O.D.).
 - **Colors** are chosen per hole on the work order, from the line's colors, so the right colors get installed. That part of the work order design is still to do.
-- **Not modelled yet.** The inner pieces of interchangeable thumb systems (blank or pre-sized inners). The drill sheet only needs the outer piece's collar bit, and the thumb hole is drilled into the inner.
+- **Thumb inners** for interchangeable systems: VISE IT slugs, Switch Grip inners, Twist inners.
+  - The drill sheet's thumb hole spec is what gets drilled into an inner. Like color, the inner is chosen on the work order, not on the drill sheet.
+  - A bowler can own many inners: different sizes, or several the same. Each one records how it was made, so it can be made again when the bowler asks for "the one you made before".
+
+```sql
+-- Tenant data: one row per inner made. Inners belong to the bowler, not to a ball,
+-- because they move between the bowler's balls.
+create table thumb_inner (
+    id                      uuid primary key default gen_random_uuid(),
+    company_id              uuid not null,
+    customer_id             uuid not null,
+    grip_line_id            uuid references grip_line(id),   -- the system: VISE IT, Switch Grip, Twist
+    grip_size_id            uuid references grip_size(id),   -- the inner it started from (blank or pre-sized), if catalogued
+    color                   text,
+    label                   text,                  -- what the bowler calls it: "tight", "#3"
+    made_on_work_order_id   uuid,                  -- the work order that made it
+    drill_sheet_revision_id uuid,                  -- the spec it was drilled to
+    made                    jsonb not null,        -- as made: hole size, oval (pilot, width, angle) and its cuts, bevel, pitch, notes
+    made_at                 timestamptz not null default now(),
+    retired_at              timestamptz,           -- worn out or lost
+    foreign key (company_id, customer_id) references customer(company_id, id)
+);
+```
+
+  - **`made` is a copy** of what was actually drilled, including any change from the drill sheet. A repeat order starts a new work order from it.
 
 ### Balls
 
