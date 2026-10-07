@@ -158,7 +158,7 @@ Look for incorrect imports, circular dependencies, and unnecessary complexity.
 - Next:
   1. Stand up the rest of the backend:
      - the BowlerIQ catalog sync job
-  2. The thumb hardware picker (grip catalog: thumb inserts, slugs, interchangeable systems with collar bits). Then the drill press view (canvas design F), revision history, and bevel, depth and step drilling. Then replace the remaining mock data (balls, work orders, employees).
+  2. The drill press view (canvas design F), revision history, and bevel, depth and step drilling. Then replace the remaining mock data (balls, work orders, employees).
   3. Complete work order management, using `resolveLocationSettings` for labor rate and tax.
   4. Resolve the remaining open item in `docs/data-model.md` (customer sharing across locations).
   5. Clear the pre-existing lint errors.

@@ -92,13 +92,57 @@ const legacyInsertSchema = z.object({
     color: z.string().nullish()
 }).strict();
 
-const slugSchema = z.object({
-    manufacturer: z.string().trim().max(100).nullish(),
-    type: z.string().trim().max(100).nullish(),
-    size64: size64.nullish(),
-    interchangeable: z.boolean().default(false),
-    notes
+export const thumbHardwareKindSchema = z.enum(['THUMB_INSERT', 'THUMB_SLUG', 'INTERCHANGEABLE_THUMB']);
+
+/**
+ * Thumb hardware: a thumb insert, a slug/solid, or an interchangeable system
+ * (VISE IT, Switch Grip, Twist), copied from the grip catalog (gripSizeId
+ * null = "Other"). Its od64 is the hole's O.D. (a collar bit for
+ * interchangeable systems). A thumb insert also sets the hole size; a slug or
+ * inner has the thumb hole drilled into it, with at least 1/8" of wall.
+ */
+export const thumbHardwareSchema = z.object({
+    gripSizeId: z.string().uuid().nullish(),
+    manufacturer: z.string().trim().min(1).max(50),
+    line: z.string().trim().max(100),
+    kind: thumbHardwareKindSchema,
+    size64: size64.nullish(),            // insert grip size, slug size, or IT slug / interchangeable piece size
+    label: z.string().trim().max(20).nullish(),
+    od64: size64,
+    collar: z.boolean().default(false)
 }).strict();
+
+/** The old slug shape (before the grip catalog), read as an "Other" piece. */
+const legacySlugSchema = z.object({
+    manufacturer: z.string().nullish(),
+    type: z.string().nullish(),
+    size64: z.number().nullish(),
+    interchangeable: z.boolean().nullish(),
+    notes: z.string().nullish()
+}).strict();
+
+const upgradeLegacySlug = (hole: unknown) => {
+    if (!hole || typeof hole !== 'object' || !('slug' in hole)) return hole;
+    const { slug, ...rest } = hole as Record<string, unknown>;
+    const legacy = legacySlugSchema.safeParse(slug);
+    if (slug == null || !legacy.success) return rest;
+    const od = typeof rest.outsideDiameter64 === 'number' ? rest.outsideDiameter64 : legacy.data.size64 ?? 96;
+    return {
+        ...rest,
+        outsideDiameter64: od,
+        notes: [rest.notes, legacy.data.notes].filter(Boolean).join('\n') || null,
+        hardware: {
+            gripSizeId: null,
+            manufacturer: legacy.data.manufacturer || 'Other',
+            line: legacy.data.type ?? '',
+            kind: legacy.data.interchangeable ? 'INTERCHANGEABLE_THUMB' : 'THUMB_SLUG',
+            size64: legacy.data.size64 ?? null,
+            label: null,
+            od64: od,
+            collar: false
+        }
+    };
+};
 
 /**
  * Thumb oval, measured with bits after drilling: the bit that fits the narrow
@@ -129,12 +173,16 @@ const holeFields = {
     notes
 };
 
-export const thumbHoleSchema = z.object({
+export const thumbHoleSchema = z.preprocess(upgradeLegacySlug, z.object({
     enabled: z.boolean().default(true),
     ...holeFields,
     oval: thumbOvalSchema.nullish(),
-    slug: slugSchema.nullish()
-}).strict();
+    hardware: thumbHardwareSchema.nullish()
+}).strict()
+    .refine(hole => !hole.hardware || !hole.outsideDiameter64 || hole.outsideDiameter64 === hole.hardware.od64, {
+        message: 'The O.D. comes from the thumb hardware',
+        path: ['outsideDiameter64']
+    }));
 
 /** Reads a hole saved with the old insert shape as an "Other" insert, using the hole's size and O.D. */
 const upgradeLegacyInsert = (hole: unknown) => {

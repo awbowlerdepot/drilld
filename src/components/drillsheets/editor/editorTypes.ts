@@ -18,6 +18,7 @@ export type Finger = 'middle' | 'ring'
 export type FingerHole = DrillSheetSpec['holes']['middle']
 export type Insert = NonNullable<FingerHole['insert']>
 export type Vacu = NonNullable<FingerHole['vacu']>
+export type ThumbHardware = NonNullable<DrillSheetSpec['holes']['thumb']['hardware']>
 export type Span = DrillSheetSpec['spans']['thumbToMiddle']
 
 export type SpanType = 'full32' | 'cutToCut32' | 'outerToCut32' | 'centerToCenter32' | 'fit32'

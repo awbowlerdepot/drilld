@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { BitPickerDialog } from './BitPickerDialog'
-import { InsertPickerDialog } from './InsertPickerDialog'
+import { GripPickerDialog } from './GripPickerDialog'
 import { LengthPickerDialog } from './LengthPickerDialog'
 import { NumberPickerDialog } from './NumberPickerDialog'
 import { PickerContext, type PickerRequest } from './pickers'
@@ -16,7 +16,7 @@ export const PickerHost = ({ children }: { children: ReactNode }) => {
             {request?.kind === 'length32' && <LengthPickerDialog request={request} onClose={close} />}
             {request?.kind === 'bit64' && <BitPickerDialog request={request} onClose={close} />}
             {request?.kind === 'number' && <NumberPickerDialog request={request} onClose={close} />}
-            {request?.kind === 'insert' && <InsertPickerDialog request={request} onClose={close} />}
+            {(request?.kind === 'insert' || request?.kind === 'thumbHardware') && <GripPickerDialog request={request} onClose={close} />}
         </PickerContext.Provider>
     )
 }

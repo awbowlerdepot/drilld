@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react'
-import type { Insert } from './editorTypes'
+import type { Insert, ThumbHardware } from './editorTypes'
 
 // Tapping a value on the drill sheet opens a picker dialog. Components ask
 // for one through usePicker(); PickerHost renders it.
@@ -45,7 +45,13 @@ export interface InsertPickerRequest extends PickerBase<Insert> {
     locationId?: string
 }
 
-export type PickerRequest = LengthPickerRequest | BitPickerRequest | NumberPickerRequest | InsertPickerRequest
+/** Thumb hardware from the grip catalog: a thumb insert, slug, or interchangeable system. */
+export interface ThumbHardwarePickerRequest extends PickerBase<ThumbHardware> {
+    kind: 'thumbHardware'
+    locationId?: string
+}
+
+export type PickerRequest = LengthPickerRequest | BitPickerRequest | NumberPickerRequest | InsertPickerRequest | ThumbHardwarePickerRequest
 
 export const PickerContext = createContext<((request: PickerRequest) => void) | null>(null)
 
