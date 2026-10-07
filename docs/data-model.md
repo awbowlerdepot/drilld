@@ -12,6 +12,7 @@ Status: agreed design. The PostgreSQL schema is implemented in `db/migrations/`,
 | Billing | **Company level**. A plan includes up to **4 locations**; more locations means a bigger plan (to be designed later). |
 | Rollout | Used **internally first**, as the first company, then productized. Multi-tenancy is built in from day one so productizing needs no data migration. |
 | Customers (bowlers) | Company level, with a home location. Shared across the company's locations. |
+| Grips and thumb hardware | A **platform-wide catalog** of manufacturer lines (VISE, Turbo, JoPo) and their sizes, each size with its fixed O.D. Each **location picks the lines and sizes it carries**. A drill sheet copies the chosen insert, which sets the hole's O.D. **Color is picked on the work order**, not on the drill sheet. |
 | Ball products | Come from the **BowlerIQ Partner API** (v1). Drilld keeps a local copy, synced from its change feed, and references it by BowlerIQ ball id + weight. |
 | Physical balls | **Platform-wide registry** keyed on manufacturer + serial, so a ball can move between companies. |
 | Cross-company ball info | **Option 2**: another company sees only anonymous facts (drill count, plug count, month last worked). |
@@ -209,6 +210,62 @@ create table catalog_sync_state (
 
 A `remove` **never deletes** a `catalog_ball` row. It only sets `removed_at`. Physical balls and work orders may still reference the ball, and their history must stay intact. Removed balls are hidden when picking a new ball.
 
+### Grip catalog (inserts and thumb hardware)
+
+Finger inserts, thumb inserts, thumb slugs and interchangeable thumb systems come from three manufacturers: VISE, Turbo and JoPo. They're platform data, maintained by us and shared by every company, in the same way as the ball catalog. Each location says what it carries. Sources: VISE's 2026 order form, Turbo's finger insert chart and product pages, and JoPo's order lists.
+
+**One size scale.** All three manufacturers size finger inserts on the same scale. VISE and Turbo number them: size *n* = (36 + 2*n*)/64″, so −1 = 17/32″, 0 = 9/16″, 8 = 13/16″ and 11 = 29/32″. JoPo writes the fraction. The catalog stores every size in 64ths, plus the manufacturer's own label.
+
+**The O.D. comes from the insert.**
+
+| Kind | O.D. (drilled hole) | Sizes |
+|---|---|---|
+| Standard finger inserts (VISE P/O, P/S, O/PO, Grape, Blue Silicone; Turbo Quad, Classic, Classic Pro, Quad 2, Power-SB; JoPo Power Flat/Oval, Oval/Oval Dots) | 31/32″ up to 13/16″; 1-1/32″ from 53/64″ | VISE to 29/32″; Turbo to 29/32″ (no 9.5/10.5); JoPo 19/32″–13/16″ |
+| 7/8″ O.D. finger lines (VISE P/O, P/S, O/PO 7/8″; Turbo Ms. Quad) | 7/8″ | 17/32″–3/4″ (VISE P/S and O/PO to 49/64″) |
+| VISE Interchangeable Finger (IF) | 1″, 1-1/64″ or 1-1/32″: the fit (tight, easy, easiest removal) | 5/8″–27/32″ (oval), to 55/64″ (round) |
+| Thumb inserts (VISE Pro V2, Tapered Oval/Round; Turbo Xcel) | 1-1/8″ for 51/64″–63/64″ (Xcel to 61/64″); 1-1/4″ for 1″–1-7/64″ (Xcel 31/32″–1-1/16″) | |
+| Thumb slugs and solids (VISE, Turbo urethane, JoPo) | the slug size: 1-1/8″, 1-1/4″, 1-3/8″, 1-1/2″ | |
+| Interchangeable thumb (VISE IT, Turbo Switch Grip / NX, JoPo Twist) | a **collar bit**: VISE IT slug + 1/16″ (1-3/16″, 1-5/16″, 1-7/16″, 1-9/16″); Switch Grip and Twist 1-1/2″ | |
+
+```sql
+-- Platform data: no company_id, read-only to the API (drilld_app has select only).
+create table grip_line (
+    id            uuid primary key default gen_random_uuid(),
+    manufacturer  text not null check (manufacturer in ('VISE', 'TURBO', 'JOPO')),
+    name          text not null,               -- 'P/O Power Lift & Oval', 'Quad', 'Twist'
+    kind          text not null check (kind in ('FINGER_INSERT', 'THUMB_INSERT', 'THUMB_SLUG', 'INTERCHANGEABLE_THUMB')),
+    colors        text[] not null default '{}', -- picked on the work order
+    active        boolean not null default true,
+    unique (manufacturer, name)
+);
+
+create table grip_size (
+    id            uuid primary key default gen_random_uuid(),
+    line_id       uuid not null references grip_line(id),
+    size64        smallint not null,           -- grip size (finger/thumb hole), or slug size
+    label         text not null,               -- the manufacturer's label: '8.5', '61', '1/6', '13/16'
+    od64_choices  smallint[] not null,         -- the O.D. bit(s); the first is the default (IF has three)
+    collar        boolean not null default false,  -- drilled with a preset-collar hardware bit
+    unique (line_id, size64)
+);
+
+-- Tenant data: what a location carries, by line and size (no color).
+create table location_grip_stock (
+    company_id    uuid not null,
+    location_id   uuid not null,
+    grip_size_id  uuid not null references grip_size(id),
+    primary key (location_id, grip_size_id),
+    foreign key (company_id, location_id) references location(company_id, id)
+);
+```
+
+- **Seeding.** The catalog is seeded and updated by migrations, so it's versioned with the code.
+- **Location setup.** The person setting up a location picks the lines it carries. Picking a line checks all its sizes, which can then be unchecked. A location that carries nothing yet sees the whole catalog.
+- **On the drill sheet,** choosing a finger insert lists the lines and sizes the location carries, with a "show all" for special orders. The choice is copied into the spec (below), so the sheet still reads correctly if the catalog changes. It also sets the hole's O.D. For IF you pick one of its three fits.
+- **"Other".** An insert that isn't in the catalog can be entered by hand (manufacturer, name, size, O.D.).
+- **Colors** are chosen per hole on the work order, from the line's colors, so the right colors get installed. That part of the work order design is still to do.
+- **Not modelled yet.** The inner pieces of interchangeable thumb systems (blank or pre-sized inners). The drill sheet only needs the outer piece's collar bit, and the thumb hole is drilled into the inner.
+
 ### Balls
 
 ```sql
@@ -349,8 +406,8 @@ alter table drill_sheet
   bridge: { distance32, notes },               // edge-to-edge, middle ↔ ring
   holes: {
     thumb:  { enabled, size64, outsideDiameter64?, depth32?, pitch,
-              oval?, slug?, bevel?, drillingSequence?, notes },
-    middle: { size64, outsideDiameter64?, depth32?, pitch, insert?, fingerOval?, bevel?, drillingSequence?, notes },
+              oval?, hardware?, bevel?, drillingSequence?, notes },
+    middle: { size64, outsideDiameter64?, depth32?, pitch, insert?, vacu?, fingerOval?, bevel?, drillingSequence?, notes },
     ring:   { …same as middle },
     index?: { …same as middle },
     pinky?: { …same as middle }
@@ -410,9 +467,17 @@ drillingSequence = [ { step, bitSize64, depth32, notes } ]   // in drilling orde
   | D | 32° | 3/16″ L | 11/16″ R |
   | E | 40° | 1/8″ L | 3/4″ R |
 
-Inserts use one shape everywhere: `{ manufacturer: 'VISE'|'Turbo'|'JoPo'|'Other', insertSize64, type, model, color }`, with the outside hole drilled for it recorded on the hole as `outsideDiameter64` (7/8″ = 56, 31/32″ = 62, 1-1/32″ = 66). The current code has two insert definitions; this replaces both.
+**Inserts and thumb hardware** (planned; replaces `insert` and `slug`). Each is a copy of a grip catalog choice:
 
-Reference data (insert size ranges, manufacturer product lines) stays in code, not in `spec`.
+```
+insert   = { gripSizeId?, manufacturer, line, size64, label, od64 }                   // finger; gripSizeId null = "Other"
+hardware = { gripSizeId?, manufacturer, line, kind, size64, label, od64, collar }     // thumb insert, slug or interchangeable
+vacu     = { bit64, depth32 }                                                          // finger holes with an insert
+```
+
+- **O.D.** With an insert or hardware set, the hole's `outsideDiameter64` is its `od64`. The API checks catalog choices against the catalog: the O.D. must be one of that size's `od64_choices`.
+- **Vacu.** The top of a finger insert hole is drilled with a different bit from the O.D. below it. `bit64` ranges from O.D. − 1/64″ (one bit smaller) to O.D. + 1/16″, in 1/64″ steps. It defaults to O.D. + 1/16″ (the standard vacu). `depth32` defaults to 1-1/8″ (36).
+- **Color** isn't on the drill sheet; it's picked on the work order.
 
 ### Work orders
 
@@ -581,4 +646,6 @@ The API (`amplify/api`) uses **Kysely** with the `kysely-data-api` dialect. Pris
 
 ## Open items
 
-1. **Customer sharing setting.** Do customers stay shared across all of a company's locations, or should there be a company-level toggle for chains that run locations independently?
+1. **Vacu.** Is it only for finger inserts, and is the depth always 1-1/8″? Turbo's vacuum drilling guide (PDF) may confirm.
+
+2. **Customer sharing setting.** Do customers stay shared across all of a company's locations, or should there be a company-level toggle for chains that run locations independently?
