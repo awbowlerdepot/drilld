@@ -5,7 +5,7 @@ import type { DrillSheetDto } from '../../../../shared/api/drillSheets'
 import type { Customer } from '../../../types'
 import { buildDrillPlan, describeBit } from '../../../utils/DrillPlan'
 import { toReadout, type PressReadout } from '../../../utils/DrillReadouts'
-import { format64, formatDecimal } from '../../../utils/Fractions'
+import { format32, format64, formatDecimal } from '../../../utils/Fractions'
 import { PressHoleNav } from './PressHoleNav'
 
 interface DrillPressViewProps {
@@ -129,7 +129,10 @@ export const DrillPressView = ({ sheet, spec, customer, press, onExit }: DrillPr
                                                     isNow ? 'border-[#60A5FA] bg-[#13284D] text-white' : 'border-[#1F2A40] bg-[#0B1220]',
                                                     isDone && 'text-[#7C8BA3]')}>
                                                 <span className="text-base">{step.title}</span>
-                                                <span className="font-mono text-lg font-semibold">{format64(step.bit64)}</span>
+                                                <span className="font-mono text-lg font-semibold">
+                                                    {format64(step.bit64)}
+                                                    {step.depth32 && <span className="block text-sm font-normal text-[#A7B4C8]">{format32(step.depth32)}″ deep</span>}
+                                                </span>
                                                 <span className="font-mono text-2xl font-bold">{signed(position.vertical)}</span>
                                                 <span className="font-mono text-2xl font-bold">{signed(position.horizontal)}</span>
                                                 <span className={cn('text-base font-semibold', isDone ? 'text-[#86EFAC]' : 'text-[#60A5FA]')}>

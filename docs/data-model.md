@@ -522,6 +522,7 @@ vacu     = { bit64, depth32 }                                                   
 - **Vacu** applies to finger insert holes only. The top of the hole is drilled with a different bit from the O.D. below it.
   - `bit64` ranges from O.D. − 1/64″ (one bit smaller) to O.D. + 1/16″, in 1/64″ steps. It defaults to O.D. + 1/16″, the standard vacu.
   - `depth32` defaults to 1″ (32), the manufacturers' standard. A performance fit can set it anywhere from 1/2″ to 1-1/2″ in 1/16″ steps (16–48, even values).
+  - **Drilling order:** the vacu bit first, to its depth, then the O.D. to the insert depth (2″ unless the hole sets `depth32`).
 - **Color** isn't on the drill sheet; it's picked on the work order.
 
 ### Work orders

@@ -33,6 +33,9 @@ export interface DrillHole {
 
 type Pitch = DrillSheetSpec['holes']['thumb']['pitch']
 
+/** How deep a finger insert's O.D. is drilled, unless the hole sets a depth: 2". */
+export const INSERT_DEPTH32 = 64
+
 const MAKERS: Record<string, string> = { VISE: 'VISE', TURBO: 'Turbo', JOPO: 'JoPo' }
 const maker = (code: string) => MAKERS[code] ?? code
 
@@ -60,13 +63,17 @@ const fingerHole = (spec: DrillSheetSpec, finger: 'middle' | 'ring', side: 'LEFT
     const insert = hole.insert
 
     if (insert) {
-        steps.push({ id: `${key}-od`, title: 'O.D.', bit64: insert.od64, position: center, note: 'Outer hole for the insert' })
+        // With a vacu, the vacu bit goes first (to its depth, 1" standard), then the O.D. to the insert depth.
         if (hole.vacu) {
             steps.push({
                 id: `${key}-vacu`, title: 'Vacu', bit64: hole.vacu.bit64, depth32: hole.vacu.depth32, position: center,
-                note: `Top ${format32(hole.vacu.depth32)}″ only`
+                note: `Top ${format32(hole.vacu.depth32)}″ only, before the O.D.`
             })
         }
+        steps.push({
+            id: `${key}-od`, title: 'O.D.', bit64: insert.od64, depth32: hole.depth32 ?? INSERT_DEPTH32, position: center,
+            note: 'Outer hole for the insert'
+        })
     } else if (hole.size64) {
         steps.push({ id: `${key}-hole`, title: 'Drill', bit64: hole.size64, position: center })
         if (hole.fingerOval && hole.fingerOval.width64 > hole.size64) {
