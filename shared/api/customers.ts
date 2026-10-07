@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { deliverySchema, type DeliveryDto } from './delivery';
 
 /**
  * Customers API contract, shared by the API Lambda (amplify/api) and the
@@ -21,7 +22,9 @@ export const customerCreateSchema = z.object({
     preferredGripStyle: gripStyleSchema,
     usesThumb: z.boolean(),
     notes: optionalText(5000),
-    homeLocationID: z.string().uuid().nullish().transform(value => value ?? null)
+    homeLocationID: z.string().uuid().nullish().transform(value => value ?? null),
+    /** The bowler's current delivery. On update, only the fields given change. */
+    delivery: deliverySchema.optional()
 });
 
 /** Body of PATCH /customers/:id: any subset of the create fields. */
@@ -42,6 +45,7 @@ export interface CustomerDto {
     usesThumb: boolean;
     notes: string | null;
     homeLocationID: string | null;
+    delivery: DeliveryDto;
     createdAt: string;
     updatedAt: string;
 }

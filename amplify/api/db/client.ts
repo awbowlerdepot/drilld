@@ -60,6 +60,14 @@ export const uuid = (value: string): string =>
     ({ typeHint: 'UUID', value: { stringValue: value } }) as unknown as string;
 
 /**
+ * A json/jsonb query parameter. The Data API has no object parameters, so the
+ * value is sent as a JSON string with a JSON type hint. (Reads come back
+ * already parsed.)
+ */
+export const json = (value: unknown): string =>
+    ({ typeHint: 'JSON', value: { stringValue: JSON.stringify(value) } }) as unknown as string;
+
+/**
  * Runs work in one transaction scoped to a company: app.company_id is set
  * first (transaction-local), so row-level security limits every query to
  * that company. All tenant-data access goes through here.

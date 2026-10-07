@@ -1,0 +1,334 @@
+import { Hono } from 'hono';
+import { sql, type Selectable } from 'kysely';
+import { SPEC_SCHEMA_VERSION, drillSheetSpecSchema, type DrillSheetSpec } from '../../../shared/api/drillSheetSpec';
+import {
+    drillSheetCreateSchema,
+    drillSheetDraftSchema,
+    drillSheetUpdateSchema,
+    type DrillSheetDto,
+    type DrillSheetRevisionDto,
+    type DrillSheetRevisionSummaryDto
+} from '../../../shared/api/drillSheets';
+import { json, uuid, withCompany, type Tx } from '../db/client';
+import type { DrillSheet, DrillSheetRevision } from '../db/schema';
+import { HttpError } from '../errors';
+import { loadAccess, requirePermission } from '../permissions';
+import type { ApiEnv } from '../app';
+
+type SheetRow = Selectable<DrillSheet>;
+type RevisionRow = Selectable<DrillSheetRevision>;
+
+const idParam = (value: string | undefined, notFound: string) => {
+    if (!value || !/^[0-9a-f-]{36}$/i.test(value)) throw new HttpError(404, notFound);
+    return value;
+};
+
+const iso = (value: Date | string) => new Date(value).toISOString();
+
+/** The queryable columns written from the spec on every save. */
+const promotedColumns = (spec: DrillSheetSpec) => {
+    const { thumbToMiddle: middle, thumbToRing: ring } = spec.spans;
+    return {
+        thumb_to_middle_full_32: middle.full32 ?? null,
+        thumb_to_middle_cut_32: middle.cutToCut32 ?? null,
+        thumb_to_middle_outer_32: middle.outerToCut32 ?? null,
+        thumb_to_middle_ctc_32: middle.centerToCenter32 ?? null,
+        thumb_to_middle_fit_32: middle.fit32 ?? null,
+        thumb_to_ring_full_32: ring.full32 ?? null,
+        thumb_to_ring_cut_32: ring.cutToCut32 ?? null,
+        thumb_to_ring_outer_32: ring.outerToCut32 ?? null,
+        thumb_to_ring_ctc_32: ring.centerToCenter32 ?? null,
+        thumb_to_ring_fit_32: ring.fit32 ?? null,
+        bridge_32: spec.bridge.distance32 ?? null,
+        thumb_size_64: spec.holes.thumb.size64 ?? null,
+        middle_size_64: spec.holes.middle.size64 ?? null,
+        ring_size_64: spec.holes.ring.size64 ?? null
+    };
+};
+
+/** A stored spec, validated against its schema version. */
+const readSpec = (row: RevisionRow): DrillSheetSpec => {
+    if (row.spec_schema_version !== SPEC_SCHEMA_VERSION) {
+        throw new Error(`Unsupported drill sheet spec version ${row.spec_schema_version} on revision ${row.id}`);
+    }
+    return drillSheetSpecSchema.parse(row.spec);
+};
+
+/** The ids, among these revisions, used on a work order (and so locked). */
+const drilledRevisionIds = async (tx: Tx, revisionIds: string[]): Promise<Set<string>> => {
+    if (revisionIds.length === 0) return new Set();
+    const rows = await tx.selectFrom('work_order')
+        .select('drill_sheet_revision_id')
+        .distinct()
+        .where('drill_sheet_revision_id', 'in', revisionIds.map(uuid))
+        .execute();
+    return new Set(rows.map(row => row.drill_sheet_revision_id).filter((id): id is string => id !== null));
+};
+
+const toSummaryDto = (row: RevisionRow, drilled: boolean): DrillSheetRevisionSummaryDto => ({
+    id: row.id,
+    version: row.version,
+    locationID: row.location_id,
+    createdByUserID: row.created_by_user_id,
+    revisionNotes: row.revision_notes,
+    approvedByUserID: row.approved_by_user_id,
+    approvedAt: row.approved_at ? iso(row.approved_at) : null,
+    drilled,
+    editable: !row.approved_at && !drilled,
+    createdAt: iso(row.created_at),
+    updatedAt: iso(row.updated_at)
+});
+
+const toRevisionDto = (row: RevisionRow, drilled: boolean): DrillSheetRevisionDto => ({
+    ...toSummaryDto(row, drilled),
+    specSchemaVersion: row.spec_schema_version,
+    spec: readSpec(row)
+});
+
+const toSheetDto = (sheet: SheetRow, current: RevisionRow | undefined, drilled: Set<string>): DrillSheetDto => ({
+    id: sheet.id,
+    // Customer sheets only: templates (no customer) are not served by this API yet.
+    customerID: sheet.customer_id as string,
+    name: sheet.name,
+    gripStyle: sheet.grip_style as DrillSheetDto['gripStyle'],
+    archived: sheet.archived_at !== null,
+    currentRevision: current ? toRevisionDto(current, drilled.has(current.id)) : null,
+    createdAt: iso(sheet.created_at),
+    updatedAt: iso(sheet.updated_at)
+});
+
+/** Sheets with their current revisions, in one round of queries. */
+const toSheetDtos = async (tx: Tx, sheets: SheetRow[]): Promise<DrillSheetDto[]> => {
+    const currentIds = sheets.map(sheet => sheet.current_revision_id).filter((id): id is string => id !== null);
+    const revisions = currentIds.length === 0 ? [] : await tx.selectFrom('drill_sheet_revision').selectAll()
+        .where('id', 'in', currentIds.map(uuid))
+        .execute();
+    const byId = new Map(revisions.map(revision => [revision.id, revision]));
+    const drilled = await drilledRevisionIds(tx, currentIds);
+    return sheets.map(sheet => toSheetDto(sheet, sheet.current_revision_id ? byId.get(sheet.current_revision_id) : undefined, drilled));
+};
+
+const findSheet = async (tx: Tx, id: string, options: { lock?: boolean } = {}): Promise<SheetRow> => {
+    let query = tx.selectFrom('drill_sheet').selectAll()
+        .where('id', '=', uuid(id))
+        .where('is_template', '=', false);
+    if (options.lock) query = query.forUpdate();
+    const sheet = await query.executeTakeFirst();
+    if (!sheet) throw new HttpError(404, 'Drill sheet not found');
+    return sheet;
+};
+
+const findRevision = async (tx: Tx, sheetId: string | undefined, version: string | undefined): Promise<RevisionRow> => {
+    const sheet = await findSheet(tx, idParam(sheetId, 'Drill sheet not found'));
+    const number = Number(version);
+    if (!Number.isInteger(number) || number < 1) throw new HttpError(404, 'Revision not found');
+    const row = await tx.selectFrom('drill_sheet_revision').selectAll()
+        .where('drill_sheet_id', '=', uuid(sheet.id))
+        .where('version', '=', number)
+        .executeTakeFirst();
+    if (!row) throw new HttpError(404, 'Revision not found');
+    return row;
+};
+
+const sheetDto = async (tx: Tx, id: string) => (await toSheetDtos(tx, [await findSheet(tx, id)]))[0];
+
+/**
+ * /customers/:customerId/drill-sheets: a customer's sheets. Drill sheets
+ * belong to the company and are shared across its locations.
+ */
+export const customerDrillSheets = new Hono<ApiEnv>()
+    .get('/', c => withCompany(c.var.db, c.var.user.companyId, async tx => {
+        requirePermission(await loadAccess(tx, c.var.user), 'read:drillsheets');
+        const customerId = idParam(c.req.param('customerId'), 'Customer not found');
+        let query = tx.selectFrom('drill_sheet').selectAll()
+            .where('customer_id', '=', uuid(customerId))
+            .where('is_template', '=', false);
+        if (c.req.query('archived') !== 'true') query = query.where('archived_at', 'is', null);
+        const sheets = await query.orderBy('archived_at', 'desc').orderBy('updated_at', 'desc').execute();
+        return c.json(await toSheetDtos(tx, sheets));
+    }))
+
+    /** Creates the sheet and its first draft revision. */
+    .post('/', async c => {
+        const customerId = idParam(c.req.param('customerId'), 'Customer not found');
+        const input = drillSheetCreateSchema.parse(await c.req.json());
+        return withCompany(c.var.db, c.var.user.companyId, async tx => {
+            requirePermission(await loadAccess(tx, c.var.user), 'write:drillsheets', input.locationID ?? undefined);
+
+            const customer = await tx.selectFrom('customer').selectAll()
+                .where('id', '=', uuid(customerId))
+                .executeTakeFirst();
+            if (!customer) throw new HttpError(404, 'Customer not found');
+
+            const spec: DrillSheetSpec = {
+                ...input.spec,
+                delivery: input.spec.delivery ?? {
+                    axisTiltDegrees: customer.axis_tilt_degrees === null ? null : Number(customer.axis_tilt_degrees),
+                    axisRotationDegrees: customer.axis_rotation_degrees === null ? null : Number(customer.axis_rotation_degrees),
+                    papOver32: customer.pap_over_32,
+                    papUp32: customer.pap_up_32,
+                    speedMph: customer.speed_mph === null ? null : Number(customer.speed_mph),
+                    revRateRpm: customer.rev_rate_rpm
+                }
+            };
+
+            const sheet = await tx.insertInto('drill_sheet')
+                .values({
+                    company_id: uuid(c.var.user.companyId),
+                    customer_id: uuid(customerId),
+                    name: input.name,
+                    grip_style: input.gripStyle
+                })
+                .returning('id')
+                .executeTakeFirstOrThrow();
+            const revision = await tx.insertInto('drill_sheet_revision')
+                .values({
+                    company_id: uuid(c.var.user.companyId),
+                    drill_sheet_id: uuid(sheet.id),
+                    version: 1,
+                    location_id: input.locationID ? uuid(input.locationID) : null,
+                    created_by_user_id: uuid(c.var.user.userId),
+                    revision_notes: input.revisionNotes,
+                    spec: json(spec),
+                    spec_schema_version: SPEC_SCHEMA_VERSION,
+                    ...promotedColumns(spec)
+                })
+                .returning('id')
+                .executeTakeFirstOrThrow();
+            await tx.updateTable('drill_sheet')
+                .set({ current_revision_id: uuid(revision.id) })
+                .where('id', '=', uuid(sheet.id))
+                .execute();
+
+            return c.json(await sheetDto(tx, sheet.id), 201);
+        });
+    });
+
+/** /drill-sheets/:id: one sheet, its draft and its revision history. */
+export const drillSheets = new Hono<ApiEnv>()
+    .get('/:id', c => withCompany(c.var.db, c.var.user.companyId, async tx => {
+        requirePermission(await loadAccess(tx, c.var.user), 'read:drillsheets');
+        return c.json(await sheetDto(tx, idParam(c.req.param('id'), 'Drill sheet not found')));
+    }))
+
+    /** Renames, changes the grip style, or archives/unarchives a sheet. */
+    .patch('/:id', async c => {
+        const id = idParam(c.req.param('id'), 'Drill sheet not found');
+        const input = drillSheetUpdateSchema.parse(await c.req.json());
+        const changes = {
+            ...(input.name !== undefined && { name: input.name }),
+            ...(input.gripStyle !== undefined && { grip_style: input.gripStyle }),
+            ...(input.archived !== undefined && { archived_at: input.archived ? sql<Date>`now()` : null })
+        };
+        if (Object.keys(changes).length === 0) throw new HttpError(400, 'Nothing to update');
+
+        return withCompany(c.var.db, c.var.user.companyId, async tx => {
+            requirePermission(await loadAccess(tx, c.var.user), 'write:drillsheets');
+            await findSheet(tx, id);
+            await tx.updateTable('drill_sheet').set(changes).where('id', '=', uuid(id)).execute();
+            return c.json(await sheetDto(tx, id));
+        });
+    })
+
+    /**
+     * Saves the draft. The current revision is updated in place while it's a
+     * draft; once it's approved or drilled, a new draft revision is started.
+     */
+    .put('/:id/draft', async c => {
+        const id = idParam(c.req.param('id'), 'Drill sheet not found');
+        const input = drillSheetDraftSchema.parse(await c.req.json());
+        return withCompany(c.var.db, c.var.user.companyId, async tx => {
+            // Locking the sheet serializes concurrent saves to it.
+            const sheet = await findSheet(tx, id, { lock: true });
+            if (sheet.archived_at) throw new HttpError(409, 'This drill sheet is archived');
+            if (input.basedOnRevisionID && input.basedOnRevisionID !== sheet.current_revision_id) {
+                throw new HttpError(409, 'Someone else saved this drill sheet meanwhile. Reload it and try again.');
+            }
+
+            const current = sheet.current_revision_id
+                ? await tx.selectFrom('drill_sheet_revision').selectAll()
+                    .where('id', '=', uuid(sheet.current_revision_id))
+                    .executeTakeFirstOrThrow()
+                : undefined;
+            const locationId = input.locationID ?? current?.location_id ?? null;
+            requirePermission(await loadAccess(tx, c.var.user), 'write:drillsheets', locationId ?? undefined);
+
+            const editable = current
+                && !current.approved_at
+                && !(await drilledRevisionIds(tx, [current.id])).has(current.id);
+            const content = {
+                location_id: locationId ? uuid(locationId) : null,
+                revision_notes: input.revisionNotes,
+                spec: json(input.spec),
+                spec_schema_version: SPEC_SCHEMA_VERSION,
+                ...promotedColumns(input.spec)
+            };
+
+            if (editable) {
+                await tx.updateTable('drill_sheet_revision')
+                    .set(content)
+                    .where('id', '=', uuid(current.id))
+                    .execute();
+            } else {
+                const latest = await tx.selectFrom('drill_sheet_revision')
+                    .select(eb => eb.fn.max('version').as('version'))
+                    .where('drill_sheet_id', '=', uuid(id))
+                    .executeTakeFirst();
+                const revision = await tx.insertInto('drill_sheet_revision')
+                    .values({
+                        company_id: uuid(c.var.user.companyId),
+                        drill_sheet_id: uuid(id),
+                        version: (latest?.version ?? 0) + 1,
+                        created_by_user_id: uuid(c.var.user.userId),
+                        ...content
+                    })
+                    .returning('id')
+                    .executeTakeFirstOrThrow();
+                await tx.updateTable('drill_sheet')
+                    .set({ current_revision_id: uuid(revision.id) })
+                    .where('id', '=', uuid(id))
+                    .execute();
+            }
+            // Saving counts as a change to the sheet (sorts recently worked sheets first).
+            await tx.updateTable('drill_sheet').set({ updated_at: sql<Date>`now()` }).where('id', '=', uuid(id)).execute();
+
+            return c.json(await sheetDto(tx, id));
+        });
+    })
+
+    /** Revision history, newest first, without specs. */
+    .get('/:id/revisions', c => withCompany(c.var.db, c.var.user.companyId, async tx => {
+        requirePermission(await loadAccess(tx, c.var.user), 'read:drillsheets');
+        const sheet = await findSheet(tx, idParam(c.req.param('id'), 'Drill sheet not found'));
+        const rows = await tx.selectFrom('drill_sheet_revision').selectAll()
+            .where('drill_sheet_id', '=', uuid(sheet.id))
+            .orderBy('version', 'desc')
+            .execute();
+        const drilled = await drilledRevisionIds(tx, rows.map(row => row.id));
+        return c.json(rows.map(row => toSummaryDto(row, drilled.has(row.id))));
+    }))
+
+    .get('/:id/revisions/:version', c => withCompany(c.var.db, c.var.user.companyId, async tx => {
+        requirePermission(await loadAccess(tx, c.var.user), 'read:drillsheets');
+        const row = await findRevision(tx, c.req.param('id'), c.req.param('version'));
+        const drilled = await drilledRevisionIds(tx, [row.id]);
+        return c.json(toRevisionDto(row, drilled.has(row.id)));
+    }))
+
+    /**
+     * Records who approved a revision, and when. Anyone who can edit drill
+     * sheets at the revision's location may approve, the author included.
+     */
+    .post('/:id/revisions/:version/approve', c => withCompany(c.var.db, c.var.user.companyId, async tx => {
+        const row = await findRevision(tx, c.req.param('id'), c.req.param('version'));
+        requirePermission(await loadAccess(tx, c.var.user), 'write:drillsheets', row.location_id ?? undefined);
+        if (row.approved_at) throw new HttpError(409, 'This revision is already approved');
+
+        const approved = await tx.updateTable('drill_sheet_revision')
+            .set({ approved_at: sql<Date>`now()`, approved_by_user_id: uuid(c.var.user.userId) })
+            .where('id', '=', uuid(row.id))
+            .returningAll()
+            .executeTakeFirstOrThrow();
+        const drilled = await drilledRevisionIds(tx, [row.id]);
+        return c.json(toRevisionDto(approved, drilled.has(row.id)));
+    }));
