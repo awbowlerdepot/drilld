@@ -58,13 +58,19 @@ const bevelSchema = z.preprocess(bevel => {
         const { depth32 } = bevel as { depth32?: number };
         return { amount: 'MEDIUM', width32: depth32 ?? null };
     }
+    // A single tool (before several could be picked) becomes a list.
+    if (bevel && typeof bevel === 'object' && 'tool' in bevel) {
+        const { tool, ...rest } = bevel as { tool?: string | null };
+        return { ...rest, tools: tool ? [tool] : [] };
+    }
     return bevel;
 }, z.object({
     amount: bevelAmountSchema,
     /** A different amount on the palm / hinge side, if any. */
     palmSide: bevelAmountSchema.nullish(),
     width32: z.number().int().positive().max(16).nullish(),
-    tool: bevelToolSchema.nullish(),
+    /** The tools to use, any combination. Empty = any. */
+    tools: z.array(bevelToolSchema).max(2).default([]),
     notes
 }).strict());
 

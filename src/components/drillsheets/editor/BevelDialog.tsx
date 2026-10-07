@@ -32,7 +32,7 @@ export const BevelDialog = ({ title, bevel, standard, onSet, onClose }: BevelDia
     const [amount, setAmount] = useState<BevelAmount | null>(bevel?.amount ?? null)
     const [palmSide, setPalmSide] = useState<BevelAmount | null>(bevel?.palmSide ?? null)
     const [width32, setWidth32] = useState<number | null>(bevel?.width32 ?? null)
-    const [tool, setTool] = useState<Bevel['tool'] | null>(bevel?.tool ?? null)
+    const [tools, setTools] = useState<Bevel['tools']>(bevel?.tools ?? [])
     const [notes, setNotes] = useState(bevel?.notes ?? '')
     const standardLabel = BEVEL_AMOUNTS.find(a => a.key === standard)!.label
 
@@ -41,7 +41,7 @@ export const BevelDialog = ({ title, bevel, standard, onSet, onClose }: BevelDia
             amount,
             palmSide: palmSide && palmSide !== amount ? palmSide : null,
             width32,
-            tool: tool ?? null,
+            tools,
             notes: notes.trim() || null
         })
         onClose()
@@ -93,14 +93,17 @@ export const BevelDialog = ({ title, bevel, standard, onSet, onClose }: BevelDia
                                     </div>
                                 </Field>
                                 <Field>
-                                    <FieldLabel>Tool</FieldLabel>
-                                    <div role="radiogroup" aria-label="Tool" className="flex flex-wrap gap-1.5">
-                                        <button type="button" role="radio" aria-checked={!tool} onClick={() => setTool(null)}
-                                            className={cn(choice, !tool ? chosen : unchosen)}>Any</button>
-                                        {BEVEL_TOOLS.map(t => (
-                                            <button key={t.key} type="button" role="radio" aria-checked={tool === t.key} onClick={() => setTool(t.key)}
-                                                className={cn(choice, tool === t.key ? chosen : unchosen)}>{t.label}</button>
-                                        ))}
+                                    <FieldLabel>Tools</FieldLabel>
+                                    <div role="group" aria-label="Tools" className="flex flex-wrap items-center gap-1.5">
+                                        {BEVEL_TOOLS.map(t => {
+                                            const on = tools.includes(t.key)
+                                            return (
+                                                <button key={t.key} type="button" aria-pressed={on}
+                                                    onClick={() => setTools(on ? tools.filter(k => k !== t.key) : [...tools, t.key])}
+                                                    className={cn(choice, on ? chosen : unchosen)}>{t.label}</button>
+                                            )
+                                        })}
+                                        <span className="text-xs text-gray-500">{tools.length ? 'Pick any combination' : 'None picked: any tool'}</span>
                                     </div>
                                 </Field>
                                 <Field>
