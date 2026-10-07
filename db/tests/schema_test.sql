@@ -324,6 +324,16 @@ select test.ok((select (s.drill_count, s.plug_count, s.last_worked_month) = (1, 
                 from ball_service_summary('40000000-0000-0000-0000-000000000001') s),
                'ball_service_summary counts drilling across companies, by month');
 
+-- Who last saved a revision (0011)
+update drill_sheet_revision set updated_by_user_id = '20000000-0000-0000-0000-0000000000a1', revision_notes = 'Saved by another tech'
+    where id = '70000000-0000-0000-0000-0000000000a4';
+select test.ok((select updated_by_user_id = '20000000-0000-0000-0000-0000000000a1' and created_by_user_id = '20000000-0000-0000-0000-0000000000a2'
+                from drill_sheet_revision where id = '70000000-0000-0000-0000-0000000000a4'),
+               'a draft records who last saved it, apart from its author');
+select test.fails($$update drill_sheet_revision set updated_by_user_id = '20000000-0000-0000-0000-0000000000b1'
+                    where id = '70000000-0000-0000-0000-0000000000a4'$$,
+                  '23503', 'the last saver must be one of the company''s users');
+
 -- Grip catalog (0010): platform data, read-only; stock per location
 select test.ok((select od64_choices[1] from grip_size gs join grip_line gl on gl.id = gs.line_id
                 where gl.manufacturer = 'VISE' and gl.name = 'P/O Power Lift & Oval' and gs.label = '8.5') = 66,

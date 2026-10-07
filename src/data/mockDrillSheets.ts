@@ -19,7 +19,10 @@ const MOCK_USER_ID = 'mock-user'
 interface MockSheet {
     sheet: Omit<DrillSheetDto, 'currentRevision'>
     revisions: DrillSheetRevisionDto[]
+    currentId: string
 }
+
+const MOCK_USER_NAME = 'Mock User'
 
 const now = () => new Date().toISOString()
 const newId = () => crypto.randomUUID()
@@ -31,11 +34,17 @@ const revision = (version: number, spec: unknown, overrides: Partial<DrillSheetR
     version,
     locationID: null,
     createdByUserID: MOCK_USER_ID,
+    createdByName: MOCK_USER_NAME,
+    updatedByUserID: MOCK_USER_ID,
+    updatedByName: MOCK_USER_NAME,
     revisionNotes: null,
     approvedByUserID: null,
+    approvedByName: null,
     approvedAt: null,
     drilled: false,
     editable: true,
+    isCurrent: true,
+    discarded: false,
     createdAt: now(),
     updatedAt: now(),
     specSchemaVersion: SPEC_SCHEMA_VERSION,
@@ -48,6 +57,7 @@ const store = new Map<string, MockSheet>()
 // One sample sheet for the first mock customer (a right-hander).
 const sampleId = newId()
 store.set(sampleId, {
+    currentId: '',
     sheet: { id: sampleId, customerID: '1', name: 'Fingertip', gripStyle: 'FINGERTIP', archived: false, createdAt: now(), updatedAt: now() },
     revisions: [revision(1, {
         spans: { thumbToMiddle: { full32: 141, cutToCut32: 136 }, thumbToRing: { full32: 146, cutToCut32: 141 } },
@@ -69,11 +79,24 @@ store.set(sampleId, {
         },
         fitting: { flexibilityDegrees: 95 },
         delivery: { axisTiltDegrees: 12.5, axisRotationDegrees: 45, papOver32: 176, papUp32: 16, speedMph: 17.5, revRateRpm: 350 }
-    }, { approvedByUserID: MOCK_USER_ID, approvedAt: now(), editable: false })]
+    }, { approvedByUserID: MOCK_USER_ID, approvedByName: MOCK_USER_NAME, approvedAt: now(), editable: false })]
 })
 
-const toDto = ({ sheet, revisions }: MockSheet): DrillSheetDto =>
-    clone({ ...sheet, currentRevision: revisions[revisions.length - 1] ?? null })
+// The sample's current revision is its only one.
+store.get(sampleId)!.currentId = store.get(sampleId)!.revisions[0].id
+
+/** A revision with its place in the sheet: current, or a discarded draft. */
+const withStatus = (entry: MockSheet, revision: DrillSheetRevisionDto): DrillSheetRevisionDto => {
+    const isCurrent = revision.id === entry.currentId
+    return { ...revision, isCurrent, discarded: !isCurrent && !revision.approvedAt && !revision.drilled }
+}
+
+const currentOf = (entry: MockSheet) => entry.revisions.find(r => r.id === entry.currentId)
+
+const toDto = (entry: MockSheet): DrillSheetDto => {
+    const current = currentOf(entry)
+    return clone({ ...entry.sheet, currentRevision: current ? withStatus(entry, current) : null })
+}
 
 const find = (id: string): MockSheet => {
     const entry = store.get(id)
@@ -107,9 +130,11 @@ export const mockDrillSheetsApi: DrillSheetsApi = {
         await pause()
         const parsed = drillSheetCreateSchema.parse(input)
         const id = newId()
+        const first = revision(1, parsed.spec, { locationID: parsed.locationID, revisionNotes: parsed.revisionNotes })
         store.set(id, {
             sheet: { id, customerID: customerId, name: parsed.name, gripStyle: parsed.gripStyle, archived: false, createdAt: now(), updatedAt: now() },
-            revisions: [revision(1, parsed.spec, { locationID: parsed.locationID, revisionNotes: parsed.revisionNotes })]
+            revisions: [first],
+            currentId: first.id
         })
         return toDto(find(id))
     },
@@ -135,7 +160,7 @@ export const mockDrillSheetsApi: DrillSheetsApi = {
         const parsed = drillSheetDraftSchema.parse(draft)
         const entry = find(id)
         if (entry.sheet.archived) throw new Error('This drill sheet is archived')
-        const current = entry.revisions[entry.revisions.length - 1]
+        const current = currentOf(entry)
         if (parsed.basedOnRevisionID && parsed.basedOnRevisionID !== current?.id) {
             throw new Error('Someone else saved this drill sheet meanwhile. Reload it and try again.')
         }
@@ -145,9 +170,11 @@ export const mockDrillSheetsApi: DrillSheetsApi = {
             locationID: parsed.locationID ?? current?.locationID ?? null
         }
         if (current?.editable) {
-            Object.assign(current, content, { updatedAt: now() })
+            Object.assign(current, content, { updatedAt: now(), updatedByUserID: MOCK_USER_ID, updatedByName: MOCK_USER_NAME })
         } else {
-            entry.revisions.push(revision((current?.version ?? 0) + 1, parsed.spec, content))
+            const next = revision(Math.max(...entry.revisions.map(r => r.version)) + 1, parsed.spec, content)
+            entry.revisions.push(next)
+            entry.currentId = next.id
         }
         entry.sheet.updatedAt = now()
         return toDto(entry)
@@ -156,30 +183,33 @@ export const mockDrillSheetsApi: DrillSheetsApi = {
     async discardDraft(id) {
         await pause()
         const entry = find(id)
-        const current = entry.revisions[entry.revisions.length - 1]
+        const current = currentOf(entry)
         if (!current?.editable) throw new Error('Only a draft can be discarded; this revision is approved or drilled')
-        if (entry.revisions.length < 2) throw new Error('There is no earlier revision to go back to')
-        // The mock keeps the current revision last, so a discarded draft is simply dropped.
-        entry.revisions.pop()
+        const previous = entry.revisions
+            .filter(r => r.version < current.version && (r.approvedAt || r.drilled))
+            .sort((a, b) => b.version - a.version)[0]
+        if (!previous) throw new Error('There is no earlier revision to go back to')
+        entry.currentId = previous.id
         entry.sheet.updatedAt = now()
         return toDto(entry)
     },
 
     async revisions(id) {
         await pause()
-        return clone(find(id).revisions.slice().reverse().map(toSummary))
+        const entry = find(id)
+        return clone(entry.revisions.slice().sort((a, b) => b.version - a.version).map(r => toSummary(withStatus(entry, r))))
     },
 
     async revision(id, version) {
         await pause()
-        return clone(findRevision(id, version))
+        return clone(withStatus(find(id), findRevision(id, version)))
     },
 
     async approve(id, version) {
         await pause()
         const found = findRevision(id, version)
         if (found.approvedAt) throw new Error('This revision is already approved')
-        Object.assign(found, { approvedAt: now(), approvedByUserID: MOCK_USER_ID, editable: false, updatedAt: now() })
-        return clone(found)
+        Object.assign(found, { approvedAt: now(), approvedByUserID: MOCK_USER_ID, approvedByName: MOCK_USER_NAME, editable: false, updatedAt: now() })
+        return clone(withStatus(find(id), found))
     }
 }

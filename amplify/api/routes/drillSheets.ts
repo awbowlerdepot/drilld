@@ -106,34 +106,67 @@ const drilledRevisionIds = async (tx: Tx, revisionIds: string[]): Promise<Set<st
     return new Set(rows.map(row => row.drill_sheet_revision_id).filter((id): id is string => id !== null));
 };
 
-const toSummaryDto = (row: RevisionRow, drilled: boolean): DrillSheetRevisionSummaryDto => ({
-    id: row.id,
-    version: row.version,
-    locationID: row.location_id,
-    createdByUserID: row.created_by_user_id,
-    revisionNotes: row.revision_notes,
-    approvedByUserID: row.approved_by_user_id,
-    approvedAt: row.approved_at ? iso(row.approved_at) : null,
-    drilled,
-    editable: !row.approved_at && !drilled,
-    createdAt: iso(row.created_at),
-    updatedAt: iso(row.updated_at)
-});
+/** What a revision's summary needs besides its row: which are drilled, people's names, and the sheet's current revision. */
+interface RevisionContext {
+    drilled: Set<string>;
+    names: Map<string, string>;
+    currentIds: Set<string>;
+}
 
-const toRevisionDto = (row: RevisionRow, drilled: boolean): DrillSheetRevisionDto => ({
-    ...toSummaryDto(row, drilled),
+const loadRevisionContext = async (tx: Tx, rows: RevisionRow[], currentIds: (string | null)[]): Promise<RevisionContext> => {
+    const userIds = [...new Set(rows.flatMap(row => [row.created_by_user_id, row.updated_by_user_id, row.approved_by_user_id])
+        .filter((id): id is string => !!id))];
+    const users = userIds.length === 0 ? [] : await tx.selectFrom('app_user')
+        .select(['id', 'first_name', 'last_name'])
+        .where('id', 'in', userIds.map(uuid))
+        .execute();
+    return {
+        drilled: await drilledRevisionIds(tx, rows.map(row => row.id)),
+        names: new Map(users.map(user => [user.id, `${user.first_name} ${user.last_name}`.trim()])),
+        currentIds: new Set(currentIds.filter((id): id is string => !!id))
+    };
+};
+
+const toSummaryDto = (row: RevisionRow, context: RevisionContext): DrillSheetRevisionSummaryDto => {
+    const drilled = context.drilled.has(row.id);
+    const isCurrent = context.currentIds.has(row.id);
+    const name = (id: string | null) => (id ? context.names.get(id) ?? null : null);
+    return {
+        id: row.id,
+        version: row.version,
+        locationID: row.location_id,
+        createdByUserID: row.created_by_user_id,
+        createdByName: name(row.created_by_user_id),
+        updatedByUserID: row.updated_by_user_id,
+        updatedByName: name(row.updated_by_user_id),
+        revisionNotes: row.revision_notes,
+        approvedByUserID: row.approved_by_user_id,
+        approvedByName: name(row.approved_by_user_id),
+        approvedAt: row.approved_at ? iso(row.approved_at) : null,
+        drilled,
+        editable: !row.approved_at && !drilled,
+        isCurrent,
+        // A draft that's no longer current was discarded (new drafts only start from approved or drilled revisions).
+        discarded: !isCurrent && !row.approved_at && !drilled,
+        createdAt: iso(row.created_at),
+        updatedAt: iso(row.updated_at)
+    };
+};
+
+const toRevisionDto = (row: RevisionRow, context: RevisionContext): DrillSheetRevisionDto => ({
+    ...toSummaryDto(row, context),
     specSchemaVersion: row.spec_schema_version,
     spec: readSpec(row)
 });
 
-const toSheetDto = (sheet: SheetRow, current: RevisionRow | undefined, drilled: Set<string>): DrillSheetDto => ({
+const toSheetDto = (sheet: SheetRow, current: RevisionRow | undefined, context: RevisionContext): DrillSheetDto => ({
     id: sheet.id,
     // Customer sheets only: templates (no customer) are not served by this API yet.
     customerID: sheet.customer_id as string,
     name: sheet.name,
     gripStyle: sheet.grip_style as DrillSheetDto['gripStyle'],
     archived: sheet.archived_at !== null,
-    currentRevision: current ? toRevisionDto(current, drilled.has(current.id)) : null,
+    currentRevision: current ? toRevisionDto(current, context) : null,
     createdAt: iso(sheet.created_at),
     updatedAt: iso(sheet.updated_at)
 });
@@ -145,8 +178,8 @@ const toSheetDtos = async (tx: Tx, sheets: SheetRow[]): Promise<DrillSheetDto[]>
         .where('id', 'in', currentIds.map(uuid))
         .execute();
     const byId = new Map(revisions.map(revision => [revision.id, revision]));
-    const drilled = await drilledRevisionIds(tx, currentIds);
-    return sheets.map(sheet => toSheetDto(sheet, sheet.current_revision_id ? byId.get(sheet.current_revision_id) : undefined, drilled));
+    const context = await loadRevisionContext(tx, revisions, currentIds);
+    return sheets.map(sheet => toSheetDto(sheet, sheet.current_revision_id ? byId.get(sheet.current_revision_id) : undefined, context));
 };
 
 const findSheet = async (tx: Tx, id: string, options: { lock?: boolean } = {}): Promise<SheetRow> => {
@@ -159,7 +192,7 @@ const findSheet = async (tx: Tx, id: string, options: { lock?: boolean } = {}): 
     return sheet;
 };
 
-const findRevision = async (tx: Tx, sheetId: string | undefined, version: string | undefined): Promise<RevisionRow> => {
+const findRevision = async (tx: Tx, sheetId: string | undefined, version: string | undefined): Promise<{ sheet: SheetRow; row: RevisionRow }> => {
     const sheet = await findSheet(tx, idParam(sheetId, 'Drill sheet not found'));
     const number = Number(version);
     if (!Number.isInteger(number) || number < 1) throw new HttpError(404, 'Revision not found');
@@ -168,7 +201,7 @@ const findRevision = async (tx: Tx, sheetId: string | undefined, version: string
         .where('version', '=', number)
         .executeTakeFirst();
     if (!row) throw new HttpError(404, 'Revision not found');
-    return row;
+    return { sheet, row };
 };
 
 const sheetDto = async (tx: Tx, id: string) => (await toSheetDtos(tx, [await findSheet(tx, id)]))[0];
@@ -230,6 +263,7 @@ export const customerDrillSheets = new Hono<ApiEnv>()
                     version: 1,
                     location_id: input.locationID ? uuid(input.locationID) : null,
                     created_by_user_id: uuid(c.var.user.userId),
+                    updated_by_user_id: uuid(c.var.user.userId),
                     revision_notes: input.revisionNotes,
                     spec: json(spec),
                     spec_schema_version: SPEC_SCHEMA_VERSION,
@@ -309,7 +343,7 @@ export const drillSheets = new Hono<ApiEnv>()
 
             if (editable) {
                 await tx.updateTable('drill_sheet_revision')
-                    .set(content)
+                    .set({ ...content, updated_by_user_id: uuid(c.var.user.userId) })
                     .where('id', '=', uuid(current.id))
                     .execute();
             } else {
@@ -323,6 +357,7 @@ export const drillSheets = new Hono<ApiEnv>()
                         drill_sheet_id: uuid(id),
                         version: (latest?.version ?? 0) + 1,
                         created_by_user_id: uuid(c.var.user.userId),
+                        updated_by_user_id: uuid(c.var.user.userId),
                         ...content
                     })
                     .returning('id')
@@ -387,15 +422,14 @@ export const drillSheets = new Hono<ApiEnv>()
             .where('drill_sheet_id', '=', uuid(sheet.id))
             .orderBy('version', 'desc')
             .execute();
-        const drilled = await drilledRevisionIds(tx, rows.map(row => row.id));
-        return c.json(rows.map(row => toSummaryDto(row, drilled.has(row.id))));
+        const context = await loadRevisionContext(tx, rows, [sheet.current_revision_id]);
+        return c.json(rows.map(row => toSummaryDto(row, context)));
     }))
 
     .get('/:id/revisions/:version', c => withCompany(c.var.db, c.var.user.companyId, async tx => {
         requirePermission(await loadAccess(tx, c.var.user), 'read:drillsheets');
-        const row = await findRevision(tx, c.req.param('id'), c.req.param('version'));
-        const drilled = await drilledRevisionIds(tx, [row.id]);
-        return c.json(toRevisionDto(row, drilled.has(row.id)));
+        const { sheet, row } = await findRevision(tx, c.req.param('id'), c.req.param('version'));
+        return c.json(toRevisionDto(row, await loadRevisionContext(tx, [row], [sheet.current_revision_id])));
     }))
 
     /**
@@ -403,7 +437,7 @@ export const drillSheets = new Hono<ApiEnv>()
      * sheets at the revision's location may approve, the author included.
      */
     .post('/:id/revisions/:version/approve', c => withCompany(c.var.db, c.var.user.companyId, async tx => {
-        const row = await findRevision(tx, c.req.param('id'), c.req.param('version'));
+        const { sheet, row } = await findRevision(tx, c.req.param('id'), c.req.param('version'));
         requirePermission(await loadAccess(tx, c.var.user), 'write:drillsheets', row.location_id ?? undefined);
         if (row.approved_at) throw new HttpError(409, 'This revision is already approved');
 
@@ -412,6 +446,5 @@ export const drillSheets = new Hono<ApiEnv>()
             .where('id', '=', uuid(row.id))
             .returningAll()
             .executeTakeFirstOrThrow();
-        const drilled = await drilledRevisionIds(tx, [row.id]);
-        return c.json(toRevisionDto(approved, drilled.has(row.id)));
+        return c.json(toRevisionDto(approved, await loadRevisionContext(tx, [approved], [sheet.current_revision_id])));
     }));

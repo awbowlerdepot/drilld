@@ -192,6 +192,10 @@ export interface DrillSheetRevision {
   thumb_to_ring_full_32: number | null;
   thumb_to_ring_outer_32: number | null;
   updated_at: Generated<Timestamp>;
+  /**
+   * Who last saved this revision (a draft is edited in place).
+   */
+  updated_by_user_id: string | null;
   version: number;
 }
 
