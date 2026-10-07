@@ -386,6 +386,7 @@ drillingSequence = [ { step, bitSize64, depth32, notes } ]   // in drilling orde
 - **Pitch on the readout.** Pitches are measured from the center of the grip, so the vertical direction depends on the hole:
   - Thumb: reverse is down and forward is up.
   - Fingers: reverse is up and forward is down.
+  - Lateral is the same for every hole: left on the sheet is left on the press.
   - The readout number then also depends on the press setting below. For example, with up as plus, a thumb's 3/8″ reverse reads −.375 and a finger's 3/8″ reverse reads +.375. With down as plus, both flip.
 - **Drill press readout direction.** Presses differ in which way their digital readout counts. Some are built one way and some the opposite, and some readouts can be configured. Both axes are a property of the press:
   - `drillPress.verticalReadout: 'UP_POSITIVE' | 'DOWN_POSITIVE'`
