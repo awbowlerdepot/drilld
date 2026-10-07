@@ -8,6 +8,7 @@ import { Input } from '../common/Input';
 import { LocationForm } from './LocationForm';
 import { LocationList } from './LocationList';
 import { LocationStats } from './LocationStats';
+import { LocationGripStock } from './grips/LocationGripStock';
 
 interface LocationManagementProps {
     searchTerm: string;
@@ -37,6 +38,7 @@ export const LocationManagement: React.FC<LocationManagementProps> = ({
     });
     const [showFilters, setShowFilters] = useState(false);
     const [actionError, setActionError] = useState<string | null>(null);
+    const [gripLocation, setGripLocation] = useState<Location | null>(null);
 
     const effectiveSearchTerm = searchTerm || localSearchTerm;
 
@@ -119,6 +121,10 @@ export const LocationManagement: React.FC<LocationManagementProps> = ({
 
     if (loading) {
         return <div className="flex justify-center py-8">Loading locations...</div>;
+    }
+
+    if (gripLocation) {
+        return <LocationGripStock location={gripLocation} onBack={() => setGripLocation(null)} />;
     }
 
     return (
@@ -226,6 +232,7 @@ export const LocationManagement: React.FC<LocationManagementProps> = ({
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 onToggleActive={handleToggleActive}
+                onManageGrips={setGripLocation}
                 getLocationStats={getLocationStatistics}
                 companySettings={companySettings}
             />

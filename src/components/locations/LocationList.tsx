@@ -9,9 +9,11 @@ import {
     Power,
     PowerOff,
     Wrench,
-    Users
+    Users,
+    Package
 } from 'lucide-react';
 import { Button } from '../common/Button';
+import { Button as UiButton } from '@/components/ui/button';
 import { LocationOverridesSummary } from './LocationOverridesSummary';
 import { getHoursForDay, isClosedHours } from '../../utils/LocationHours';
 
@@ -20,6 +22,8 @@ interface LocationListProps {
     onEdit: (location: Location) => void;
     onDelete: (locationId: string) => void;
     onToggleActive: (locationId: string, active: boolean) => void;
+    /** Opens what the location carries (inserts and thumb hardware). */
+    onManageGrips: (location: Location) => void;
     getLocationStats?: (locationId: string) => {
         totalWorkOrders: number;
         activeEmployees: number;
@@ -32,6 +36,7 @@ export const LocationList: React.FC<LocationListProps> = ({
                                                               onEdit,
                                                               onDelete,
                                                               onToggleActive,
+                                                              onManageGrips,
                                                               getLocationStats,
                                                               companySettings
                                                           }) => {
@@ -102,6 +107,14 @@ export const LocationList: React.FC<LocationListProps> = ({
                                 )}
                             </div>
                             <div className="flex space-x-1">
+                                <UiButton
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => onManageGrips(location)}
+                                    title="Inserts and thumb hardware this location stocks"
+                                >
+                                    <Package data-icon="inline-start" /> What we carry
+                                </UiButton>
                                 <Button
                                     variant="secondary"
                                     size="sm"
