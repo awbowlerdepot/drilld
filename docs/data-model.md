@@ -517,6 +517,9 @@ vacu     = { bit64, depth32 }                                                   
 ```
 
 - **O.D.** With an insert or hardware set, the hole's `outsideDiameter64` is its `od64`. The API checks catalog choices against the catalog: the size must match, the O.D. must be one of that size's `od64_choices`, and the install style must be one the line offers.
+- **Drilling interchangeable thumb hardware** (the drill press plan): pilot, then the collar bit down to the collar, then install the hardware. The thumb hole and its oval are drilled into the inner, not the ball.
+  - The pilot is about 1/2″ smaller than the collar bit.
+  - Pilot depth is 2-3/4″, which is safe for every system. JoPo Twist can go 3″; Turbo Switch Grip shouldn't go past 3″; VISE IT won't install if piloted too deep.
 - **Thumb hardware and the hole.** A thumb insert sets both the hole size and the O.D. A slug, or an interchangeable system's inner, has the thumb hole drilled into it, and the hardware sets only the O.D. (the collar bit, for interchangeable systems). The editor warns when the hole, or its oval width, leaves less than 1/8″ of wall in a slug or VISE IT inner, and suggests the next size up.
 - **Older sheets.** A sheet saved with the old insert shape (`{ manufacturer, insertSize64, type, model, color }`) is read as an "Other" insert, using the hole's size and O.D. An old `slug` is read as "Other" thumb hardware.
 - **Vacu** applies to finger insert holes only. The top of the hole is drilled with a different bit from the O.D. below it.

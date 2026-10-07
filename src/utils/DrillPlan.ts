@@ -37,8 +37,18 @@ type Pitch = DrillSheetSpec['holes']['thumb']['pitch']
 /** How deep a finger insert's O.D. is drilled, unless the hole sets a depth: 2". */
 export const INSERT_DEPTH32 = 64
 
-/** The pilot for interchangeable thumb hardware, before the collar bit: 1/2". */
-export const INTERCHANGEABLE_PILOT64 = 32
+/** The pilot for interchangeable thumb hardware is about 1/2" smaller than the collar bit. */
+export const PILOT_UNDER_COLLAR64 = 32
+
+/**
+ * How deep to pilot for interchangeable hardware. 2-3/4" is safe for every
+ * system; JoPo Twist can go 3". VISE IT won't install if piloted too deep.
+ */
+export const interchangeablePilot = (manufacturer: string): { depth32: number; note: string } => {
+    if (manufacturer === 'JOPO') return { depth32: 96, note: 'Pilot for the hardware' }
+    if (manufacturer === 'VISE') return { depth32: 88, note: 'No deeper, or the IT hardware won\'t install' }
+    return { depth32: 88, note: 'Pilot for the hardware; no deeper than 3″' }
+}
 
 const MAKERS: Record<string, string> = { VISE: 'VISE', TURBO: 'Turbo', JOPO: 'JoPo' }
 const maker = (code: string) => MAKERS[code] ?? code
@@ -109,7 +119,11 @@ const thumbHole = (spec: DrillSheetSpec, hand: Hand): DrillHole | null => {
     // oval are drilled into the inner, not the ball.
     if (hardware?.kind === 'INTERCHANGEABLE_THUMB') {
         steps.push(
-            { id: 'thumb-pilot', title: 'Pilot', bit64: INTERCHANGEABLE_PILOT64, position: center, note: 'Pilot for the hardware' },
+            {
+                id: 'thumb-pilot', title: 'Pilot', bit64: hardware.od64 - PILOT_UNDER_COLLAR64,
+                depth32: interchangeablePilot(hardware.manufacturer).depth32, position: center,
+                note: interchangeablePilot(hardware.manufacturer).note
+            },
             { id: 'thumb-od', title: 'Collar bit', bit64: hardware.od64, position: center, note: 'Down to the collar' },
             { id: 'thumb-install', title: 'Install hardware', position: center, note: `${maker(hardware.manufacturer)} ${hardware.line}`.trim() }
         )
