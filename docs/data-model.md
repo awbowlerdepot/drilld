@@ -50,7 +50,9 @@ Platform
 ## Units
 
 - **Spans, bridge and pitch**: integer **32nds of an inch** (`4-3/8″+` = 4-13/32″ is stored as `141`). Shops measure in 16ths and write "+" for an extra 1/32; the UI renders `141` back as `4-3/8″+`. Bridge is always edge-to-edge.
-- **Hole and bit sizes**: integer **64ths of an inch** (31/64″ is stored as `31`, 1″ as `64`). Every drill bit size uses 64ths: hole sizes, O.D., pilot holes, step drilling. They are exact and sortable, and the UI renders them as fractions.
+- **Hole and bit sizes**: integer **64ths of an inch** (31/64″ is stored as `31`, 1″ as `64`). Every drill bit size uses 64ths: hole sizes, O.D., pilot holes, step drilling. They are exact and sortable, and the UI renders them as fractions. The bit picker offers the bits a shop has (`src/utils/DrillBits.ts`):
+  - Standard: 1/2″ through 1-1/8″ in 1/64″ steps, plus 1-1/4″, 1-3/8″ and 1-1/2″.
+  - Interchangeable thumb hardware, each bit with a preset collar: VISE IT 1-3/16″, 1-5/16″, 1-7/16″ and 1-9/16″, and JoPo and Turbo 1-1/2″.
 - **Ovals**: measured with bits, so every oval dimension is in 64ths. The cuts are calculated from them and never entered (see the spec below). One standard cut is 1/32″, or "2 bits" (.032″). Calculated readouts are shown in decimal inches to the thousandth.
 - **Pitch**: inches only, never degrees. `forward` is positive forward and negative reverse; `lateral` is positive right and negative left.
 - **Angles**: degrees (flexibility, CLT, thumb oval angle, bevel, axis tilt and rotation).

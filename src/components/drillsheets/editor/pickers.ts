@@ -21,10 +21,11 @@ export interface LengthPickerRequest extends PickerBase<number> {
     direction?: 0 | 1
 }
 
-/** A drill bit size in 64ths. */
+/** A drill bit size in 64ths, from the shop's bits (src/utils/DrillBits). */
 export interface BitPickerRequest extends PickerBase<number> {
     kind: 'bit64'
-    wholes: number[]
+    /** List the interchangeable-hardware (collar) bits first, e.g. for a thumb O.D. */
+    hardwareFirst?: boolean
 }
 
 /** A plain number: degrees, mph, RPM. */

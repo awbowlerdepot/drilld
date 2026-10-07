@@ -56,7 +56,8 @@ export const HoleLayout = ({ spec, edit, readOnly, hand }: SheetEditProps) => {
     const pickBit = (title: string, hole: 'thumb' | Finger, field: 'size64' | 'outsideDiameter64') => open({
         kind: 'bit64',
         title,
-        wholes: [0, 1, 2],
+        // The thumb's O.D. is usually drilled for interchangeable hardware.
+        hardwareFirst: hole === 'thumb' && field === 'outsideDiameter64',
         value: spec.holes[hole][field] ?? null,
         onSet: value => edit(draft => { draft.holes[hole][field] = value })
     })

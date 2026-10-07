@@ -37,6 +37,7 @@ The agreed backend design (Postgres schema, tenant isolation, ball registry, dri
   - `Fractions.ts` — formats 32nds ("4-3/8+"), 64ths and readout decimals
   - `DrillReadouts.ts` — pitch centers, thumb and finger oval cuts, and drill press readout signs
   - `Clt.ts` — the CLT chart (hidden unless `drillSheets.enableClt`)
+  - `DrillBits.ts` — the bits a shop has: 1/2–1-1/8 in 64ths, 1-1/4, 1-3/8, 1-1/2, and the interchangeable-hardware collar bits
 - `docs/data-model.md` — backend data model design and open questions
 - `db/` — PostgreSQL migrations (plain SQL, dbmate format) and schema tests; see `db/README.md`. The migrations are the source of truth for the schema; never generate migrations from an ORM.
 - `src/services/` — the frontend's API layer:

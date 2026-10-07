@@ -59,6 +59,3 @@ export const join32 = (whole: number, sixteenths: number, plus: boolean): number
 
 /** The label for n/16: 0 → "0", 6 → "3/8". */
 export const sixteenthLabel = (sixteenths: number): string => reduce(sixteenths, 16) || '0';
-
-/** The label for n/64 within an inch: 0 → "0", 48 → "3/4". */
-export const sixtyFourthLabel = (sixtyFourths: number): string => reduce(sixtyFourths, 64) || '0';
