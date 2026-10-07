@@ -5,8 +5,12 @@ import { HttpError } from './errors';
 /** Claims from the Cognito ID token, already verified by the API Gateway authorizer. */
 export interface TokenClaims {
     sub: string;
+    /** The Cognito username, for admin lookups (e.g. whether TOTP is set up). */
+    username?: string;
     email?: string;
     emailVerified: boolean;
+    /** Cognito groups. Only `platform-admin` is used: it never carries company or role data. */
+    groups: string[];
 }
 
 export interface CurrentUser {

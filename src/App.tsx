@@ -5,7 +5,9 @@ import { CustomerManagement } from './components/customers/CustomerManagement'
 import { BowlingBallManagement } from './components/balls/BowlingBallManagement'
 import { WorkOrderManagement } from './components/workorders/WorkOrderManagement'
 import { SettingsPage } from './components/settings/SettingsPage'
+import { LeadsPage } from './components/leads/LeadsPage'
 import { useLocations } from './hooks/useLocations'
+import { useMe } from './hooks/useMe'
 import { useSidebarCollapsed } from './hooks/useSidebarCollapsed'
 import { AppSection, SignedInUser } from './types'
 
@@ -19,7 +21,8 @@ const SECTION_TITLES: Record<AppSection, string> = {
     workorders: 'Work Orders',
     balls: 'Bowling Balls',
     analytics: 'Analytics',
-    settings: 'Settings'
+    settings: 'Settings',
+    leads: 'Leads'
 }
 
 function App({ user }: AppProps) {
@@ -28,6 +31,8 @@ function App({ user }: AppProps) {
     const [sidebarOpen, setSidebarOpen] = useState(false)
     const [selectedLocationID, setSelectedLocationID] = useState('')
     const { locations } = useLocations()
+    const { me, refresh: refreshMe } = useMe()
+    const platformAdmin = me?.user.platformAdmin ?? null
     const { collapsed: sidebarCollapsed, toggleCollapsed: toggleSidebarCollapsed } = useSidebarCollapsed()
 
     // Until the user picks one, the first active location is current.
@@ -51,6 +56,10 @@ function App({ user }: AppProps) {
                 return <div className="text-center py-12">Analytics Dashboard - Coming soon...</div>
             case 'settings':
                 return <SettingsPage searchTerm={searchTerm} />
+            case 'leads':
+                return platformAdmin && user
+                    ? <LeadsPage searchTerm={searchTerm} platformAdmin={platformAdmin} email={user.email} onTwoFactorReady={refreshMe} />
+                    : null
         }
     }
 
@@ -67,6 +76,7 @@ function App({ user }: AppProps) {
                 onClose={() => setSidebarOpen(false)}
                 collapsed={sidebarCollapsed}
                 onToggleCollapsed={toggleSidebarCollapsed}
+                showLeads={platformAdmin !== null}
             />
             <div className="min-w-0 flex-1">
                 <TopBar

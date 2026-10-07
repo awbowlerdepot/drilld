@@ -28,6 +28,8 @@ Status: agreed design. The PostgreSQL schema is implemented in `db/migrations/`,
 | Bridge | Measured **edge-to-edge**: the material left between the middle and ring finger holes. |
 | Layouts | Per ball: the exact layout used is stored on the **work order**. Layouts can also be saved for reuse as **layout templates**, either a bowler's go-to or shop standards. A drilling starts from one and is then adjusted. |
 | Storage of the spec | **Hybrid**: queryable measurements are real columns, and the full nested spec goes in `jsonb` with a schema version. |
+| Platform admins | People who run **Drilld itself**, not a shop. Membership is the Cognito group **`platform-admin`** and needs **TOTP MFA**. It's separate from company and location roles and grants nothing in any company's data. A platform admin is still a normal `app_user` in one company. First use: leads. |
+| Leads | Early access signups from drilld.io are **platform data** (`lead`, no `company_id`). The public form can only insert a new lead; platform admins read and work them (status and notes) in the app's Leads screen. |
 
 ## Overview
 
@@ -616,6 +618,21 @@ based_on_layout_template_id uuid,           -- which template the drilling start
 foreign key (company_id, based_on_layout_template_id) references layout_template(company_id, id)
 ```
 
+### Leads (early access signups)
+
+Platform data, from the drilld.io early access form (migration 0012).
+
+- `lead`: who (name, email, phone, role), the shop (name, place, locations, shop type, balls per month, drillers, drill press), how they work (drill sheets on, software, grips, timeline, biggest headache, how they heard), marketing consent, `source` (referrer and `utm_*`), a `status` (`NEW → CONTACTED → QUALIFIED → DEMO → ONBOARDED`, or `NOT_A_FIT` / `SPAM`), and `company_id` once onboarded. The answer codes match `shared/api/leads.ts`.
+- `lead_note`: a log per lead, with the author's name as a snapshot (app_user is tenant data).
+- **Row-level security:** the API role may insert a lead only as `NEW` with no company, and can't read leads back. Everything else needs `app_platform_admin()`, which is true only when the API has set `app.platform_admin` for a verified platform admin.
+- The fit score that sorts the Leads screen (`leadFitScore`) is calculated, never stored.
+
+## Platform admins
+
+- Membership is the Cognito group `platform-admin` (created in `amplify/backend.ts`). Add someone with `aws cognito-idp admin-add-user-to-group --user-pool-id <pool> --username <email> --group-name platform-admin`; it applies from their next sign-in.
+- **TOTP is required.** The API checks the group in the ID token, then `AdminGetUser` for `SOFTWARE_TOKEN_MFA` (`amplify/api/platform.ts`). Without TOTP, `/me` reports `NEEDS_MFA` and the app offers authenticator setup.
+- For a verified platform admin, `withPlatformAdmin` sets `app.platform_admin` (and the admin's own `app.company_id`) for the transaction. It unlocks platform tables like `lead`, never another company's data.
+
 ## Internal-first rollout
 
 Build now (expensive to retrofit later):
@@ -630,7 +647,7 @@ Defer until productizing (it can be added without migrating data):
 - self-service signup and company onboarding. For now, the internal company is created by a seed or admin script.
 - payment provider integration and plan management UI. The billing columns stay null for the internal company.
 - additional plans above 4 locations
-- a platform admin console
+- a platform admin console. The platform admin concept exists (leads are its first use); onboarding companies is next.
 
 ## Sign-in (Cognito)
 
@@ -639,6 +656,7 @@ Defined in `amplify/auth/resource.ts` and `amplify/backend.ts`.
 - **Email and password**, with optional authenticator-app (TOTP) MFA and email-only password recovery.
 - **No self sign-up.** Accounts are created by invitation (Cognito `AdminCreateUser`), which emails a temporary password.
 - **Cognito holds identity only.** Company, roles and permissions live in the database and are looked up by the Cognito `sub` through `resolve_app_user`. Nothing about tenancy is stored in Cognito attributes or groups.
+- **The one group: `platform-admin`** (Drilld staff; see Platform admins below). It's not tenancy, and nothing in the app can grant it.
 
 **Invitation flow** (API work, not built yet):
 
@@ -662,6 +680,7 @@ The first company and its owner are created by a platform seed/admin script.
 3. **Composite foreign keys** `(company_id, x_id)` make it impossible for one company's row to reference another company's row, even through a bug.
 4. **Location scope** is checked in the backend against `location_membership`. `OWNER` and `ADMIN` users have every location in their company.
 5. The app's database role does **not** bypass RLS. Migrations use a separate owner role.
+6. **Platform tables** (leads) use `app.platform_admin` the same way, set only after the API has verified the Cognito group and TOTP. It grants nothing in tenant tables.
 
 ### The one cross-company read
 

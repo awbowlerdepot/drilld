@@ -230,6 +230,44 @@ export interface LayoutTemplate {
   updated_at: Generated<Timestamp>;
 }
 
+export interface Lead {
+  balls_per_month: string;
+  city: string | null;
+  company_id: string | null;
+  country: Generated<string>;
+  created_at: Generated<Timestamp>;
+  current_software: string | null;
+  current_tools: string | null;
+  drill_press: string | null;
+  driller_count: string | null;
+  email: string;
+  first_name: string;
+  grips: Generated<string[]>;
+  heard_from: string | null;
+  id: Generated<string>;
+  last_name: string;
+  location_count: string;
+  marketing_consent: Generated<boolean>;
+  pain_point: string | null;
+  phone: string | null;
+  region: string | null;
+  role: string;
+  shop_name: string;
+  shop_type: string | null;
+  source: Generated<Json>;
+  status: Generated<string>;
+  timeline: string | null;
+  updated_at: Generated<Timestamp>;
+}
+
+export interface LeadNote {
+  author_name: string;
+  body: string;
+  created_at: Generated<Timestamp>;
+  id: Generated<string>;
+  lead_id: string;
+}
+
 export interface Location {
   active: Generated<boolean>;
   address: Json | null;
@@ -317,6 +355,8 @@ export interface DB {
   grip_line: GripLine;
   grip_size: GripSize;
   layout_template: LayoutTemplate;
+  lead: Lead;
+  lead_note: LeadNote;
   location: Location;
   location_grip_stock: LocationGripStock;
   location_membership: LocationMembership;

@@ -1,4 +1,6 @@
 import { defineBackend } from '@aws-amplify/backend';
+import { CfnUserPoolGroup } from 'aws-cdk-lib/aws-cognito';
+import { PLATFORM_ADMIN_GROUP } from './auth/groups';
 import { auth } from './auth/resource';
 import { defineApi } from './api/resource';
 import { defineDatabase } from './database/resource';
@@ -15,6 +17,14 @@ const backend = defineBackend({
 const { cfnUserPool } = backend.auth.resources.cfnResources;
 cfnUserPool.addPropertyOverride('AdminCreateUserConfig.AllowAdminCreateUserOnly', true);
 
+// Platform admins run Drilld itself (leads, later onboarding). Membership is
+// granted in Cognito only, never by the app; the API also requires TOTP.
+new CfnUserPoolGroup(backend.auth.stack, 'PlatformAdminGroup', {
+    userPoolId: backend.auth.resources.userPool.userPoolId,
+    groupName: PLATFORM_ADMIN_GROUP,
+    description: 'Drilld platform admins (Drilld staff, not a shop role). Requires TOTP MFA.'
+});
+
 // Postgres for this environment. Branch deployments (production) are
 // protected; each sandbox gets its own disposable database.
 const isSandbox = backend.stack.node.tryGetContext('amplify-backend-type') === 'sandbox';
@@ -26,7 +36,10 @@ const api = defineApi(backend.createStack('api'), {
     userPoolClient: backend.auth.resources.userPoolClient,
     cluster: database.cluster,
     apiSecret: database.apiSecret,
-    databaseName: database.databaseName
+    databaseName: database.databaseName,
+    // New-signup emails: set on the Amplify app (and locally for a sandbox). See .env.example.
+    leadNotifyTo: process.env.LEAD_NOTIFY_TO,
+    leadNotifyFrom: process.env.LEAD_NOTIFY_FROM
 });
 
 // The frontend reads the API URL from amplify_outputs.json (custom.api.url).

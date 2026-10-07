@@ -1,6 +1,7 @@
 import React from 'react';
 import {
     BarChart3,
+    Inbox,
     LogOut,
     LucideIcon,
     MapPin,
@@ -28,6 +29,8 @@ interface SidebarProps {
     /** md and up: icons only. The phone drawer is always full width. */
     collapsed: boolean;
     onToggleCollapsed: () => void;
+    /** Platform admins (Drilld staff) also get Leads, with the admin items. */
+    showLeads?: boolean;
 }
 
 const NAV_ITEMS: { id: AppSection; label: string; icon: LucideIcon }[] = [
@@ -51,7 +54,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                                     open,
                                                     onClose,
                                                     collapsed,
-                                                    onToggleCollapsed
+                                                    onToggleCollapsed,
+                                                    showLeads = false
                                                 }) => {
     const activeLocations = locations.filter(location => location.active);
     const currentLocation = activeLocations.find(location => location.id === currentLocationID);
@@ -144,6 +148,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </nav>
 
                 <div className="mt-auto flex flex-col gap-0.5 border-t border-gray-200 pt-3.5">
+                    {showLeads && (
+                        <button
+                            onClick={() => onNavigate('leads')}
+                            aria-current={activeSection === 'leads' ? 'page' : undefined}
+                            className={itemClasses(activeSection === 'leads')}
+                            title={tooltip('Leads')}
+                        >
+                            <Inbox className="h-5 w-5 shrink-0" aria-hidden="true" />
+                            <span className={label}>Leads</span>
+                        </button>
+                    )}
                     <button
                         onClick={() => onNavigate('settings')}
                         aria-current={activeSection === 'settings' ? 'page' : undefined}

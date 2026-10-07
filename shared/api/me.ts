@@ -6,6 +6,11 @@ export interface MeDto {
         firstName: string;
         lastName: string;
         companyRole: 'OWNER' | 'ADMIN' | null;
+        /**
+         * Platform admin (runs Drilld itself): ACTIVE, NEEDS_MFA when in the
+         * group without two-factor sign-in, or null.
+         */
+        platformAdmin: 'ACTIVE' | 'NEEDS_MFA' | null;
     };
     company: { id: string; name: string };
     memberships: { locationID: string; role: 'MANAGER' | 'SENIOR_TECH' | 'TECHNICIAN' | 'APPRENTICE' }[];

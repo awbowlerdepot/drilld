@@ -6,12 +6,13 @@ import { HttpError, toErrorResponse } from './errors';
 import { customers } from './routes/customers';
 import { customerDrillSheets, drillSheets } from './routes/drillSheets';
 import { gripCatalog, locationGripStock } from './routes/grips';
+import { leads, publicLeads } from './routes/leads';
 import { locations } from './routes/locations';
 import { me } from './routes/me';
 
 export type ApiEnv = {
     Bindings: { event: LambdaEvent; lambdaContext: LambdaContext };
-    Variables: { db: Db; user: CurrentUser };
+    Variables: { db: Db; user: CurrentUser; claims: TokenClaims };
 };
 
 /**
@@ -25,12 +26,25 @@ const readClaims = (event: LambdaEvent): TokenClaims | null => {
     if (!claims || typeof claims.sub !== 'string') return null;
     return {
         sub: claims.sub,
+        username: typeof claims['cognito:username'] === 'string' ? claims['cognito:username'] : undefined,
         email: typeof claims.email === 'string' ? claims.email : undefined,
-        emailVerified: claims.email_verified === true || claims.email_verified === 'true'
+        emailVerified: claims.email_verified === true || claims.email_verified === 'true',
+        groups: readGroups(claims['cognito:groups'])
     };
 };
 
-/** The REST API. Every route runs as the signed-in user, scoped to their company. */
+/** API Gateway passes a list claim as a string, e.g. "[platform-admin other]"; tolerate an array too. */
+const readGroups = (value: unknown): string[] => {
+    if (Array.isArray(value)) return value.filter((group): group is string => typeof group === 'string');
+    if (typeof value !== 'string') return [];
+    return value.replace(/^\[|\]$/g, '').split(/[\s,]+/).filter(Boolean);
+};
+
+/**
+ * The REST API. Every route runs as the signed-in user, scoped to their
+ * company, except /public/* (the drilld.io signup form), which API Gateway
+ * serves without an authorizer.
+ */
 export const createApp = (db: Db) => {
     const app = new Hono<ApiEnv>();
 
@@ -41,12 +55,16 @@ export const createApp = (db: Db) => {
     app.notFound(c => c.json({ error: 'Not found' }, 404));
 
     app.use('*', async (c, next) => {
+        c.set('db', db);
+        if (c.req.path.startsWith('/public/')) return next();
         const claims = readClaims(c.env.event);
         if (!claims) throw new HttpError(401, 'Not signed in');
-        c.set('db', db);
+        c.set('claims', claims);
         c.set('user', await resolveCurrentUser(db, claims));
         await next();
     });
+
+    app.route('/public/leads', publicLeads);
 
     app.route('/me', me);
     app.route('/customers', customers);
@@ -55,6 +73,7 @@ export const createApp = (db: Db) => {
     app.route('/grip-catalog', gripCatalog);
     app.route('/locations/:locationId/grip-stock', locationGripStock);
     app.route('/locations', locations);
+    app.route('/leads', leads);
 
     return app;
 };

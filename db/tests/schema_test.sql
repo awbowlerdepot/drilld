@@ -371,6 +371,41 @@ select test.fails($$insert into work_order (company_id, location_id, company_bal
                   '23503', 'a work order cannot use another company''s layout template');
 
 -- ==========================================
+-- Leads and platform admins (0012), as the API
+-- ==========================================
+select set_config('app.company_id', '', false);
+
+insert into lead (first_name, last_name, email, role, shop_name, location_count, balls_per_month, grips)
+    values ('Pat', 'Lee', 'pat@shop.test', 'OWNER', 'Pat''s Pro Shop', 'TWO_TO_FOUR', '75_TO_150', array['VISE', 'TURBO']);
+select test.ok((select count(*) from lead) = 0, 'a signup can add a lead but not read leads back');
+select test.fails($$insert into lead (first_name, last_name, email, role, shop_name, location_count, balls_per_month, status)
+                    values ('Sam', 'Ray', 'sam@shop.test', 'DRILLER', 'Ray''s', 'ONE', 'UNDER_25', 'QUALIFIED')$$,
+                  '42501', 'a signup cannot set a lead''s status');
+select test.fails($$insert into lead (first_name, last_name, email, role, shop_name, location_count, balls_per_month)
+                    values ('Sam', 'Ray', 'not-an-email', 'DRILLER', 'Ray''s', 'ONE', 'UNDER_25')$$,
+                  '23514', 'a lead needs a valid email');
+select test.fails($$insert into lead (first_name, last_name, email, role, shop_name, location_count, balls_per_month, grips)
+                    values ('Sam', 'Ray', 'sam@shop.test', 'DRILLER', 'Ray''s', 'ONE', 'UNDER_25', array['STORM'])$$,
+                  '23514', 'grips must be known manufacturers');
+select test.ok((select count(*) from lead_note) = 0, 'a signup cannot read lead notes');
+
+select set_config('app.company_id', '00000000-0000-0000-0000-00000000000a', false);
+select test.ok((select count(*) from lead) = 0, 'a company''s users cannot see leads, even owners');
+
+select set_config('app.platform_admin', 'true', false);
+select test.ok((select count(*) from lead) = 1, 'a platform admin sees leads');
+update lead set status = 'CONTACTED' where email = 'pat@shop.test';
+select test.ok((select status from lead where email = 'pat@shop.test') = 'CONTACTED', 'a platform admin can work a lead');
+insert into lead_note (lead_id, author_name, body) select id, 'Al', 'Called; demo Tuesday' from lead where email = 'pat@shop.test';
+select test.ok((select count(*) from lead_note) = 1, 'a platform admin can add notes');
+select test.fails($$update lead set status = 'WON' where email = 'pat@shop.test'$$, '23514', 'a lead''s status must be a known one');
+select test.ok((select count(*) from customer) = 1, 'being a platform admin grants nothing more in a company''s data');
+
+select set_config('app.platform_admin', '', false);
+select set_config('app.company_id', '', false);
+select test.ok((select count(*) from lead) = 0, 'without the platform admin setting, leads are hidden again');
+
+-- ==========================================
 -- As the catalog sync job
 -- ==========================================
 \connect drilld sync_tester
