@@ -4,6 +4,7 @@ import { resolveCurrentUser, type CurrentUser, type TokenClaims } from './auth';
 import type { Db } from './db/client';
 import { HttpError, toErrorResponse } from './errors';
 import { customers } from './routes/customers';
+import { customerDrillSheets, drillSheets } from './routes/drillSheets';
 import { me } from './routes/me';
 
 export type ApiEnv = {
@@ -47,6 +48,8 @@ export const createApp = (db: Db) => {
 
     app.route('/me', me);
     app.route('/customers', customers);
+    app.route('/customers/:customerId/drill-sheets', customerDrillSheets);
+    app.route('/drill-sheets', drillSheets);
 
     return app;
 };

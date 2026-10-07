@@ -5,11 +5,33 @@ import {
     customerUpdateSchema,
     type CustomerDto
 } from '../../../shared/api/customers';
+import type { Delivery, DeliveryDto } from '../../../shared/api/delivery';
 import { uuid, withCompany } from '../db/client';
 import type { Customer } from '../db/schema';
 import { HttpError } from '../errors';
 import { loadAccess, requirePermission } from '../permissions';
 import type { ApiEnv } from '../app';
+
+const toNumber = (value: string | number | null): number | null => (value === null ? null : Number(value));
+
+const toDeliveryDto = (row: Selectable<Customer>): DeliveryDto => ({
+    axisTiltDegrees: toNumber(row.axis_tilt_degrees),
+    axisRotationDegrees: toNumber(row.axis_rotation_degrees),
+    papOver32: row.pap_over_32,
+    papUp32: row.pap_up_32,
+    speedMph: toNumber(row.speed_mph),
+    revRateRpm: row.rev_rate_rpm
+});
+
+/** Column changes for the delivery fields present in the input (null clears one). */
+const deliveryColumns = (delivery: Delivery | undefined) => (delivery ? {
+    ...(delivery.axisTiltDegrees !== undefined && { axis_tilt_degrees: delivery.axisTiltDegrees }),
+    ...(delivery.axisRotationDegrees !== undefined && { axis_rotation_degrees: delivery.axisRotationDegrees }),
+    ...(delivery.papOver32 !== undefined && { pap_over_32: delivery.papOver32 }),
+    ...(delivery.papUp32 !== undefined && { pap_up_32: delivery.papUp32 }),
+    ...(delivery.speedMph !== undefined && { speed_mph: delivery.speedMph }),
+    ...(delivery.revRateRpm !== undefined && { rev_rate_rpm: delivery.revRateRpm })
+} : {});
 
 const toDto = (row: Selectable<Customer>): CustomerDto => ({
     id: row.id,
@@ -22,6 +44,7 @@ const toDto = (row: Selectable<Customer>): CustomerDto => ({
     usesThumb: row.uses_thumb,
     notes: row.notes,
     homeLocationID: row.home_location_id,
+    delivery: toDeliveryDto(row),
     createdAt: new Date(row.created_at).toISOString(),
     updatedAt: new Date(row.updated_at).toISOString()
 });
@@ -65,7 +88,8 @@ export const customers = new Hono<ApiEnv>()
                     preferred_grip_style: input.preferredGripStyle,
                     uses_thumb: input.usesThumb,
                     notes: input.notes,
-                    home_location_id: input.homeLocationID ? uuid(input.homeLocationID) : null
+                    home_location_id: input.homeLocationID ? uuid(input.homeLocationID) : null,
+                    ...deliveryColumns(input.delivery)
                 })
                 .returningAll()
                 .executeTakeFirstOrThrow();
@@ -87,7 +111,8 @@ export const customers = new Hono<ApiEnv>()
             ...(input.notes !== undefined && { notes: input.notes }),
             ...(input.homeLocationID !== undefined && {
                 home_location_id: input.homeLocationID ? uuid(input.homeLocationID) : null
-            })
+            }),
+            ...deliveryColumns(input.delivery)
         };
         if (Object.keys(changes).length === 0) throw new HttpError(400, 'Nothing to update');
 
