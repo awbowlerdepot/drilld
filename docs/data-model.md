@@ -375,7 +375,7 @@ drillingSequence = [ { step, bitSize64, depth32, notes } ]   // in drilling orde
 - **Thumb oval cuts are calculated.** After drilling, the shop measures the oval with two bits: one that fits the narrow side (`pilotHole64`) and one that fits the wide side (`width64`). It also measures the angle. The cuts are derived from these:
   - The elongation is `width64 − pilotHole64`. It is split evenly on both sides of the pilot hole's center, so each side gets half.
   - The center is the thumb's desired pitch: the pilot is drilled there.
-  - Order matters. For a right-hander, the up-and-left cuts are made first, then the down-and-right ones. A left-hander mirrors this: up and right first, then down and left.
+  - Order matters. For a right-hander, start at the farthest up-and-left position and work back toward the center. Then work out down and to the right, finishing at the farthest position. A left-hander mirrors this: farthest up-and-right first, finishing at the farthest down-and-left.
   - Each side is divided into equal cuts of **no more than 1/32″**: `n = ceil(side ÷ 1/32″)` cuts of `side ÷ n` each. Both sides get the same number of cuts.
   - Each cut's vertical and horizontal components are `cut × cos(angle)` and `cut × sin(angle)`. For example, one 1/32″ cut at 45° is about .022″ and .022″.
   - The editor and the drill press view list the calculated cuts in drilling order, as **signed readout values** measured from the pitch center and rounded to thousandths:
