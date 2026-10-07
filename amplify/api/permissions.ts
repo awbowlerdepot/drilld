@@ -40,3 +40,8 @@ export const requirePermission = (access: Access, permission: string, locationID
     );
     if (!allowed) throw new HttpError(403, `Missing permission ${permission}`);
 };
+
+/** Throws 403 unless the user has company access (OWNER or ADMIN), e.g. to add a location. */
+export const requireCompanyAccess = (access: Access) => {
+    if (!access.companyRole) throw new HttpError(403, 'Only company owners and admins can do this');
+};

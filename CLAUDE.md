@@ -117,7 +117,7 @@ Look for incorrect imports, circular dependencies, and unnecessary complexity.
 
 ## Status and next up
 
-- Customers and drill sheets use the API when signed in. Everything else, and all of it without sign-in, runs on mock data; mock hooks simulate API calls with `setTimeout`.
+- Customers, drill sheets and locations use the API when signed in. Everything else, and all of it without sign-in, runs on mock data; mock hooks simulate API calls with `setTimeout`.
 - The PostgreSQL schema exists in `db/migrations/` and is covered by `db/test.sh`:
   - tenancy
   - customers
@@ -136,9 +136,13 @@ Look for incorrect imports, circular dependencies, and unnecessary complexity.
     - `/drill-sheets/:id`: get, rename/archive (PATCH), and save the draft (`PUT …/draft`)
     - `/drill-sheets/:id/revisions`: the history, one revision by version, and `POST …/approve`
     - The spec is validated by `shared/api/drillSheetSpec.ts` (spec v1).
+  - locations:
+    - `GET /locations`: list.
+    - `POST /locations`: add one; company owners and admins only; the plan limit of 4 active locations returns 409.
+    - `PATCH /locations/:id`: edit or deactivate; needs `manage:settings` there. Locations are never deleted.
   - `GET /grip-catalog`: the shared catalog of inserts and thumb hardware (VISE, Turbo, JoPo), one entry per line with its sizes.
   - `GET/PUT /locations/:locationId/grip-stock`: the catalog sizes a location carries. PUT replaces the whole list and needs `manage:settings`.
-- `useCustomers`, `useCustomerDrillSheets` and `useDrillSheetEditor` use the API when signed in; without it, drill sheets use an in-memory mock (`src/data/mockDrillSheets.ts`). The other hooks are still on mock data. Work orders still use the old `DrillSheet` type and `useDrillSheets`.
+- `useCustomers`, `useLocations`, `useCustomerDrillSheets` and `useDrillSheetEditor` use the API when signed in; without it, drill sheets use an in-memory mock (`src/data/mockDrillSheets.ts`). The other hooks are still on mock data. Work orders still use the old `DrillSheet` type and `useDrillSheets`.
 - `npm run build` passes.
 - Done on the frontend:
   - company/location tenancy rename
@@ -154,7 +158,7 @@ Look for incorrect imports, circular dependencies, and unnecessary complexity.
 - Next:
   1. Stand up the rest of the backend:
      - the BowlerIQ catalog sync job
-  2. The drill press view (canvas design F), revision history, and bevel, depth and step drilling in the editor. Then replace the remaining mock data (balls, work orders, locations, employees).
+  2. The location "what we carry" screen and the drill sheet insert picker (grip catalog, install style, fixed O.D., vacu). Then the drill press view (canvas design F), revision history, and bevel, depth and step drilling. Then replace the remaining mock data (balls, work orders, employees).
   3. Complete work order management, using `resolveLocationSettings` for labor rate and tax.
   4. Resolve the remaining open item in `docs/data-model.md` (customer sharing across locations).
   5. Clear the pre-existing lint errors.

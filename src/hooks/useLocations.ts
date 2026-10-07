@@ -2,32 +2,47 @@ import { useState, useEffect } from 'react';
 import { Location } from '../types';
 import { getHoursForDay, isClosedHours } from '../utils/LocationHours';
 import { mockLocations } from '../data/mockLocationData';
+import { apiEnabled } from '../services/config';
+import { locationsService } from '../services/locationsService';
 
+type LocationFields = Omit<Location, 'id' | 'createdAt' | 'updatedAt'>;
+
+/**
+ * The company's locations. Reads and writes through the REST API when signed
+ * in; otherwise (local development without auth) uses mock data. Add, update
+ * and delete return promises and reject if the API refuses.
+ */
 export const useLocations = () => {
     const [locations, setLocations] = useState<Location[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        // Simulate API call delay like other hooks in the codebase
-        setTimeout(() => {
-            setLocations(mockLocations);
-            setLoading(false);
-        }, 500);
+        let cancelled = false;
+        const load = apiEnabled
+            ? locationsService.list()
+            : new Promise<Location[]>(resolve => setTimeout(() => resolve(mockLocations), 500));
+        load
+            .then(result => { if (!cancelled) setLocations(result); })
+            .catch((err: Error) => { if (!cancelled) setError(err.message); })
+            .finally(() => { if (!cancelled) setLoading(false); });
+        return () => { cancelled = true; };
     }, []);
 
-    const addLocation = (locationData: Omit<Location, 'id' | 'createdAt' | 'updatedAt'>) => {
-        const newLocation: Location = {
-            ...locationData,
-            id: Date.now().toString(),
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        };
+    const addLocation = async (locationData: LocationFields) => {
+        const newLocation: Location = apiEnabled
+            ? await locationsService.create(locationData)
+            : { ...locationData, id: Date.now().toString(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
         setLocations(prev => [...prev, newLocation]);
         return newLocation;
     };
 
-    const updateLocation = (id: string, updates: Partial<Location>) => {
+    const updateLocation = async (id: string, updates: Partial<LocationFields>) => {
+        if (apiEnabled) {
+            const updated = await locationsService.update(id, updates);
+            setLocations(prev => prev.map(location => (location.id === id ? updated : location)));
+            return;
+        }
         setLocations(prev =>
             prev.map(location =>
                 location.id === id
@@ -37,7 +52,9 @@ export const useLocations = () => {
         );
     };
 
-    const deleteLocation = (id: string) => {
+    /** Locations hold history (drill sheets, work orders), so with the API they're deactivated, not deleted. */
+    const deleteLocation = async (id: string) => {
+        if (apiEnabled) throw new Error('Locations can\'t be deleted. Deactivate it instead.');
         setLocations(prev => prev.filter(location => location.id !== id));
     };
 

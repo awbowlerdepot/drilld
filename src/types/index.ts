@@ -117,6 +117,8 @@ export interface Location {
     name: string;
     address?: string;
     phone?: string;
+    /** IANA time zone, e.g. America/Denver. */
+    timezone?: string;
     equipmentInfo?: LocationEquipmentInfo;
     hours?: Record<string, string>;
     settingsOverrides?: LocationSettingsOverrides;

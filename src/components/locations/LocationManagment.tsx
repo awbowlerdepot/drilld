@@ -36,6 +36,7 @@ export const LocationManagement: React.FC<LocationManagementProps> = ({
         hasEquipment: false
     });
     const [showFilters, setShowFilters] = useState(false);
+    const [actionError, setActionError] = useState<string | null>(null);
 
     const effectiveSearchTerm = searchTerm || localSearchTerm;
 
@@ -66,18 +67,18 @@ export const LocationManagement: React.FC<LocationManagementProps> = ({
         return getLocationStats(locationId);
     };
 
-    const handleSave = (locationData: Omit<Location, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const handleSave = async (locationData: Omit<Location, 'id' | 'createdAt' | 'updatedAt'>) => {
         try {
             if (editingLocation) {
-                updateLocation(editingLocation.id, locationData);
+                await updateLocation(editingLocation.id, locationData);
             } else {
-                addLocation(locationData);
+                await addLocation(locationData);
             }
+            setActionError(null);
             setShowForm(false);
             setEditingLocation(null);
         } catch (error) {
-            console.error('Error saving location:', error);
-            // Handle error (show toast, etc.)
+            setActionError(`Could not save the location: ${(error as Error).message}`);
         }
     };
 
@@ -86,23 +87,23 @@ export const LocationManagement: React.FC<LocationManagementProps> = ({
         setShowForm(true);
     };
 
-    const handleDelete = (locationId: string) => {
+    const handleDelete = async (locationId: string) => {
         if (window.confirm('Are you sure you want to delete this location? This action cannot be undone.')) {
             try {
-                deleteLocation(locationId);
+                await deleteLocation(locationId);
+                setActionError(null);
             } catch (error) {
-                console.error('Error deleting location:', error);
-                // Handle error
+                setActionError((error as Error).message);
             }
         }
     };
 
-    const handleToggleActive = (locationId: string, active: boolean) => {
+    const handleToggleActive = async (locationId: string, active: boolean) => {
         try {
-            updateLocation(locationId, { active });
+            await updateLocation(locationId, { active });
+            setActionError(null);
         } catch (error) {
-            console.error('Error updating location status:', error);
-            // Handle error
+            setActionError(`Could not update the location: ${(error as Error).message}`);
         }
     };
 
@@ -133,6 +134,10 @@ export const LocationManagement: React.FC<LocationManagementProps> = ({
                     Add Location
                 </Button>
             </div>
+
+            {actionError && (
+                <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-800">{actionError}</p>
+            )}
 
             {/* Stats */}
             <LocationStats locations={locations} />
