@@ -377,10 +377,10 @@ drillingSequence = [ { step, bitSize64, depth32, notes } ]   // in drilling orde
   - The center is the thumb's desired pitch: the pilot is drilled there.
   - Order matters. For a right-hander, start at the farthest up-and-left position and work back toward the center. Then work out down and to the right, finishing at the farthest position. A left-hander mirrors this: farthest up-and-right first, finishing at the farthest down-and-left.
   - Each side is divided into equal cuts of **no more than 1/32″**: `n = ceil(side ÷ 1/32″)` cuts of `side ÷ n` each. Both sides get the same number of cuts.
-  - Each cut's vertical and horizontal components are `cut × cos(angle)` and `cut × sin(angle)`. For example, one 1/32″ cut at 45° is about .022″ and .022″.
+  - The angle is measured from horizontal: 0° is a left-to-right oval and 90° is up-and-down. Each cut's horizontal and vertical components are `cut × cos(angle)` and `cut × sin(angle)`. For example, one 1/32″ cut at 45° is about .022″ each way.
   - The editor and the drill press view list the calculated cuts in drilling order, as **digital readout positions**, rounded to thousandths:
     - The pitch center comes from the thumb's pitches. Forward/reverse pitch is on the vertical axis and lateral on the horizontal; pitch in inches is the jig offset (see **Pitch on the readout** below).
-    - Each cut's position is the pitch center plus that cut's offset. For example, 3/8″ reverse and 1/8″ left puts the center at −.375 / −.125, so the first cut is at −.331 / −.141.
+    - Each cut's position is the pitch center plus that cut's offset. For example, 3/8″ reverse and 1/8″ left puts the center at −.375 / −.125 (up and right positive). Two .023″ cuts per side at 20° then put the first cut at −.359 / −.169.
     - Signs follow the press's readout directions (below).
   - The cuts aren't stored.
 - **Pitch on the readout.** Pitches are measured from the center of the grip, so the vertical direction depends on the hole:
