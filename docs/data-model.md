@@ -508,7 +508,7 @@ drillingSequence = [ { step, bitSize64, depth32, notes } ]   // in drilling orde
   | D | 32° | 3/16″ L | 11/16″ R |
   | E | 40° | 1/8″ L | 3/4″ R |
 
-**Inserts and thumb hardware.** Finger `insert` and `vacu` are built; thumb `hardware` (replacing `slug`) is next. Each is a copy of a grip catalog choice:
+**Inserts and thumb hardware.** Finger `insert` and `vacu`, and thumb `hardware` (which replaced `slug`), are each a copy of a grip catalog choice:
 
 ```
 insert   = { gripSizeId?, manufacturer, line, size64, label, od64, installStyle? }     // finger; gripSizeId null = "Other"
@@ -517,7 +517,8 @@ vacu     = { bit64, depth32 }                                                   
 ```
 
 - **O.D.** With an insert or hardware set, the hole's `outsideDiameter64` is its `od64`. The API checks catalog choices against the catalog: the size must match, the O.D. must be one of that size's `od64_choices`, and the install style must be one the line offers.
-- **Older sheets.** A sheet saved with the old insert shape (`{ manufacturer, insertSize64, type, model, color }`) is read as an "Other" insert, using the hole's size and O.D.
+- **Thumb hardware and the hole.** A thumb insert sets both the hole size and the O.D. A slug, or an interchangeable system's inner, has the thumb hole drilled into it, and the hardware sets only the O.D. (the collar bit, for interchangeable systems). The editor warns when the hole, or its oval width, leaves less than 1/8″ of wall in a slug or VISE IT inner, and suggests the next size up.
+- **Older sheets.** A sheet saved with the old insert shape (`{ manufacturer, insertSize64, type, model, color }`) is read as an "Other" insert, using the hole's size and O.D. An old `slug` is read as "Other" thumb hardware.
 - **Vacu** applies to finger insert holes only. The top of the hole is drilled with a different bit from the O.D. below it.
   - `bit64` ranges from O.D. − 1/64″ (one bit smaller) to O.D. + 1/16″, in 1/64″ steps. It defaults to O.D. + 1/16″, the standard vacu.
   - `depth32` defaults to 1″ (32), the manufacturers' standard. A performance fit can set it anywhere from 1/2″ to 1-1/2″ in 1/16″ steps (16–48, even values).

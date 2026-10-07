@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { format32 } from '../../../utils/Fractions'
 import { HoleCircle } from './HoleCircle'
-import { applyInsert, describeInsert } from './insertEdits'
+import { applyInsert, applyThumbHardware, describeInsert, describeThumbHardware } from './insertEdits'
 import { ScaledCanvas } from './ScaledCanvas'
 import { ValueBox } from './ValueBox'
 import { usePicker } from './pickers'
@@ -105,6 +105,14 @@ export const HoleLayout = ({ spec, edit, readOnly, hand, locationId }: SheetEdit
         locationId,
         value: spec.holes[finger].insert ?? null,
         onSet: insert => edit(draft => applyInsert(draft, finger, insert))
+    })
+
+    const pickThumbHardware = () => open({
+        kind: 'thumbHardware',
+        title: 'Thumb hardware',
+        locationId,
+        value: spec.holes.thumb.hardware ?? null,
+        onSet: hardware => edit(draft => applyThumbHardware(draft, hardware))
     })
 
     const fingerHole = (finger: Finger, left: number) => {
@@ -212,17 +220,21 @@ export const HoleLayout = ({ spec, edit, readOnly, hand, locationId }: SheetEdit
             )}
 
             <span className="absolute text-lg font-medium text-gray-900" style={at(548, 590)}>Thumb hardware</span>
-            <span className="absolute w-[220px] text-[16px] font-medium text-primary" style={at(548, 616)}>
-                {thumb.slug ? [thumb.slug.manufacturer, thumb.slug.type].filter(Boolean).join(' ') || 'Slug' : 'None'}
-            </span>
+            <button type="button" disabled={readOnly} onClick={pickThumbHardware}
+                className="absolute w-[230px] text-left text-[15px] font-medium leading-tight text-primary hover:underline disabled:no-underline"
+                style={at(548, 616)}>
+                {thumb.hardware ? describeThumbHardware(thumb.hardware) : 'None'}
+            </button>
 
             <ValueBox label="Thumb forward pitch" readOnly={readOnly} className="h-[70px] w-28" style={at(360, 565)}
                 value={thumbForward > 0 ? format32(thumbForward) : null}
                 onClick={() => pickPitch('Thumb pitch', 'thumb', 'forward32', 1)} />
             {caption(386, 640, 'Forward')}
             <HoleCircle left={340} top={659} readOnly={readOnly} name="Thumb"
-                upper={{ label: 'O.D.', value: thumb.outsideDiameter64, onClick: () => pickBit('Thumb O.D.', 'thumb', 'outsideDiameter64') }}
-                lower={{ label: 'Hole size', value: thumb.size64, onClick: () => pickBit('Thumb hole size', 'thumb', 'size64') }} />
+                upper={{ label: thumb.hardware?.collar ? 'Collar bit' : 'O.D.', value: thumb.outsideDiameter64,
+                    onClick: () => (thumb.hardware ? pickThumbHardware() : pickBit('Thumb O.D.', 'thumb', 'outsideDiameter64')) }}
+                lower={{ label: 'Hole size', value: thumb.size64,
+                    onClick: () => (thumb.hardware?.kind === 'THUMB_INSERT' ? pickThumbHardware() : pickBit('Thumb hole size', 'thumb', 'size64')) }} />
             <ValueBox label="Thumb lateral pitch, left" readOnly={readOnly} className="h-[70px] w-[113px]" style={at(205, 696)}
                 value={thumbLateral < 0 ? format32(-thumbLateral) : null}
                 onClick={() => pickPitch('Thumb lateral pitch', 'thumb', 'lateral32', 0)} />

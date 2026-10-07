@@ -1,5 +1,5 @@
 import { VACU_BIT_RANGE } from '../../../../shared/api/drillSheetSpec'
-import type { Finger, FingerHole, Insert, Vacu } from './editorTypes'
+import type { Finger, FingerHole, Insert, ThumbHardware, Vacu } from './editorTypes'
 import type { DrillSheetSpec } from '../../../../shared/api/drillSheetSpec'
 
 /** The standard vacu for an insert: O.D. + 1/16" at 1" deep. */
@@ -32,4 +32,41 @@ export const applyInsert = (draft: DrillSheetSpec, finger: Finger, insert: Inser
 export const describeInsert = (insert: Insert) => {
     const maker = { VISE: 'VISE', TURBO: 'Turbo', JOPO: 'JoPo' }[insert.manufacturer] ?? insert.manufacturer
     return [`${maker} ${insert.line}`.trim(), insert.installStyle].filter(Boolean).join(' · ')
+}
+
+/**
+ * Sets (or removes) the thumb hardware. Its od64 is the hole's O.D. (a collar
+ * bit for interchangeable systems); a thumb insert also sets the hole size,
+ * while a slug or inner has the thumb hole drilled into it.
+ */
+export const applyThumbHardware = (draft: DrillSheetSpec, hardware: ThumbHardware | null) => {
+    const thumb = draft.holes.thumb
+    thumb.hardware = hardware
+    if (!hardware) return
+    thumb.outsideDiameter64 = hardware.od64
+    if (hardware.kind === 'THUMB_INSERT' && hardware.size64) thumb.size64 = hardware.size64
+}
+
+/** "Turbo Switch Grip · interchangeable" */
+export const describeThumbHardware = (hardware: ThumbHardware) => {
+    const maker = { VISE: 'VISE', TURBO: 'Turbo', JOPO: 'JoPo' }[hardware.manufacturer] ?? hardware.manufacturer
+    const kind = { THUMB_INSERT: 'thumb insert', THUMB_SLUG: 'slug', INTERCHANGEABLE_THUMB: 'interchangeable' }[hardware.kind]
+    return [`${maker} ${hardware.line}`.trim(), hardware.kind === 'THUMB_INSERT' ? null : kind].filter(Boolean).join(' · ')
+}
+
+/** The minimum wall around a thumb hole drilled into a slug or inner: 1/8". */
+export const MIN_WALL64 = 8
+
+/**
+ * The wall left around the thumb hole in a slug or interchangeable inner, in
+ * 64ths: half the piece's size minus the hole's farthest edge (half the oval
+ * width, or the hole radius). Null when it doesn't apply or isn't known yet.
+ */
+export const thumbWall64 = (hardware: ThumbHardware | null | undefined, holeSize64: number | null | undefined, ovalWidth64?: number | null) => {
+    if (!hardware || hardware.kind === 'THUMB_INSERT' || !hardware.size64) return null
+    // Interchangeable outer sleeves (Switch Grip, Twist) don't say the inner's size.
+    if (hardware.kind === 'INTERCHANGEABLE_THUMB' && hardware.collar && hardware.od64 === hardware.size64) return null
+    const hole = ovalWidth64 ?? holeSize64
+    if (!hole) return null
+    return (hardware.size64 - hole) / 2
 }

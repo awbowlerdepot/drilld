@@ -49,9 +49,9 @@ const promotedColumns = (spec: DrillSheetSpec) => {
 const FINGER_HOLES = ['middle', 'ring', 'index', 'pinky'] as const;
 
 /**
- * Checks catalog inserts against the grip catalog: the size exists, is a
- * finger insert, and the sheet's size, O.D. and install style are ones it
- * offers. ("Other" inserts, with no gripSizeId, aren't checked.)
+ * Checks catalog inserts and thumb hardware against the grip catalog: the
+ * size exists, is the right kind, and the sheet's size, O.D. and install
+ * style are ones it offers. ("Other" pieces, with no gripSizeId, aren't checked.)
  */
 const checkInsertsAgainstCatalog = async (tx: Tx, spec: DrillSheetSpec) => {
     for (const finger of FINGER_HOLES) {
@@ -69,6 +69,21 @@ const checkInsertsAgainstCatalog = async (tx: Tx, spec: DrillSheetSpec) => {
                         : insert.installStyle && !size.install_styles.includes(insert.installStyle) ? 'has an install style its line doesn\'t offer'
                             : null;
         if (problem) throw new HttpError(400, `The ${finger} finger insert ${problem}`);
+    }
+
+    const hardware = spec.holes.thumb.hardware;
+    if (hardware?.gripSizeId) {
+        const size = await tx.selectFrom('grip_size')
+            .innerJoin('grip_line', 'grip_line.id', 'grip_size.line_id')
+            .select(['grip_size.size64', 'grip_size.od64_choices', 'grip_line.kind'])
+            .where('grip_size.id', '=', uuid(hardware.gripSizeId))
+            .executeTakeFirst();
+        const problem = !size ? 'is not in the grip catalog'
+            : size.kind !== hardware.kind ? 'is a different kind of piece in the catalog'
+                : hardware.size64 != null && hardware.size64 !== size.size64 ? 'has the wrong size for its catalog entry'
+                    : !size.od64_choices.includes(hardware.od64) ? 'has an O.D. its catalog entry doesn\'t offer'
+                        : null;
+        if (problem) throw new HttpError(400, `The thumb hardware ${problem}`);
     }
 };
 

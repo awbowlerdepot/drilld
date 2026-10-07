@@ -57,7 +57,7 @@ store.set(sampleId, {
                 size64: 61, outsideDiameter64: 96,
                 pitch: { forward32: -12, lateral32: -4 },
                 oval: { angleDegrees: 20, pilotHole64: 61, width64: 67 },
-                slug: { manufacturer: 'Turbo', type: 'Switch Grip', interchangeable: true }
+                hardware: { gripSizeId: '33244da5-1b49-5ee9-a21e-4861b001308a', manufacturer: 'TURBO', line: 'Switch Grip', kind: 'INTERCHANGEABLE_THUMB', size64: 96, label: 'Outer sleeve', od64: 96, collar: true }
             },
             middle: {
                 size64: 50, outsideDiameter64: 62,
