@@ -88,13 +88,16 @@ line('VISE', 'IT Interchangeable Thumb', 'INTERCHANGEABLE_THUMB', VISE_EASY + ['
 
 # ---------- Turbo ----------
 turbo_std = list(range(38, 53)) + [53, 54, 56, 58]                 # 1 .. 8, then 8.5, 9, 10, 11
-line('TURBO', 'Quad', 'FINGER_INSERT', TEN, standard(turbo_std), ['Perfect Oval', 'Power Oval'])
+# Quad (the name: 4 ways): each side is half smooth, half mesh, and each half installs on its own.
+# The Power Oval's mesh half is rarely used, so it's listed last.
+QUAD_STYLES = ['Perfect Oval Smooth', 'Perfect Oval Mesh', 'Power Oval', 'Power Oval Mesh']
+line('TURBO', 'Quad', 'FINGER_INSERT', TEN, standard(turbo_std), QUAD_STYLES)
 line('TURBO', 'Classic', 'FINGER_INSERT', TEN, standard(turbo_std), ['Perfect Oval', 'Power Lift 1/4″'])
 line('TURBO', 'Classic Pro', 'FINGER_INSERT', ['Black', 'Blue'], standard(turbo_std), ['Perfect Oval', 'Power Lift 1/4″'])
 line('TURBO', 'Quad 2', 'FINGER_INSERT', ['Black', 'Ice/Clear'], standard(turbo_std), ['Power Nub', 'Semi-Super Bump'])
 line('TURBO', 'Power-SB', 'FINGER_INSERT', ['Black', 'Ice/Clear'], standard(turbo_std), ['Power Lift 1/4″', 'Semi-Super Bump'])
 line('TURBO', 'Ms. Quad', 'FINGER_INSERT', ['Black', 'White', 'Ice/Clear', 'Yellow', 'Pink'],
-     standard(range(34, 49), od=lambda s: 56), ['Perfect Oval', 'Power Oval'])                         # -1 .. 6
+     standard(range(34, 49), od=lambda s: 56), QUAD_STYLES)                                             # -1 .. 6
 line('TURBO', 'Urethane Finger Solids', 'FINGER_SLUG', ['Black'], [(s, fraction(s), [s], False) for s in (62, 72)])
 for style in ['Round', 'Oval']:
     line('TURBO', f'Xcel Thumb {style}', 'THUMB_INSERT', ['Black'],
