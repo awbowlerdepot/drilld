@@ -1,12 +1,12 @@
 // src/components/customers/CustomerDetailView.tsx
 import React, { useState } from 'react';
 import { ArrowLeft, Plus, FileText, Target, Edit, Eye } from 'lucide-react';
-import { Customer, DrillSheet, BowlingBall } from '../../types';
-import { useDrillSheets } from '../../hooks/useDrillSheets';
+import { Customer, BowlingBall } from '../../types';
+import { useCustomerDrillSheets } from '../../hooks/useCustomerDrillSheets';
 import { useBalls } from '../../hooks/useBalls';
 import { Button } from '../common/Button';
-import { DrillSheetForm } from '../drillsheets/DrillSheetForm';
-import { DrillSheetCard } from '../drillsheets/DrillSheetCard';
+import { CustomerDrillSheets } from '../drillsheets/CustomerDrillSheets';
+import { DrillSheetEditor } from '../drillsheets/editor/DrillSheetEditor';
 import { BallCard } from '../balls/BallCard';
 import { BallForm } from '../balls/BallForm';
 import { CustomerOverview } from './CustomerOverview';
@@ -15,79 +15,27 @@ interface CustomerDetailViewProps {
     customer: Customer;
     onBack: () => void;
     onEditCustomer: (customer: Customer) => void;
+    /** The location picked in the sidebar; recorded on drill sheet revisions. */
+    currentLocationID?: string;
 }
 
 export const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({
                                                                           customer,
                                                                           onBack,
-                                                                          onEditCustomer
+                                                                          onEditCustomer,
+                                                                          currentLocationID
                                                                       }) => {
-    const { addDrillSheet, updateDrillSheet, deleteDrillSheet, getDrillSheetsByCustomer } = useDrillSheets();
     const { addBall, updateBall, deleteBall, getBallsByCustomer } = useBalls();
 
     const [activeTab, setActiveTab] = useState<'overview' | 'drillsheets' | 'balls'>('overview');
-    const [showDrillSheetForm, setShowDrillSheetForm] = useState(false);
-    const [editingDrillSheet, setEditingDrillSheet] = useState<DrillSheet | null>(null);
+    const [includeArchivedSheets, setIncludeArchivedSheets] = useState(false);
+    const [creatingDrillSheet, setCreatingDrillSheet] = useState(false);
+    const [openDrillSheetId, setOpenDrillSheetId] = useState<string | null>(null);
+    const drillSheets = useCustomerDrillSheets(customer.id, { includeArchived: includeArchivedSheets });
     const [showBallForm, setShowBallForm] = useState(false);
     const [editingBall, setEditingBall] = useState<BowlingBall | null>(null);
 
-    const customerDrillSheets = getDrillSheetsByCustomer(customer.id);
     const customerBalls = getBallsByCustomer(customer.id);
-
-    // Drill Sheet Handlers
-    const handleSaveDrillSheet = (drillSheetData: Omit<DrillSheet, 'id' | 'createdAt'>) => {
-        if (editingDrillSheet) {
-            updateDrillSheet(editingDrillSheet.id, drillSheetData);
-        } else {
-            addDrillSheet({
-                ...drillSheetData,
-                customerID: customer.id,
-                // Ensure bridge has default value
-                bridge: drillSheetData.bridge || { distance: 0.25 }
-            });
-        }
-        setShowDrillSheetForm(false);
-        setEditingDrillSheet(null);
-    };
-
-    const handleEditDrillSheet = (drillSheet: DrillSheet) => {
-        setEditingDrillSheet(drillSheet);
-        setShowDrillSheetForm(true);
-    };
-
-    const handleViewDrillSheet = (drillSheet: DrillSheet) => {
-        // Create a detailed view showing all measurements including bridge
-        const spanInfo = drillSheet.holes.thumb?.enabled ?
-            `Thumb-Middle: ${drillSheet.spans.thumbToMiddle.fitSpan || 'N/A'}", Thumb-Ring: ${drillSheet.spans.thumbToRing.fitSpan || 'N/A'}"` :
-            'No thumb measurements (Two-handed style)';
-
-        const bridgeInfo = `Bridge: ${drillSheet.bridge.distance}"`;
-
-        const holeInfo = [
-            drillSheet.holes.thumb?.enabled ? `Thumb: ${drillSheet.holes.thumb.size.primary} (${drillSheet.holes.thumb.holeType})` : '',
-            drillSheet.holes.middle ? `Middle: ${drillSheet.holes.middle.size.primary}` : '',
-            drillSheet.holes.ring ? `Ring: ${drillSheet.holes.ring.size.primary}` : ''
-        ].filter(Boolean).join(', ');
-
-        alert(`Drill Sheet: ${drillSheet.name}\n\nMeasurements:\n${spanInfo}\n${bridgeInfo}\n\nHoles:\n${holeInfo}\n\nNotes: ${drillSheet.specialNotes || 'None'}`);
-    };
-
-    const handlePrintDrillSheet = (drillSheet: DrillSheet) => {
-        // TODO: Implement print functionality
-        console.log('Print drill sheet:', drillSheet);
-        alert(`Printing drill sheet: ${drillSheet.name}\n\nThis would generate a formatted drill sheet with:\n- Span measurements\n- Bridge measurement: ${drillSheet.bridge.distance}"\n- Hole specifications\n- Pitch information`);
-    };
-
-    const handleDeleteDrillSheet = (drillSheet: DrillSheet) => {
-        if (window.confirm(`Are you sure you want to delete "${drillSheet.name}"?`)) {
-            deleteDrillSheet(drillSheet.id);
-        }
-    };
-
-    const handleCancelDrillSheetForm = () => {
-        setShowDrillSheetForm(false);
-        setEditingDrillSheet(null);
-    };
 
     // Ball Handlers
     const handleSaveBall = (ballData: Omit<BowlingBall, 'id'>) => {
@@ -131,9 +79,23 @@ export const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({
         setEditingBall(null);
     };
 
-    const tabs = [
+    if (openDrillSheetId) {
+        return (
+            <DrillSheetEditor
+                sheetId={openDrillSheetId}
+                customer={customer}
+                locationID={currentLocationID}
+                onBack={() => {
+                    setOpenDrillSheetId(null);
+                    drillSheets.reload();
+                }}
+            />
+        );
+    }
+
+    const tabs: { id: typeof activeTab; label: string; icon: React.ReactNode; count?: number }[] = [
         { id: 'overview', label: 'Overview', icon: <Eye className="w-4 h-4" /> },
-        { id: 'drillsheets', label: 'Drill Sheets', icon: <FileText className="w-4 h-4" />, count: customerDrillSheets.length },
+        { id: 'drillsheets', label: 'Drill Sheets', icon: <FileText className="w-4 h-4" />, count: drillSheets.sheets.length },
         { id: 'balls', label: 'Bowling Balls', icon: <Target className="w-4 h-4" />, count: customerBalls.length }
     ];
 
@@ -193,7 +155,7 @@ export const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({
                             Quick Stats
                         </h3>
                         <div className="space-y-1">
-                            <p className="text-sm text-gray-900">{customerDrillSheets.length} Drill Sheets</p>
+                            <p className="text-sm text-gray-900">{drillSheets.sheets.length} Drill Sheets</p>
                             <p className="text-sm text-gray-900">{customerBalls.length} Bowling Balls</p>
                             <p className="text-sm text-gray-500">
                                 Customer since {new Date(customer.createdAt).toLocaleDateString()}
@@ -218,7 +180,7 @@ export const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({
                         {tabs.map((tab) => (
                             <button
                                 key={tab.id}
-                                onClick={() => setActiveTab(tab.id as any)}
+                                onClick={() => setActiveTab(tab.id)}
                                 className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
                                     activeTab === tab.id
                                         ? 'border-blue-500 text-blue-600'
@@ -245,13 +207,13 @@ export const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({
                     {activeTab === 'overview' && (
                         <CustomerOverview
                             customer={customer}
-                            drillSheets={customerDrillSheets}
+                            drillSheets={drillSheets.sheets}
                             balls={customerBalls}
                             onViewDrillSheets={() => setActiveTab('drillsheets')}
                             onViewBalls={() => setActiveTab('balls')}
                             onCreateDrillSheet={() => {
                                 setActiveTab('drillsheets');
-                                setShowDrillSheetForm(true);
+                                setCreatingDrillSheet(true);
                             }}
                             onAddBall={() => {
                                 setActiveTab('balls');
@@ -261,63 +223,15 @@ export const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({
                     )}
 
                     {activeTab === 'drillsheets' && (
-                        <div className="space-y-6">
-                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-                                <h3 className="text-lg font-medium text-gray-900">
-                                    Drill Sheets for {customer.firstName}
-                                </h3>
-                                <Button
-                                    onClick={() => setShowDrillSheetForm(true)}
-                                    icon={Plus}
-                                >
-                                    Create Drill Sheet
-                                </Button>
-                            </div>
-
-                            {showDrillSheetForm && (
-                                <div className="animate-fade-in">
-                                    <DrillSheetForm
-                                        drillSheet={editingDrillSheet || undefined}
-                                        customer={customer}
-                                        onSave={handleSaveDrillSheet}
-                                        onCancel={handleCancelDrillSheetForm}
-                                    />
-                                </div>
-                            )}
-
-                            {customerDrillSheets.length === 0 && !showDrillSheetForm ? (
-                                <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
-                                    <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                                    <h4 className="text-lg font-medium text-gray-900 mb-2">No drill sheets yet</h4>
-                                    <p className="text-gray-500 mb-6">
-                                        Create the first drill sheet for {customer.firstName} to get started.
-                                    </p>
-                                    <div className="mt-6">
-                                        <Button
-                                            onClick={() => setShowDrillSheetForm(true)}
-                                            icon={Plus}
-                                        >
-                                            Create First Drill Sheet
-                                        </Button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                                    {customerDrillSheets.map((sheet) => (
-                                        <DrillSheetCard
-                                            key={sheet.id}
-                                            drillSheet={sheet}
-                                            customer={customer}
-                                            onEdit={handleEditDrillSheet}
-                                            onView={handleViewDrillSheet}
-                                            onPrint={handlePrintDrillSheet}
-                                            onDelete={handleDeleteDrillSheet}
-                                            showCustomerName={false} // Don't show customer name since we're in customer context
-                                        />
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                        <CustomerDrillSheets
+                            customer={customer}
+                            drillSheets={drillSheets}
+                            includeArchived={includeArchivedSheets}
+                            onIncludeArchivedChange={setIncludeArchivedSheets}
+                            onOpen={sheet => setOpenDrillSheetId(sheet.id)}
+                            creating={creatingDrillSheet}
+                            onCreatingChange={setCreatingDrillSheet}
+                        />
                     )}
 
                     {activeTab === 'balls' && (

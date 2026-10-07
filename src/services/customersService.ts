@@ -14,6 +14,7 @@ const toCustomer = (dto: CustomerDto): Customer => ({
     usesThumb: dto.usesThumb,
     notes: dto.notes ?? undefined,
     homeLocationID: dto.homeLocationID ?? undefined,
+    delivery: dto.delivery,
     createdAt: dto.createdAt
 })
 
@@ -31,6 +32,7 @@ const toRequest = (customer: Partial<CustomerFields>): CustomerUpdate => {
     if ('usesThumb' in customer) request.usesThumb = customer.usesThumb
     if ('notes' in customer) request.notes = customer.notes || null
     if ('homeLocationID' in customer) request.homeLocationID = customer.homeLocationID || null
+    if ('delivery' in customer) request.delivery = customer.delivery
     return request
 }
 

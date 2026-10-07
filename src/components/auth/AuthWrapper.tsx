@@ -1,6 +1,5 @@
 import React from 'react';
 import { Authenticator, Theme, ThemeProvider } from '@aws-amplify/ui-react';
-import '@aws-amplify/ui-react/styles.css';
 import { SignedInUser } from '../../types';
 import { AppLogo } from '../layout/AppLogo';
 

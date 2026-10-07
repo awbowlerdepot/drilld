@@ -37,6 +37,11 @@ export const mockCompanySettings: CompanySettings = {
         workOrderNumberFormat: 'WO-{YYYY}{MM}{DD}-{###}',
         priorityLevels: ['Low', 'Normal', 'High', 'Urgent']
     },
+    drillSheets: {
+        enableClt: false,
+        verticalReadout: 'UP_POSITIVE',
+        horizontalReadout: 'RIGHT_POSITIVE'
+    },
     security: {
         enableTwoFactor: false,
         passwordMinLength: 8,
@@ -132,6 +137,11 @@ export const mockCompanySettingsBasic: CompanySettings = {
         workOrderNumberFormat: 'LS-{###}',
         priorityLevels: ['Normal', 'High']
     },
+    drillSheets: {
+        enableClt: false,
+        verticalReadout: 'UP_POSITIVE',
+        horizontalReadout: 'RIGHT_POSITIVE'
+    },
     security: {
         enableTwoFactor: false,
         passwordMinLength: 6,
@@ -224,6 +234,11 @@ export const mockCompanySettingsEnterprise: CompanySettings = {
         enableInventoryTracking: true,
         workOrderNumberFormat: 'CL-{YYYY}-{MM}-{DD}-{####}',
         priorityLevels: ['Low', 'Normal', 'High', 'Urgent', 'Emergency']
+    },
+    drillSheets: {
+        enableClt: false,
+        verticalReadout: 'UP_POSITIVE',
+        horizontalReadout: 'RIGHT_POSITIVE'
     },
     security: {
         enableTwoFactor: true,

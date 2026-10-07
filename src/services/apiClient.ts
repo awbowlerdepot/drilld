@@ -13,7 +13,7 @@ export class ApiError extends Error {
  * Calls the REST API as the signed-in user. Sends the Cognito ID token, which
  * carries the verified email the API uses to link a first sign-in.
  */
-export const apiRequest = async <T>(method: 'GET' | 'POST' | 'PATCH' | 'DELETE', path: string, body?: unknown): Promise<T> => {
+export const apiRequest = async <T>(method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE', path: string, body?: unknown): Promise<T> => {
     if (!apiUrl) throw new Error('The API is not configured (no custom.api.url in amplify_outputs.json)')
 
     const token = (await fetchAuthSession()).tokens?.idToken?.toString()

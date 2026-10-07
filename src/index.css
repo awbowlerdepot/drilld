@@ -1,4 +1,10 @@
+/* Amplify UI's stylesheet (the sign-in screen) goes in its own layer between
+   Tailwind's base and utilities: it still overrides the base reset, but
+   utility classes win. Unlayered, its global "button { font: inherit }" beat
+   every font utility on buttons. */
+@layer theme, base, amplify, components, utilities;
 @import "tailwindcss";
+@import "@aws-amplify/ui-react/styles.css" layer(amplify);
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
@@ -11,9 +17,8 @@
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
-/* Amplify UI's stylesheet (loaded for the sign-in screen) sets the page font
-   from its own tokens, outside any layer, so it beats Tailwind's base styles.
-   Point those tokens at the app font. */
+/* Amplify UI's stylesheet sets the page font from its own tokens, in a layer
+   above Tailwind's base styles. Point those tokens at the app font. */
 :root {
   --amplify-fonts-default-variable: var(--font-sans);
   --amplify-fonts-default-static: var(--font-sans);
