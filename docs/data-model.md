@@ -378,9 +378,10 @@ drillingSequence = [ { step, bitSize64, depth32, notes } ]   // in drilling orde
   - Order matters. For a right-hander, start at the farthest up-and-left position and work back toward the center. Then work out down and to the right, finishing at the farthest position. A left-hander mirrors this: farthest up-and-right first, finishing at the farthest down-and-left.
   - Each side is divided into equal cuts of **no more than 1/32″**: `n = ceil(side ÷ 1/32″)` cuts of `side ÷ n` each. Both sides get the same number of cuts.
   - Each cut's vertical and horizontal components are `cut × cos(angle)` and `cut × sin(angle)`. For example, one 1/32″ cut at 45° is about .022″ and .022″.
-  - The editor and the drill press view list the calculated cuts in drilling order, as **signed readout values** measured from the pitch center and rounded to thousandths:
-    - Horizontal: negative is left, positive is right.
-    - Vertical: the sign follows the press's readout setting (below).
+  - The editor and the drill press view list the calculated cuts in drilling order, as **digital readout positions**, rounded to thousandths:
+    - The pitch center comes from the thumb's pitches. Forward/reverse pitch is on the vertical axis and lateral on the horizontal; pitch in inches is the jig offset. (Assumed: forward is up. To confirm.)
+    - Each cut's position is the pitch center plus that cut's offset. For example, 3/8″ reverse and 1/8″ left puts the center at −.375 / −.125, so the first cut is at −.331 / −.141.
+    - Signs: horizontal negative is left and positive is right; the vertical sign follows the press's readout setting (below).
   - The cuts aren't stored.
 - **Drill press readout direction.** A press's digital readout can be set so up is plus, or so down is plus. The setting is `drillPress.verticalReadout: 'UP_POSITIVE' | 'DOWN_POSITIVE'`, a company default (up is plus) that a location can override. It will move to the equipment record once presses are modelled.
   - It only changes how numbers are shown. The spec always stores pitch one way (forward positive, lateral right positive).
