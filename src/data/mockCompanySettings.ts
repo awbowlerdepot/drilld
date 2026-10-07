@@ -40,7 +40,7 @@ export const mockCompanySettings: CompanySettings = {
     drillSheets: {
         enableClt: false,
         verticalReadout: 'UP_POSITIVE',
-        horizontalReadout: 'LEFT_POSITIVE'
+        horizontalReadout: 'RIGHT_POSITIVE'
     },
     security: {
         enableTwoFactor: false,
@@ -140,7 +140,7 @@ export const mockCompanySettingsBasic: CompanySettings = {
     drillSheets: {
         enableClt: false,
         verticalReadout: 'UP_POSITIVE',
-        horizontalReadout: 'LEFT_POSITIVE'
+        horizontalReadout: 'RIGHT_POSITIVE'
     },
     security: {
         enableTwoFactor: false,
@@ -238,7 +238,7 @@ export const mockCompanySettingsEnterprise: CompanySettings = {
     drillSheets: {
         enableClt: false,
         verticalReadout: 'UP_POSITIVE',
-        horizontalReadout: 'LEFT_POSITIVE'
+        horizontalReadout: 'RIGHT_POSITIVE'
     },
     security: {
         enableTwoFactor: true,
