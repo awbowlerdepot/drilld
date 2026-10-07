@@ -1,11 +1,13 @@
 import React from 'react';
 import { FileText, Target, Calendar, TrendingUp, Plus, ArrowRight } from 'lucide-react';
-import { Customer, DrillSheet, BowlingBall } from '../../types';
+import { Customer, BowlingBall } from '../../types';
+import type { DrillSheetDto } from '../../../shared/api/drillSheets';
+import { format32 } from '../../utils/Fractions';
 import { Button } from '../common/Button';
 
 interface CustomerOverviewProps {
     customer: Customer;
-    drillSheets: DrillSheet[];
+    drillSheets: DrillSheetDto[];
     balls: BowlingBall[];
     onViewDrillSheets: () => void;
     onViewBalls: () => void;
@@ -24,8 +26,10 @@ export const CustomerOverview: React.FC<CustomerOverviewProps> = ({
                                                                   }) => {
     const activeBalls = balls.filter(b => b.status === 'ACTIVE').length;
     const totalValue = balls.reduce((sum, ball) => sum + (ball.purchasePrice || 0), 0);
-    const recentDrillSheet = drillSheets
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+    const recentDrillSheet = [...drillSheets]
+        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0];
+    const recentSpec = recentDrillSheet?.currentRevision?.spec;
+    const recentStatus = recentDrillSheet?.currentRevision?.approvedAt ? 'Approved' : 'Draft';
     const recentBalls = balls
         .sort((a, b) => {
             const aDate = a.purchaseDate ? new Date(a.purchaseDate).getTime() : 0;
@@ -142,39 +146,37 @@ export const CustomerOverview: React.FC<CustomerOverviewProps> = ({
                                     <p className="text-sm text-gray-600">{recentDrillSheet.gripStyle}</p>
                                 </div>
                                 <span className={`px-2 py-1 text-xs rounded whitespace-nowrap ${
-                                    recentDrillSheet.isTemplate
-                                        ? 'bg-purple-100 text-purple-700'
-                                        : 'bg-green-100 text-green-700'
+                                    recentStatus === 'Approved' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-800'
                                 }`}>
-                  {recentDrillSheet.isTemplate ? 'Template' : 'Active'}
-                </span>
+                                    {recentStatus}
+                                </span>
                             </div>
 
                             {/* Measurements */}
-                            {(recentDrillSheet.spans.thumbToMiddle.fitSpan || recentDrillSheet.spans.thumbToRing.fitSpan) && (
+                            {(recentSpec?.spans.thumbToMiddle.full32 || recentSpec?.spans.thumbToRing.full32) && (
                                 <div className="bg-gray-50 rounded p-3 space-y-1">
-                                    {recentDrillSheet.spans.thumbToMiddle.fitSpan && (
+                                    {recentSpec.spans.thumbToMiddle.full32 && (
                                         <div className="flex justify-between text-sm">
-                                            <span className="text-gray-500">Thumb-Middle (fit):</span>
-                                            <span className="font-medium">{recentDrillSheet.spans.thumbToMiddle.fitSpan}"</span>
+                                            <span className="text-gray-500">Thumb-Middle (full):</span>
+                                            <span className="font-mono font-medium">{format32(recentSpec.spans.thumbToMiddle.full32)}″</span>
                                         </div>
                                     )}
-                                    {recentDrillSheet.spans.thumbToRing.fitSpan && (
+                                    {recentSpec.spans.thumbToRing.full32 && (
                                         <div className="flex justify-between text-sm">
-                                            <span className="text-gray-500">Thumb-Ring (fit):</span>
-                                            <span className="font-medium">{recentDrillSheet.spans.thumbToRing.fitSpan}"</span>
+                                            <span className="text-gray-500">Thumb-Ring (full):</span>
+                                            <span className="font-mono font-medium">{format32(recentSpec.spans.thumbToRing.full32)}″</span>
                                         </div>
                                     )}
                                 </div>
                             )}
 
                             <div className="text-sm text-gray-500">
-                                Created {new Date(recentDrillSheet.createdAt).toLocaleDateString()}
+                                Updated {new Date(recentDrillSheet.updatedAt).toLocaleDateString()}
                             </div>
 
-                            {recentDrillSheet.specialNotes && (
+                            {recentSpec?.notes && (
                                 <p className="text-sm text-gray-600 italic bg-yellow-50 p-2 rounded">
-                                    "{recentDrillSheet.specialNotes}"
+                                    "{recentSpec.notes}"
                                 </p>
                             )}
                         </div>

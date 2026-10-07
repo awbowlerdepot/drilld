@@ -42,7 +42,7 @@ function App({ user }: AppProps) {
     const renderActiveSection = () => {
         switch (activeSection) {
             case 'customers':
-                return <CustomerManagement searchTerm={searchTerm} />
+                return <CustomerManagement searchTerm={searchTerm} currentLocationID={currentLocationID} />
             case 'balls':
                 return <BowlingBallManagement searchTerm={searchTerm} />
             case 'workorders':

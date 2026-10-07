@@ -33,6 +33,7 @@ export const resolveLocationSettings = (
     taxRate: overrides.taxRate ?? company.general.taxRate,
     defaultWarrantyPeriod: overrides.defaultWarrantyPeriod ?? company.general.defaultWarrantyPeriod,
     workflow: { ...company.workflow, ...withoutUndefined(overrides.workflow) },
+    drillSheets: { ...company.drillSheets, ...withoutUndefined(overrides.drillSheets) },
     notifications: { ...company.notifications, ...withoutUndefined(overrides.notifications) }
 });
 
@@ -41,12 +42,14 @@ export const resolveLocationSettings = (
  */
 export const pruneOverrides = (overrides: LocationSettingsOverrides): LocationSettingsOverrides => {
     const workflow = withoutUndefined(overrides.workflow);
+    const drillSheets = withoutUndefined(overrides.drillSheets);
     const notifications = withoutUndefined(overrides.notifications);
 
     return withoutUndefined({
         taxRate: overrides.taxRate,
         defaultWarrantyPeriod: overrides.defaultWarrantyPeriod,
         workflow: Object.keys(workflow).length > 0 ? workflow : undefined,
+        drillSheets: Object.keys(drillSheets).length > 0 ? drillSheets : undefined,
         notifications: Object.keys(notifications).length > 0 ? notifications : undefined
     });
 };

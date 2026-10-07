@@ -19,6 +19,11 @@ The agreed backend design (Postgres schema, tenant isolation, ball registry, dri
 - `src/main.tsx` — configures Amplify from `amplify_outputs.json` and wraps the app in `AuthWrapper` (Cognito sign-in) when it has an `auth` section. Otherwise the app runs without sign-in on mock data.
 - `src/App.tsx` — tab-based navigation (no router). Permission checks per section (`ProtectedRoute`) are not implemented yet.
 - `src/components/<feature>/` — one folder per feature: customers, drillsheets, balls, workorders, locations, employees, settings, auth, layout
+- `src/components/drillsheets/editor/` — the drill sheet editor (canvas design D):
+  - `HoleLayout` is the spatial sheet.
+  - Hole cards, fit, delivery and notes panels sit below it.
+  - Every value opens a picker through `usePicker()` (`PickerHost`): lengths in 32nds with "+", bits in 64ths, plain numbers.
+  - The editor works on a local copy of the spec, and Save sends the whole spec.
 - `src/components/ui/` — **shadcn/ui** components (Radix based, "nova" style), owned and editable here; add more with `npx shadcn@latest add <name>`. `src/lib/utils.ts` re-exports `cn`.
 - `src/components/common/` — the older hand-rolled `Button`, `Input`, `Select` and `Textarea`, being replaced screen by screen with `components/ui`. Don't use them in new code.
 - `src/hooks/use<Feature>.ts` — one data hook per feature; currently all read from mock data
@@ -29,6 +34,9 @@ The agreed backend design (Postgres schema, tenant isolation, ball registry, dri
   - `LocationSettings.ts` — company settings plus location overrides
   - `LocationHours.ts` — today's hours, open/closed
   - `EmployeeRoles.ts` — roles and derived permissions
+  - `Fractions.ts` — formats 32nds ("4-3/8+"), 64ths and readout decimals
+  - `DrillReadouts.ts` — pitch centers, thumb and finger oval cuts, and drill press readout signs
+  - `Clt.ts` — the CLT chart (hidden unless `drillSheets.enableClt`)
 - `docs/data-model.md` — backend data model design and open questions
 - `db/` — PostgreSQL migrations (plain SQL, dbmate format) and schema tests; see `db/README.md`. The migrations are the source of truth for the schema; never generate migrations from an ORM.
 - `src/services/` — the frontend's API layer:
@@ -100,6 +108,7 @@ The agreed backend design (Postgres schema, tenant isolation, ball registry, dri
 - Build UI from shadcn/ui components. The shadcn theme variables in `src/index.css` map to Clean Blue: `--primary` is blue-600 and `--ring` is blue-500. Forms use `Field`/`FieldLabel`/`FieldError` and validate with the same zod schemas as the API (`shared/api`). Edit and add flows open in a `Dialog`.
 - The drill sheet's ball layout and measurement entry are custom components, built from shadcn primitives around a custom SVG.
 - Use visual layouts over text for spatial things. Drill sheets render as ball hole layouts, with finger holes side by side.
+- Amplify UI's stylesheet is imported in `src/index.css` inside the `amplify` cascade layer (between Tailwind's base and utilities). Don't import it from JS: unlayered, it overrides every font utility on buttons.
 
 ## Code review focus
 
@@ -107,7 +116,7 @@ Look for incorrect imports, circular dependencies, and unnecessary complexity.
 
 ## Status and next up
 
-- The frontend runs entirely on mock data. Hooks simulate API calls with `setTimeout`.
+- Customers and drill sheets use the API when signed in. Everything else, and all of it without sign-in, runs on mock data; mock hooks simulate API calls with `setTimeout`.
 - The PostgreSQL schema exists in `db/migrations/` and is covered by `db/test.sh`:
   - tenancy
   - customers
@@ -126,7 +135,7 @@ Look for incorrect imports, circular dependencies, and unnecessary complexity.
     - `/drill-sheets/:id`: get, rename/archive (PATCH), and save the draft (`PUT …/draft`)
     - `/drill-sheets/:id/revisions`: the history, one revision by version, and `POST …/approve`
     - The spec is validated by `shared/api/drillSheetSpec.ts` (spec v1).
-- `useCustomers` reads and writes through the API when signed in. The other hooks are still on mock data.
+- `useCustomers`, `useCustomerDrillSheets` and `useDrillSheetEditor` use the API when signed in; without it, drill sheets use an in-memory mock (`src/data/mockDrillSheets.ts`). The other hooks are still on mock data. Work orders still use the old `DrillSheet` type and `useDrillSheets`.
 - `npm run build` passes.
 - Done on the frontend:
   - company/location tenancy rename
@@ -142,7 +151,7 @@ Look for incorrect imports, circular dependencies, and unnecessary complexity.
 - Next:
   1. Stand up the rest of the backend:
      - the BowlerIQ catalog sync job
-  2. Build the drill sheet editor from canvas design D against the drill sheet API, then replace the remaining mock data (balls, work orders, locations, employees).
+  2. The drill press view (canvas design F), revision history, and bevel, depth and step drilling in the editor. Then replace the remaining mock data (balls, work orders, locations, employees).
   3. Complete work order management, using `resolveLocationSettings` for labor rate and tax.
   4. Resolve the remaining open item in `docs/data-model.md` (customer sharing across locations).
   5. Clear the pre-existing lint errors.

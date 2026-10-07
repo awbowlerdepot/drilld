@@ -9,10 +9,13 @@ import { CustomerDetailView } from './CustomerDetailView';
 
 interface CustomerManagementProps {
     searchTerm: string;
+    /** The location picked in the sidebar. */
+    currentLocationID?: string;
 }
 
 export const CustomerManagement: React.FC<CustomerManagementProps> = ({
-                                                                          searchTerm
+                                                                          searchTerm,
+                                                                          currentLocationID
                                                                       }) => {
     const { customers, loading, error, addCustomer, updateCustomer, deleteCustomer } = useCustomers();
     const [actionError, setActionError] = useState<string | null>(null);
@@ -25,6 +28,7 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({
         return (
             <CustomerDetailView
                 customer={selectedCustomer}
+                currentLocationID={currentLocationID}
                 onBack={() => setSelectedCustomer(null)}
                 onEditCustomer={(customer) => {
                     setEditingCustomer(customer);

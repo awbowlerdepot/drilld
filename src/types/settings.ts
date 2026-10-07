@@ -44,6 +44,19 @@ export interface CompanyWorkflowSettings {
     priorityLevels: string[];
 }
 
+/**
+ * Drill sheet settings. The readout directions describe how a drill press's
+ * digital readout counts (presses differ); they only change how pitch and cut
+ * positions are shown, never what's stored. They move to each press once
+ * equipment is modelled.
+ */
+export interface CompanyDrillSheetSettings {
+    /** Show CLT (center line transformation) and Auto-CLT lateral pitch suggestions. */
+    enableClt: boolean;
+    verticalReadout: 'UP_POSITIVE' | 'DOWN_POSITIVE';
+    horizontalReadout: 'RIGHT_POSITIVE' | 'LEFT_POSITIVE';
+}
+
 export interface CompanySecuritySettings {
     enableTwoFactor: boolean;
     passwordMinLength: number;
@@ -110,6 +123,7 @@ export interface CompanySettings {
     general: CompanyGeneralSettings;
     billing: CompanyBillingSettings;
     workflow: CompanyWorkflowSettings;
+    drillSheets: CompanyDrillSheetSettings;
     security: CompanySecuritySettings;
     notifications: CompanyNotificationSettings;
     integrations: CompanyIntegrationSettings;
@@ -119,6 +133,7 @@ export type CompanySettingsSection =
     | 'general'
     | 'billing'
     | 'workflow'
+    | 'drillSheets'
     | 'security'
     | 'notifications'
     | 'integrations';
@@ -135,6 +150,8 @@ export interface LocationSettingsOverrides {
     taxRate?: number;
     defaultWarrantyPeriod?: number;
     workflow?: Partial<CompanyWorkflowSettings>;
+    /** A location's presses may count the other way. */
+    drillSheets?: Partial<Pick<CompanyDrillSheetSettings, 'verticalReadout' | 'horizontalReadout'>>;
     notifications?: Partial<Pick<CompanyNotificationSettings, 'notificationEmail' | 'notificationPhone'>>;
 }
 
@@ -148,5 +165,6 @@ export interface EffectiveLocationSettings {
     taxRate?: number;
     defaultWarrantyPeriod: number;
     workflow: CompanyWorkflowSettings;
+    drillSheets: CompanyDrillSheetSettings;
     notifications: CompanyNotificationSettings;
 }

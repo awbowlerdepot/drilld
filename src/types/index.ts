@@ -18,6 +18,7 @@ export * from './navigation';
 
 // Import specific types that we need to reference in this file
 import type { Employee } from './employee';
+import type { Delivery } from '../../shared/api/delivery';
 import type { LocationSettingsOverrides } from './settings';
 
 // ==========================================
@@ -35,6 +36,8 @@ export interface Customer {
     usesThumb: boolean;
     notes?: string;
     homeLocationID?: string;
+    /** The bowler's current delivery; each drill sheet revision keeps a copy. */
+    delivery?: Delivery;
     createdAt: string;
 }
 
