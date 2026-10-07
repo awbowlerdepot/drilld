@@ -293,11 +293,15 @@ create table thumb_inner (
     - the hole size
     - the oval's pilot, width and **angle**
     - the number of cuts, each with its readout position
-    - the pitch
+    - the pitch **within the inner** (below)
     - the bevel
     - notes
 
     A repeat order starts a new work order from it.
+  - **Pitch within the inner.** The ball's thumb pitch is set when the outer piece is drilled. The inner's pitch is measured from the inner's center: 0 × 0 is the pitch center, and the default.
+    - It can be offset (forward/reverse and lateral, in 32nds) to add some pitch in the inner.
+    - It's limited so the hole never breaks through the inner's wall. The hole's farthest edge, including the oval at its angle, plus the offset, must leave at least a minimum wall.
+    - So the catalog needs, per inner: its drillable diameter and the minimum wall. Still to get (Turbo publishes a wall thickness chart).
 
 ### Balls
 
