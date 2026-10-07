@@ -1,3 +1,5 @@
+import type { EmployeeManager } from '../../shared/api/employees';
+import type { MeDto } from '../../shared/api/me';
 import {
     CompanyRole,
     DEFAULT_PERMISSIONS_BY_ROLE,
@@ -64,3 +66,22 @@ export const hasPermission = (employee: Employee, permission: string, locationID
         DEFAULT_PERMISSIONS_BY_ROLE[membership.role].includes(permission)
     );
 };
+
+/** Without sign-in (mock data), you're the mock company's owner. */
+const MOCK_MANAGER: EmployeeManager = { userId: '00000000-0000-4000-8000-0000000000e3', companyRole: 'OWNER', managedLocationIDs: [] };
+const NO_ACCESS: EmployeeManager = { userId: '', companyRole: null, managedLocationIDs: [] };
+
+/**
+ * The signed-in user as an employee manager (the same rules as the API's
+ * permissions.ts): company access, and where their role has write:employees.
+ * Until /me loads, no access; without sign-in, the mock owner.
+ */
+export const toEmployeeManager = (me: MeDto | null, signedIn: boolean): EmployeeManager => !signedIn
+    ? MOCK_MANAGER
+    : me ? {
+        userId: me.user.id,
+        companyRole: me.user.companyRole,
+        managedLocationIDs: me.memberships
+            .filter(membership => DEFAULT_PERMISSIONS_BY_ROLE[membership.role].includes('write:employees'))
+            .map(membership => membership.locationID)
+    } : NO_ACCESS;

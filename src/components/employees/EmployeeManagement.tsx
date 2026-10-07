@@ -1,274 +1,113 @@
-import React, { useState, useMemo } from 'react';
-import { User, Plus } from 'lucide-react';
-import { Employee, EmployeeRole, EmployeeFormData } from '../../types/employee';
-import { useEmployees } from '../../hooks/useEmployees';
-import { useLocations } from '../../hooks/useLocations';
-import { EMPLOYEE_ROLE_OPTIONS, hasRoleAnywhere } from '../../utils/EmployeeRoles';
-import { EmployeeCard } from './EmployeeCard';
-import { EmployeeTable } from './EmployeeTable';
-import { EmployeeForm } from './EmployeeForm';
-import { EmployeeDetailModal } from './EmployeeDetailModal';
+import { useMemo, useState } from 'react'
+import { UserPlus } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { cn } from '@/lib/utils'
+import { canAddEmployees, canSeePay, type EmployeeManager } from '../../../shared/api/employees'
+import { useEmployees } from '../../hooks/useEmployees'
+import { useLocations } from '../../hooks/useLocations'
+import type { Employee } from '../../types'
+import { EmployeeDialog } from './EmployeeDialog'
+import { EmployeeTable } from './EmployeeTable'
 
 interface EmployeeManagementProps {
-    searchTerm: string;
+    searchTerm: string
+    manager: EmployeeManager
 }
 
-export const EmployeeManagement: React.FC<EmployeeManagementProps> = ({ searchTerm }) => {
-    const {
-        employees,
-        loading,
-        error,
-        addEmployee,
-        updateEmployee,
-        deleteEmployee,
-        activateEmployee,
-        deactivateEmployee,
-        searchEmployees
-    } = useEmployees();
-    const { locations } = useLocations();
+type StatusFilter = 'CURRENT' | 'INVITED' | 'INACTIVE' | 'ALL'
 
-    const locationNames = useMemo(
-        () => Object.fromEntries(locations.map(location => [location.id, location.name])),
-        [locations]
-    );
+const ALL_LOCATIONS = 'ALL'
 
-    const [showForm, setShowForm] = useState(false);
-    const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
-    const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
-    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-    const [filterRole, setFilterRole] = useState<EmployeeRole | 'all'>('all');
-    const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
+/**
+ * The company's employees: who works where, in what role, and whether they've
+ * signed in. Owners, admins and location managers invite and edit people.
+ */
+export const EmployeeManagement = ({ searchTerm, manager }: EmployeeManagementProps) => {
+    const { employees, loading, error, addEmployee, updateEmployee, resendInvite, cancelInvite } = useEmployees()
+    const { locations } = useLocations()
+    const [status, setStatus] = useState<StatusFilter>('CURRENT')
+    const [locationID, setLocationID] = useState(ALL_LOCATIONS)
+    // The open employee (by id, so it shows changes), 'new' to invite, or null.
+    const [open, setOpen] = useState<string | 'new' | null>(null)
+    const [notice, setNotice] = useState<string | null>(null)
 
-    // Filter employees based on search term and filters
-    const filteredEmployees = useMemo(() => {
-        let filtered = searchTerm ? searchEmployees(searchTerm) : employees;
+    const locationNames = useMemo(() => Object.fromEntries(locations.map(l => [l.id, l.name])), [locations])
 
-        if (filterRole !== 'all') {
-            filtered = filtered.filter(emp => hasRoleAnywhere(emp, filterRole));
-        }
+    const count = (filter: StatusFilter) => employees.filter(e =>
+        filter === 'ALL' || (filter === 'CURRENT' ? e.status !== 'INACTIVE' : e.status === filter)).length
 
-        if (filterStatus === 'active') {
-            filtered = filtered.filter(emp => emp.active);
-        } else if (filterStatus === 'inactive') {
-            filtered = filtered.filter(emp => !emp.active);
-        }
+    const shown = useMemo(() => {
+        const term = searchTerm.trim().toLowerCase()
+        return employees
+            .filter(e => status === 'ALL' || (status === 'CURRENT' ? e.status !== 'INACTIVE' : e.status === status))
+            .filter(e => locationID === ALL_LOCATIONS || e.companyRole || e.memberships.some(m => m.locationID === locationID))
+            .filter(e => !term || [e.firstName, e.lastName, e.email, `${e.firstName} ${e.lastName}`, ...e.specialties]
+                .some(value => value.toLowerCase().includes(term)))
+    }, [employees, status, locationID, searchTerm])
 
-        return filtered;
-    }, [employees, searchTerm, filterRole, filterStatus, searchEmployees]);
+    const chip = (key: StatusFilter, text: string) => (
+        <button key={key} type="button" aria-pressed={status === key} onClick={() => setStatus(key)}
+            className={cn('min-h-9 rounded-full border px-3 text-sm font-medium transition-colors',
+                status === key ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-white text-gray-700 hover:bg-muted')}>
+            {text} <span className={status === key ? 'opacity-80' : 'text-gray-500'}>{count(key)}</span>
+        </button>
+    )
 
-    const handleCreateEmployee = () => {
-        setEditingEmployee(null);
-        setShowForm(true);
-    };
-
-    const handleEditEmployee = (employee: Employee) => {
-        setEditingEmployee(employee);
-        setShowForm(true);
-    };
-
-    const handleDeleteEmployee = async (employeeId: string) => {
-        if (confirm('Are you sure you want to delete this employee? This action cannot be undone.')) {
-            try {
-                await deleteEmployee(employeeId);
-            } catch (err) {
-                console.error('Error deleting employee:', err);
-            }
-        }
-    };
-
-    const handleToggleStatus = async (employee: Employee) => {
-        try {
-            if (employee.active) {
-                await deactivateEmployee(employee.id);
-            } else {
-                await activateEmployee(employee.id);
-            }
-        } catch (err) {
-            console.error('Error toggling employee status:', err);
-        }
-    };
-
-    const handleFormSubmit = async (formData: EmployeeFormData) => {
-        try {
-            if (editingEmployee) {
-                await updateEmployee(editingEmployee.id, formData);
-            } else {
-                await addEmployee(formData);
-            }
-            setShowForm(false);
-            setEditingEmployee(null);
-        } catch (err) {
-            console.error('Error saving employee:', err);
-        }
-    };
-
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="bg-red-50 border border-red-200 rounded-md p-4">
-                <p className="text-red-800">Error loading employees: {error}</p>
-            </div>
-        );
-    }
+    const openEmployee: Employee | null = open && open !== 'new' ? employees.find(e => e.id === open) ?? null : null
 
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Employee Management</h1>
-                    <p className="text-gray-600">Manage your pro shop team and their permissions</p>
-                </div>
-                <button
-                    onClick={handleCreateEmployee}
-                    className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                    <Plus className="w-4 h-4" />
-                    Add Employee
-                </button>
+        <div className="grid gap-4">
+            <div className="flex flex-wrap items-center gap-2">
+                {chip('CURRENT', 'Current')}
+                {chip('INVITED', 'Invited')}
+                {chip('INACTIVE', 'Inactive')}
+                {chip('ALL', 'All')}
+                <Select value={locationID} onValueChange={setLocationID}>
+                    <SelectTrigger aria-label="Location" className="min-h-9 w-48 bg-white"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={ALL_LOCATIONS}>All locations</SelectItem>
+                        {locations.map(l => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+                {canAddEmployees(manager) && (
+                    <Button className="ml-auto" onClick={() => { setNotice(null); setOpen('new') }}>
+                        <UserPlus aria-hidden="true" /> Invite employee
+                    </Button>
+                )}
             </div>
 
-            {/* Filters */}
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                <div className="flex flex-col sm:flex-row gap-4">
-                    <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Filter by Role
-                        </label>
-                        <select
-                            value={filterRole}
-                            onChange={(e) => setFilterRole(e.target.value as EmployeeRole | 'all')}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        >
-                            <option value="all">All Roles</option>
-                            {EMPLOYEE_ROLE_OPTIONS.map(role => (
-                                <option key={role.value} value={role.value}>{role.label}</option>
-                            ))}
-                        </select>
-                    </div>
+            {notice && <p role="status" className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">{notice}</p>}
+            {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
 
-                    <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Filter by Status
-                        </label>
-                        <select
-                            value={filterStatus}
-                            onChange={(e) => setFilterStatus(e.target.value as 'all' | 'active' | 'inactive')}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        >
-                            <option value="all">All Employees</option>
-                            <option value="active">Active Only</option>
-                            <option value="inactive">Inactive Only</option>
-                        </select>
-                    </div>
-
-                    <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            View Mode
-                        </label>
-                        <div className="flex rounded-md border border-gray-300">
-                            <button
-                                onClick={() => setViewMode('grid')}
-                                className={`flex-1 px-3 py-2 text-sm font-medium rounded-l-md ${
-                                    viewMode === 'grid'
-                                        ? 'bg-blue-600 text-white'
-                                        : 'bg-white text-gray-700 hover:bg-gray-50'
-                                }`}
-                            >
-                                Grid
-                            </button>
-                            <button
-                                onClick={() => setViewMode('list')}
-                                className={`flex-1 px-3 py-2 text-sm font-medium rounded-r-md border-l ${
-                                    viewMode === 'list'
-                                        ? 'bg-blue-600 text-white'
-                                        : 'bg-white text-gray-700 hover:bg-gray-50'
-                                }`}
-                            >
-                                List
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Employee Grid/List */}
-            {filteredEmployees.length === 0 ? (
-                <div className="text-center py-12 bg-white rounded-lg shadow-sm border border-gray-200">
-                    <User className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No employees found</h3>
-                    <p className="text-gray-600 mb-6">
-                        {searchTerm || filterRole !== 'all' || filterStatus !== 'all'
-                            ? 'Try adjusting your search criteria or filters'
-                            : 'Get started by adding your first employee'
-                        }
-                    </p>
-                    {(!searchTerm && filterRole === 'all' && filterStatus === 'all') && (
-                        <button
-                            onClick={handleCreateEmployee}
-                            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                        >
-                            <Plus className="w-4 h-4" />
-                            Add First Employee
-                        </button>
-                    )}
-                </div>
-            ) : viewMode === 'grid' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredEmployees.map((employee) => (
-                        <EmployeeCard
-                            key={employee.id}
-                            employee={employee}
-                            onEdit={handleEditEmployee}
-                            onDelete={handleDeleteEmployee}
-                            onToggleStatus={handleToggleStatus}
-                            onClick={setSelectedEmployee}
-                            locationNames={locationNames}
-                        />
-                    ))}
-                </div>
+            {loading ? (
+                <p className="py-12 text-center text-gray-500">Loading employees…</p>
+            ) : shown.length === 0 ? (
+                <p className="rounded-lg border border-dashed border-border bg-white py-12 text-center text-gray-500">
+                    {employees.length === 0 ? 'No employees yet.' : 'No employees match.'}
+                </p>
             ) : (
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                    <EmployeeTable
-                        employees={filteredEmployees}
-                        onEdit={handleEditEmployee}
-                        onDelete={handleDeleteEmployee}
-                        onToggleStatus={handleToggleStatus}
-                        onRowClick={setSelectedEmployee}
-                        locationNames={locationNames}
-                    />
-                </div>
+                <EmployeeTable employees={shown} locationNames={locationNames} showPay={canSeePay(manager)}
+                    onOpen={employee => { setNotice(null); setOpen(employee.id) }} />
             )}
 
-            {/* Employee Form Modal */}
-            {showForm && (
-                <EmployeeForm
-                    employee={editingEmployee}
+            {open !== null && (open === 'new' || openEmployee) && (
+                <EmployeeDialog
+                    employee={openEmployee}
                     locations={locations}
-                    onSubmit={handleFormSubmit}
-                    onCancel={() => {
-                        setShowForm(false);
-                        setEditingEmployee(null);
+                    manager={manager}
+                    onCreate={async input => {
+                        const sent = await addEmployee(input)
+                        setNotice(sent
+                            ? `Invitation sent to ${input.email}. They'll sign in with the temporary password in that email.`
+                            : `${input.firstName} already has a Drilld login, so no email was sent. They can sign in with their password.`)
                     }}
-                />
-            )}
-
-            {/* Employee Detail Modal */}
-            {selectedEmployee && (
-                <EmployeeDetailModal
-                    employee={selectedEmployee}
-                    onClose={() => setSelectedEmployee(null)}
-                    onEdit={handleEditEmployee}
-                    locationNames={locationNames}
+                    onUpdate={changes => updateEmployee(openEmployee!.id, changes)}
+                    onResendInvite={() => resendInvite(openEmployee!.id)}
+                    onCancelInvite={() => cancelInvite(openEmployee!.id)}
+                    onClose={() => setOpen(null)}
                 />
             )}
         </div>
-    );
-};
+    )
+}

@@ -57,95 +57,82 @@ export const mockCustomers: Customer[] = [
 // Mock data for supporting entities
 export const mockEmployees: Employee[] = [
     {
-        id: 'emp1',
-        companyID: 'company1',
-        cognitoUserID: 'user1',
-        username: 'mike_tech',
-        email: 'mike@proshop.com',
-        firstName: 'Mike',
-        lastName: 'Rodriguez',
-        phone: '555-0123',
-        memberships: [
-            { locationID: '1', role: 'SENIOR_TECH' },
-            { locationID: '2', role: 'MANAGER' }
-        ],
-        certifications: {
-            'IBPSIA_Bronze': {
-                issueDate: '2020-06-15',
-                expiryDate: '2025-06-15',
-                certificationNumber: 'IBPSIA-2020-1234'
-            },
-            'Finger_Insert_Specialist': {
-                issueDate: '2021-03-20',
-                expiryDate: '2026-03-20',
-                certificationNumber: 'FIS-2021-5678'
-            }
-        },
-        hireDate: '2020-03-15',
-        hourlyRate: 25.00,
-        specialties: ['Finger Inserts', 'Ball Drilling', 'Layout Design'],
-        active: true,
-        createdAt: '2020-03-15T08:00:00Z',
-        updatedAt: '2024-01-15T08:00:00Z'
-    },
-    {
-        id: 'emp2',
-        companyID: 'company1',
-        cognitoUserID: 'user2',
-        username: 'sarah_drill',
-        email: 'sarah@proshop.com',
-        firstName: 'Sarah',
-        lastName: 'Johnson',
-        phone: '555-0124',
-        memberships: [
-            { locationID: '1', role: 'TECHNICIAN' }
-        ],
-        certifications: {
-            'Basic_Drilling': {
-                issueDate: '2021-07-01',
-                expiryDate: '2024-07-01',
-                certificationNumber: 'BD-2021-9012'
-            }
-        },
-        hireDate: '2021-06-01',
-        hourlyRate: 20.00,
-        specialties: ['Ball Drilling', 'Surface Adjustments'],
-        active: true,
-        createdAt: '2021-06-01T08:00:00Z',
-        updatedAt: '2024-01-10T08:00:00Z'
-    },
-    {
-        id: 'emp3',
-        companyID: 'company1',
-        cognitoUserID: 'user3',
-        username: 'alex_manager',
+        id: '00000000-0000-4000-8000-0000000000e3',
         email: 'alex@proshop.com',
         firstName: 'Alex',
         lastName: 'Thompson',
         phone: '555-0125',
-        companyRole: 'ADMIN',
+        companyRole: 'OWNER',
         memberships: [
             { locationID: '1', role: 'MANAGER' },
             { locationID: '2', role: 'MANAGER' }
         ],
-        certifications: {
-            'IBPSIA_Silver': {
-                issueDate: '2019-04-10',
-                expiryDate: '2024-04-10',
-                certificationNumber: 'IBPSIA-2019-3456'
-            },
-            'Shop_Management': {
-                issueDate: '2020-01-15',
-                expiryDate: '2025-01-15',
-                certificationNumber: 'SM-2020-7890'
-            }
-        },
         hireDate: '2019-01-15',
         hourlyRate: 30.00,
         specialties: ['Customer Consultation', 'Ball Drilling', 'Equipment Maintenance', 'Finger Inserts'],
+        status: 'ACTIVE',
         active: true,
+        invitedAt: null,
         createdAt: '2019-01-15T08:00:00Z',
         updatedAt: '2024-02-01T08:00:00Z'
+    },
+    {
+        id: '00000000-0000-4000-8000-0000000000e1',
+        email: 'mike@proshop.com',
+        firstName: 'Mike',
+        lastName: 'Rodriguez',
+        phone: '555-0123',
+        companyRole: null,
+        memberships: [
+            { locationID: '1', role: 'SENIOR_TECH' },
+            { locationID: '2', role: 'MANAGER' }
+        ],
+        hireDate: '2020-03-15',
+        hourlyRate: 25.00,
+        specialties: ['Finger Inserts', 'Ball Drilling', 'Layout Design'],
+        status: 'ACTIVE',
+        active: true,
+        invitedAt: '2020-03-15T08:00:00Z',
+        createdAt: '2020-03-15T08:00:00Z',
+        updatedAt: '2024-01-15T08:00:00Z'
+    },
+    {
+        id: '00000000-0000-4000-8000-0000000000e2',
+        email: 'sarah@proshop.com',
+        firstName: 'Sarah',
+        lastName: 'Johnson',
+        phone: '555-0124',
+        companyRole: null,
+        memberships: [
+            { locationID: '1', role: 'TECHNICIAN' }
+        ],
+        hireDate: '2021-06-01',
+        hourlyRate: 20.00,
+        specialties: ['Ball Drilling', 'Surface Adjustments'],
+        status: 'ACTIVE',
+        active: true,
+        invitedAt: '2021-06-01T08:00:00Z',
+        createdAt: '2021-06-01T08:00:00Z',
+        updatedAt: '2024-01-10T08:00:00Z'
+    },
+    {
+        id: '00000000-0000-4000-8000-0000000000e4',
+        email: 'jordan@proshop.com',
+        firstName: 'Jordan',
+        lastName: 'Lee',
+        phone: null,
+        companyRole: null,
+        memberships: [
+            { locationID: '1', role: 'APPRENTICE' }
+        ],
+        hireDate: null,
+        hourlyRate: 16.00,
+        specialties: [],
+        status: 'INVITED',
+        active: true,
+        invitedAt: '2026-10-01T15:00:00Z',
+        createdAt: '2026-10-01T15:00:00Z',
+        updatedAt: '2026-10-01T15:00:00Z'
     }
 ];
 

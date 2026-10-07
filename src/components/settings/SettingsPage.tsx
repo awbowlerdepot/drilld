@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { Settings, Users, MapPin, Building, Bell, Shield, Database, Palette } from 'lucide-react';
+import type { EmployeeManager } from '../../../shared/api/employees';
 import { EmployeeManagement } from '../employees/EmployeeManagement';
 import { CompanySettingsManagement } from "@/components/settings/CompanySettingsManagement.tsx";
 import { LocationManagement } from "@/components/locations/LocationManagment.tsx";
 
 interface SettingsPageProps {
     searchTerm: string;
+    /** The signed-in user as an employee manager (what they may change on the Employees tab). */
+    employeeManager: EmployeeManager;
 }
 
 type SettingsTab =
@@ -68,13 +71,13 @@ const SETTINGS_TABS: SettingsTabConfig[] = [
     }
 ];
 
-export const SettingsPage: React.FC<SettingsPageProps> = ({ searchTerm }) => {
+export const SettingsPage: React.FC<SettingsPageProps> = ({ searchTerm, employeeManager }) => {
     const [activeTab, setActiveTab] = useState<SettingsTab>('company');
 
     const renderActiveTabContent = () => {
         switch (activeTab) {
             case 'employees':
-                return <EmployeeManagement searchTerm={searchTerm} />;
+                return <EmployeeManagement searchTerm={searchTerm} manager={employeeManager} />;
             case 'locations':
                 return <LocationManagement searchTerm={searchTerm} companyID="company1" />;
             case 'company':
