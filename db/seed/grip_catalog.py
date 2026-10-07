@@ -7,7 +7,14 @@ form, Turbo's finger insert chart and product pages, JoPo's order lists
 migration that changes the catalog:
 
     python3 db/seed/grip_catalog.py > /tmp/grip_catalog.sql
+
+With --json it writes the same catalog as the API returns it, for the
+frontend's mock data (src/data/mockGripCatalog.json):
+
+    python3 db/seed/grip_catalog.py --json > src/data/mockGripCatalog.json
 """
+import json
+import sys
 from fractions import Fraction
 
 TEN = ['Black', 'White', 'Ice/Clear', 'Yellow', 'Red', 'Blue', 'Green', 'Orange', 'Purple', 'Pink']
@@ -111,6 +118,18 @@ line('JOPO', 'Power Flat / Oval', 'FINGER_INSERT', JOPO, standard(range(38, 53),
 line('JOPO', 'Oval / Oval Dots', 'FINGER_INSERT', JOPO, standard(range(38, 53), label=fraction), ['Oval', 'Oval Dots'])
 line('JOPO', 'Thumb Slugs', 'THUMB_SLUG', JOPO, [(s, fraction(s), [s], False) for s in (72, 80, 88, 96)])
 line('JOPO', 'Twist', 'INTERCHANGEABLE_THUMB', JOPO + ['Twisted'], [(96, 'Outer', [96], True)])
+
+
+if '--json' in sys.argv:
+    catalog = [{
+        'id': f'mock-line-{index}',
+        'manufacturer': manufacturer, 'name': name, 'kind': kind, 'colors': colors, 'installStyles': styles,
+        'sizes': [{'id': f'mock-size-{index}-{s}', 'size64': s, 'label': label, 'od64Choices': od, 'collar': collar}
+                  for s, label, od, collar in sizes]
+    } for index, (manufacturer, name, kind, colors, styles, sizes) in enumerate(lines)]
+    catalog.sort(key=lambda line: (line['manufacturer'], line['name']))
+    print(json.dumps(catalog, ensure_ascii=False, indent=1))
+    sys.exit(0)
 
 
 def q(text: str) -> str:
