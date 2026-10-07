@@ -6,6 +6,7 @@ import { HttpError, toErrorResponse } from './errors';
 import { customers } from './routes/customers';
 import { customerDrillSheets, drillSheets } from './routes/drillSheets';
 import { gripCatalog, locationGripStock } from './routes/grips';
+import { locations } from './routes/locations';
 import { me } from './routes/me';
 
 export type ApiEnv = {
@@ -53,6 +54,7 @@ export const createApp = (db: Db) => {
     app.route('/drill-sheets', drillSheets);
     app.route('/grip-catalog', gripCatalog);
     app.route('/locations/:locationId/grip-stock', locationGripStock);
+    app.route('/locations', locations);
 
     return app;
 };
