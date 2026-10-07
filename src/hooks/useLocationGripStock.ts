@@ -5,7 +5,7 @@ import { gripsApi } from './useGripCatalog'
  * What a location carries: the grip catalog sizes it stocks. `selected` is the
  * working copy; `save` replaces the location's stock with it.
  */
-export const useLocationGripStock = (locationId: string) => {
+export const useLocationGripStock = (locationId: string | undefined) => {
     const [saved, setSaved] = useState<Set<string>>(new Set())
     const [selected, setSelected] = useState<Set<string>>(new Set())
     const [loading, setLoading] = useState(true)
@@ -14,6 +14,10 @@ export const useLocationGripStock = (locationId: string) => {
 
     useEffect(() => {
         let cancelled = false
+        if (!locationId) {
+            setLoading(false)
+            return
+        }
         setLoading(true)
         gripsApi.stock(locationId)
             .then(stock => {
@@ -42,6 +46,7 @@ export const useLocationGripStock = (locationId: string) => {
     const dirty = saved.size !== selected.size || [...selected].some(id => !saved.has(id))
 
     const save = useCallback(async () => {
+        if (!locationId) return
         setSaving(true)
         try {
             const stock = await gripsApi.setStock(locationId, { gripSizeIds: [...selected] })

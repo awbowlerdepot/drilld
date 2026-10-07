@@ -10,10 +10,14 @@ export interface SheetEditProps {
     readOnly: boolean
     /** The bowler's hand: a right-hander's middle finger is the left hole. */
     hand: Hand
+    /** Where the sheet is being edited; its grip stock is offered first. */
+    locationId?: string
 }
 
 export type Finger = 'middle' | 'ring'
 export type FingerHole = DrillSheetSpec['holes']['middle']
+export type Insert = NonNullable<FingerHole['insert']>
+export type Vacu = NonNullable<FingerHole['vacu']>
 export type Span = DrillSheetSpec['spans']['thumbToMiddle']
 
 export type SpanType = 'full32' | 'cutToCut32' | 'outerToCut32' | 'centerToCenter32' | 'fit32'

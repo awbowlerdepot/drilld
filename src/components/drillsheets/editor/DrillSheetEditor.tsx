@@ -50,7 +50,7 @@ export const DrillSheetEditor = ({ sheetId, customer, locationID, onBack }: Dril
     const locked = revision ? !revision.editable : false
     const hand = customer.dominantHand
     const sides = fingersBySide(hand)
-    const editProps: SheetEditProps = { spec, edit, readOnly: sheet.archived, hand }
+    const editProps: SheetEditProps = { spec, edit, readOnly: sheet.archived, hand, locationId: locationID }
     const status = !revision ? null
         : revision.drilled ? { label: `Drilled · Revision ${revision.version}`, className: 'bg-gray-100 text-gray-700' }
             : revision.approvedAt ? { label: `Approved · Revision ${revision.version}`, className: 'bg-green-100 text-green-800' }
