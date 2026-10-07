@@ -14,21 +14,21 @@ export const BEVEL_AMOUNTS: { key: BevelAmount; label: string }[] = [
     { key: 'HEAVY', label: 'Heavy' }
 ]
 
-export const BEVEL_TOOLS: { key: NonNullable<Bevel['tool']>; label: string }[] = [
+export const BEVEL_TOOLS: { key: Bevel['tools'][number]; label: string }[] = [
     { key: 'KNIFE', label: 'Bevel knife' },
     { key: 'SANDER', label: 'Bevel sander' }
 ]
 
 const amountLabel = (amount: BevelAmount) => BEVEL_AMOUNTS.find(a => a.key === amount)!.label
 
-/** "Medium · heavy on the palm side · 1/16″ from the wall · bevel knife", or "Standard (Medium)". */
+/** "Medium · heavy on the palm side · 1/16″ from the wall · bevel knife + bevel sander", or "Standard (Medium)". */
 export const describeBevel = (bevel: Bevel | null | undefined, standard?: BevelAmount): string => {
     if (!bevel) return standard ? `Standard (${amountLabel(standard)})` : 'Standard'
     return [
         amountLabel(bevel.amount),
         bevel.palmSide && bevel.palmSide !== bevel.amount ? `${amountLabel(bevel.palmSide).toLowerCase()} on the palm side` : null,
         bevel.width32 ? `${format32(bevel.width32)}″ from the wall` : null,
-        bevel.tool ? BEVEL_TOOLS.find(t => t.key === bevel.tool)!.label.toLowerCase() : null,
+        bevel.tools.length ? BEVEL_TOOLS.filter(t => bevel.tools.includes(t.key)).map(t => t.label.toLowerCase()).join(' + ') : null,
         bevel.notes
     ].filter(Boolean).join(' · ')
 }
