@@ -23,11 +23,13 @@ export const LengthPickerDialog = ({ request, onClose }: LengthPickerDialogProps
     const [whole, setWhole] = useState(initial?.whole ?? request.wholes[0])
     const [sixteenths, setSixteenths] = useState(initial?.sixteenths ?? 0)
     const [plus, setPlus] = useState(initial?.plus ?? false)
-    const [negative, setNegative] = useState(request.value === null ? true : request.value < 0)
+    // No direction is preselected for a new pitch: it has to be picked, so it's never left by accident.
+    const [negative, setNegative] = useState<boolean | null>(request.value === null ? null : request.value < 0)
 
     const magnitude = join32(whole, sixteenths, plus)
     const value = request.directions && negative ? -magnitude : magnitude
-    const direction = request.directions ? ` ${request.directions[negative ? 0 : 1]}` : ''
+    const direction = request.directions && negative !== null ? ` ${request.directions[negative ? 0 : 1]}` : ''
+    const needsDirection = !!request.directions && negative === null
 
     const set = (next: number | null) => {
         request.onSet(next)
@@ -93,7 +95,9 @@ export const LengthPickerDialog = ({ request, onClose }: LengthPickerDialogProps
                     <Button variant="ghost" className="text-destructive" onClick={() => set(null)}>Clear</Button>
                     <div className="flex gap-2">
                         <Button variant="outline" onClick={onClose}>Cancel</Button>
-                        <Button onClick={() => set(value)}>Set {format32(magnitude)}″{direction}</Button>
+                        <Button disabled={needsDirection} onClick={() => set(value)}>
+                            {needsDirection ? `Pick ${request.directions![0]} or ${request.directions![1]}` : `Set ${format32(magnitude)}″${direction}`}
+                        </Button>
                     </div>
                 </DialogFooter>
             </DialogContent>
