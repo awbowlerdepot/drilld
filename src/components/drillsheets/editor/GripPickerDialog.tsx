@@ -58,8 +58,12 @@ export const GripPickerDialog = ({ request, onClose }: GripPickerDialogProps) =>
 
     const [mode, setMode] = useState<'catalog' | 'other'>(current && !current.gripSizeId ? 'other' : 'catalog')
     const [showAll, setShowAll] = useState(false)
-    const [manufacturer, setManufacturer] = useState<GripManufacturer | null>(currentLine?.manufacturer ?? null)
-    const [lineId, setLineId] = useState<string | null>(currentLine?.id ?? null)
+    // The catalog loads after the dialog opens, so the current insert's line is
+    // found later. Until something is picked, the current line is the selection.
+    const [pickedManufacturer, setManufacturer] = useState<GripManufacturer | null>(null)
+    const [pickedLineId, setLineId] = useState<string | null>(null)
+    const manufacturer = pickedManufacturer ?? currentLine?.manufacturer ?? null
+    const lineId = pickedLineId ?? currentLine?.id ?? null
     const [sizeId, setSizeId] = useState<string | null>(current?.gripSizeId ?? null)
     const [installStyle, setInstallStyle] = useState<string | null>(!thumb && current ? (current as Insert).installStyle ?? null : null)
     const [od64, setOd64] = useState<number | null>(current?.od64 ?? null)
@@ -159,7 +163,7 @@ export const GripPickerDialog = ({ request, onClose }: GripPickerDialogProps) =>
                         <div role="tablist" aria-label="Manufacturer" className="inline-flex w-fit rounded-lg bg-gray-100 p-1">
                             {makers.map(m => (
                                 <button key={m.key} type="button" role="tab" aria-selected={activeMaker === m.key}
-                                    onClick={() => { setManufacturer(m.key); setLineId(null); setSizeId(null) }}
+                                    onClick={() => { setManufacturer(m.key); setLineId(m.key === currentLine?.manufacturer ? currentLine.id : ''); setSizeId(null) }}
                                     className={cn('min-h-9 rounded-md px-4 text-sm font-medium', activeMaker === m.key ? 'bg-white shadow-sm' : 'text-gray-600')}>
                                     {m.label}
                                 </button>
