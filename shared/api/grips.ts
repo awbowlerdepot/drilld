@@ -18,7 +18,7 @@ export interface GripSizeDto {
     size64: number;
     /** The manufacturer's label: '8.5', '61', '1/6', '13/16'. */
     label: string;
-    /** The O.D. bit(s) in 64ths; the first is the default. Interchangeable Finger has three fits. */
+    /** The O.D. bit(s) in 64ths; the first is the default. */
     od64Choices: number[];
     /** Drilled with a preset-collar hardware bit. */
     collar: boolean;
@@ -31,6 +31,11 @@ export interface GripLineDto {
     kind: GripKind;
     /** Picked on the work order, not the drill sheet. */
     colors: string[];
+    /**
+     * The ways the insert installs, picked on the drill sheet. A two-way insert
+     * has two (VISE P/O: Power Lift or Oval); empty when there's no choice.
+     */
+    installStyles: string[];
     sizes: GripSizeDto[];
 }
 

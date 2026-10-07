@@ -52,11 +52,12 @@ def vise_thumb_label(size64: int) -> str:
     return '1' if size64 == 64 else f'{f.numerator}/{str(f.denominator)[0]}'
 
 
-lines = []  # (manufacturer, name, kind, colors, [(size64, label, od_choices, collar)])
+lines = []  # (manufacturer, name, kind, colors, styles, [(size64, label, od_choices, collar)])
 
 
-def line(manufacturer, name, kind, colors, sizes):
-    lines.append((manufacturer, name, kind, colors, sizes))
+def line(manufacturer, name, kind, colors, sizes, styles=()):
+    """styles: the ways the insert can be installed (a two-way insert has two), chosen on the drill sheet."""
+    lines.append((manufacturer, name, kind, colors, list(styles), sizes))
 
 
 def standard(sizes, label=size_number, od=finger_od):
@@ -65,20 +66,15 @@ def standard(sizes, label=size_number, od=finger_od):
 
 # ---------- VISE ----------
 vise_std = list(range(36, 59))                                   # 0 .. 11, every half size
-line('VISE', 'P/O Power Lift & Oval', 'FINGER_INSERT', VISE_PO, standard(vise_std))
-line('VISE', 'P/S Power Lift & Semi', 'FINGER_INSERT', VISE_PS, standard(vise_std))
-line('VISE', 'O/PO Oval & Power Lift Oval', 'FINGER_INSERT', VISE_PS, standard(vise_std))
-line('VISE', 'P/O 7/8″ O.D.', 'FINGER_INSERT', VISE_78_PO, standard(range(34, 49, 2), od=lambda s: 56))   # -1 .. 6, whole sizes
-line('VISE', 'P/S 7/8″ O.D.', 'FINGER_INSERT', VISE_78_PS, standard(range(34, 50), od=lambda s: 56))     # -1 .. 6.5
-line('VISE', 'O/PO 7/8″ O.D.', 'FINGER_INSERT', VISE_78_PS, standard(range(34, 50), od=lambda s: 56))
+line('VISE', 'P/O Power Lift & Oval', 'FINGER_INSERT', VISE_PO, standard(vise_std), ['Power Lift', 'Oval'])
+line('VISE', 'P/S Power Lift & Semi', 'FINGER_INSERT', VISE_PS, standard(vise_std), ['Power Lift', 'Semi'])
+line('VISE', 'O/PO Oval & Power Lift Oval', 'FINGER_INSERT', VISE_PS, standard(vise_std), ['Oval', 'Power Lift Oval'])
+line('VISE', 'P/O 7/8″ O.D.', 'FINGER_INSERT', VISE_78_PO, standard(range(34, 49, 2), od=lambda s: 56), ['Power Lift', 'Oval'])   # -1 .. 6, whole sizes
+line('VISE', 'P/S 7/8″ O.D.', 'FINGER_INSERT', VISE_78_PS, standard(range(34, 50), od=lambda s: 56), ['Power Lift', 'Semi'])     # -1 .. 6.5
+line('VISE', 'O/PO 7/8″ O.D.', 'FINGER_INSERT', VISE_78_PS, standard(range(34, 50), od=lambda s: 56), ['Oval', 'Power Lift Oval'])
 line('VISE', 'Vinyl Oval with Nubs', 'FINGER_INSERT', ['Grape'], standard(range(37, 59)))                # 0.5 .. 11
 for style in ['Round with Nubs', 'Oval with Nubs', 'Power Lift', 'Smooth Oval', 'Semi Grip']:
-    line('VISE', f'Blue Silicone {style}', 'FINGER_INSERT', ['Blue'], standard(range(36, 59, 2)))       # 0 .. 11, whole sizes
-# Interchangeable Finger: the O.D. sets the fit (1" tight, 1-1/64" easy removal, 1-1/32" easiest).
-line('VISE', 'IF Interchangeable Finger Oval', 'FINGER_INSERT', [],
-     [(s, size_number(s), [64, 65, 66], False) for s in range(40, 55)])                                 # 2 .. 9
-line('VISE', 'IF Interchangeable Finger Round', 'FINGER_INSERT', ['Black'],
-     [(s, size_number(s), [64, 65, 66], False) for s in range(40, 56)])                                 # 2 .. 9.5
+    line('VISE', f'Blue Silicone {style}', 'FINGER_INSERT', ['Blue'], standard(range(36, 59, 2)), [style])       # 0 .. 11, whole sizes
 line('VISE', 'Urethane Finger Slugs', 'FINGER_SLUG', ['Black'], [(s, fraction(s), [s], False) for s in (62, 72, 80)])
 for name in ['Pro V2 Vinyl Oval Thumb', 'Tapered Vinyl Oval Thumb', 'Tapered Vinyl Round Thumb']:
     line('VISE', name, 'THUMB_INSERT', ['White', 'Black'],
@@ -92,13 +88,13 @@ line('VISE', 'IT Interchangeable Thumb', 'INTERCHANGEABLE_THUMB', VISE_EASY + ['
 
 # ---------- Turbo ----------
 turbo_std = list(range(38, 53)) + [53, 54, 56, 58]                 # 1 .. 8, then 8.5, 9, 10, 11
-line('TURBO', 'Quad', 'FINGER_INSERT', TEN, standard(turbo_std))
-line('TURBO', 'Classic', 'FINGER_INSERT', TEN, standard(turbo_std))
-line('TURBO', 'Classic Pro', 'FINGER_INSERT', ['Black', 'Blue'], standard(turbo_std))
-line('TURBO', 'Quad 2', 'FINGER_INSERT', ['Black', 'Ice/Clear'], standard(turbo_std))
-line('TURBO', 'Power-SB', 'FINGER_INSERT', ['Black', 'Ice/Clear'], standard(turbo_std))
+line('TURBO', 'Quad', 'FINGER_INSERT', TEN, standard(turbo_std), ['Perfect Oval', 'Power Oval'])
+line('TURBO', 'Classic', 'FINGER_INSERT', TEN, standard(turbo_std), ['Perfect Oval', 'Power Lift 1/4″'])
+line('TURBO', 'Classic Pro', 'FINGER_INSERT', ['Black', 'Blue'], standard(turbo_std), ['Perfect Oval', 'Power Lift 1/4″'])
+line('TURBO', 'Quad 2', 'FINGER_INSERT', ['Black', 'Ice/Clear'], standard(turbo_std), ['Power Nub', 'Semi-Super Bump'])
+line('TURBO', 'Power-SB', 'FINGER_INSERT', ['Black', 'Ice/Clear'], standard(turbo_std), ['Power Lift 1/4″', 'Semi-Super Bump'])
 line('TURBO', 'Ms. Quad', 'FINGER_INSERT', ['Black', 'White', 'Ice/Clear', 'Yellow', 'Pink'],
-     standard(range(34, 49), od=lambda s: 56))                                                          # -1 .. 6
+     standard(range(34, 49), od=lambda s: 56), ['Perfect Oval', 'Power Oval'])                         # -1 .. 6
 line('TURBO', 'Urethane Finger Solids', 'FINGER_SLUG', ['Black'], [(s, fraction(s), [s], False) for s in (62, 72)])
 for style in ['Round', 'Oval']:
     line('TURBO', f'Xcel Thumb {style}', 'THUMB_INSERT', ['Black'],
@@ -108,8 +104,8 @@ line('TURBO', 'Switch Grip', 'INTERCHANGEABLE_THUMB', SWITCH, [(96, 'Outer sleev
 line('TURBO', 'Switch Grip NX', 'INTERCHANGEABLE_THUMB', ['Black', 'Red'], [(96, 'Outer sleeve', [96], True)])
 
 # ---------- JoPo ----------
-line('JOPO', 'Power Flat / Oval', 'FINGER_INSERT', JOPO, standard(range(38, 53), label=fraction))     # 19/32 .. 13/16
-line('JOPO', 'Oval / Oval Dots', 'FINGER_INSERT', JOPO, standard(range(38, 53), label=fraction))
+line('JOPO', 'Power Flat / Oval', 'FINGER_INSERT', JOPO, standard(range(38, 53), label=fraction), ['Power Flat', 'Oval'])     # 19/32 .. 13/16
+line('JOPO', 'Oval / Oval Dots', 'FINGER_INSERT', JOPO, standard(range(38, 53), label=fraction), ['Oval', 'Oval Dots'])
 line('JOPO', 'Thumb Slugs', 'THUMB_SLUG', JOPO, [(s, fraction(s), [s], False) for s in (72, 80, 88, 96)])
 line('JOPO', 'Twist', 'INTERCHANGEABLE_THUMB', JOPO + ['Twisted'], [(96, 'Outer', [96], True)])
 
@@ -123,8 +119,8 @@ def array_text(items) -> str:
 
 
 out = []
-for manufacturer, name, kind, colors, sizes in lines:
-    out.append(f"insert into grip_line (manufacturer, name, kind, colors) values ({q(manufacturer)}, {q(name)}, {q(kind)}, {array_text(colors)});")
+for manufacturer, name, kind, colors, styles, sizes in lines:
+    out.append(f"insert into grip_line (manufacturer, name, kind, colors, install_styles) values ({q(manufacturer)}, {q(name)}, {q(kind)}, {array_text(colors)}, {array_text(styles)});")
     values = ',\n    '.join(
         f"({s}, {q(label)}, array[{', '.join(map(str, od))}]::smallint[], {'true' if collar else 'false'})"
         for s, label, od, collar in sizes)

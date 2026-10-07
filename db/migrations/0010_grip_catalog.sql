@@ -13,6 +13,7 @@ create table grip_line (
     name         text not null,
     kind         text not null check (kind in ('FINGER_INSERT', 'FINGER_SLUG', 'THUMB_INSERT', 'THUMB_SLUG', 'INTERCHANGEABLE_THUMB')),
     colors       text[] not null default '{}',     -- chosen on the work order
+    install_styles text[] not null default '{}',   -- ways the insert installs (a two-way insert has two); chosen on the drill sheet
     active       boolean not null default true,
     unique (manufacturer, name)
 );
@@ -52,7 +53,7 @@ create policy tenant_isolation on location_grip_stock
 -- Catalog rows
 -- ==========================================
 
-insert into grip_line (manufacturer, name, kind, colors) values ('VISE', 'P/O Power Lift & Oval', 'FINGER_INSERT', array['Yellow', 'White', 'Black', 'Clear', 'Neon', 'Green', 'Orange', 'Blue', 'Purple', 'Pink', 'Red', 'Grape']::text[]);
+insert into grip_line (manufacturer, name, kind, colors, install_styles) values ('VISE', 'P/O Power Lift & Oval', 'FINGER_INSERT', array['Yellow', 'White', 'Black', 'Clear', 'Neon', 'Green', 'Orange', 'Blue', 'Purple', 'Pink', 'Red', 'Grape']::text[], array['Power Lift', 'Oval']::text[]);
 
 insert into grip_size (line_id, size64, label, od64_choices, collar)
 select l.id, v.size64, v.label, v.od64_choices, v.collar
@@ -83,7 +84,7 @@ from grip_line l, (values
 ) as v(size64, label, od64_choices, collar)
 where l.manufacturer = 'VISE' and l.name = 'P/O Power Lift & Oval';
 
-insert into grip_line (manufacturer, name, kind, colors) values ('VISE', 'P/S Power Lift & Semi', 'FINGER_INSERT', array['Yellow', 'White', 'Black', 'Clear', 'Neon', 'Green', 'Orange', 'Blue', 'Purple', 'Pink', 'Red']::text[]);
+insert into grip_line (manufacturer, name, kind, colors, install_styles) values ('VISE', 'P/S Power Lift & Semi', 'FINGER_INSERT', array['Yellow', 'White', 'Black', 'Clear', 'Neon', 'Green', 'Orange', 'Blue', 'Purple', 'Pink', 'Red']::text[], array['Power Lift', 'Semi']::text[]);
 
 insert into grip_size (line_id, size64, label, od64_choices, collar)
 select l.id, v.size64, v.label, v.od64_choices, v.collar
@@ -114,7 +115,7 @@ from grip_line l, (values
 ) as v(size64, label, od64_choices, collar)
 where l.manufacturer = 'VISE' and l.name = 'P/S Power Lift & Semi';
 
-insert into grip_line (manufacturer, name, kind, colors) values ('VISE', 'O/PO Oval & Power Lift Oval', 'FINGER_INSERT', array['Yellow', 'White', 'Black', 'Clear', 'Neon', 'Green', 'Orange', 'Blue', 'Purple', 'Pink', 'Red']::text[]);
+insert into grip_line (manufacturer, name, kind, colors, install_styles) values ('VISE', 'O/PO Oval & Power Lift Oval', 'FINGER_INSERT', array['Yellow', 'White', 'Black', 'Clear', 'Neon', 'Green', 'Orange', 'Blue', 'Purple', 'Pink', 'Red']::text[], array['Oval', 'Power Lift Oval']::text[]);
 
 insert into grip_size (line_id, size64, label, od64_choices, collar)
 select l.id, v.size64, v.label, v.od64_choices, v.collar
@@ -145,7 +146,7 @@ from grip_line l, (values
 ) as v(size64, label, od64_choices, collar)
 where l.manufacturer = 'VISE' and l.name = 'O/PO Oval & Power Lift Oval';
 
-insert into grip_line (manufacturer, name, kind, colors) values ('VISE', 'P/O 7/8″ O.D.', 'FINGER_INSERT', array['Yellow', 'White', 'Black', 'Green', 'Orange', 'Blue', 'Purple', 'Pink', 'Red']::text[]);
+insert into grip_line (manufacturer, name, kind, colors, install_styles) values ('VISE', 'P/O 7/8″ O.D.', 'FINGER_INSERT', array['Yellow', 'White', 'Black', 'Green', 'Orange', 'Blue', 'Purple', 'Pink', 'Red']::text[], array['Power Lift', 'Oval']::text[]);
 
 insert into grip_size (line_id, size64, label, od64_choices, collar)
 select l.id, v.size64, v.label, v.od64_choices, v.collar
@@ -161,7 +162,7 @@ from grip_line l, (values
 ) as v(size64, label, od64_choices, collar)
 where l.manufacturer = 'VISE' and l.name = 'P/O 7/8″ O.D.';
 
-insert into grip_line (manufacturer, name, kind, colors) values ('VISE', 'P/S 7/8″ O.D.', 'FINGER_INSERT', array['Yellow', 'White', 'Black', 'Clear', 'Green', 'Orange', 'Pink']::text[]);
+insert into grip_line (manufacturer, name, kind, colors, install_styles) values ('VISE', 'P/S 7/8″ O.D.', 'FINGER_INSERT', array['Yellow', 'White', 'Black', 'Clear', 'Green', 'Orange', 'Pink']::text[], array['Power Lift', 'Semi']::text[]);
 
 insert into grip_size (line_id, size64, label, od64_choices, collar)
 select l.id, v.size64, v.label, v.od64_choices, v.collar
@@ -185,7 +186,7 @@ from grip_line l, (values
 ) as v(size64, label, od64_choices, collar)
 where l.manufacturer = 'VISE' and l.name = 'P/S 7/8″ O.D.';
 
-insert into grip_line (manufacturer, name, kind, colors) values ('VISE', 'O/PO 7/8″ O.D.', 'FINGER_INSERT', array['Yellow', 'White', 'Black', 'Clear', 'Green', 'Orange', 'Pink']::text[]);
+insert into grip_line (manufacturer, name, kind, colors, install_styles) values ('VISE', 'O/PO 7/8″ O.D.', 'FINGER_INSERT', array['Yellow', 'White', 'Black', 'Clear', 'Green', 'Orange', 'Pink']::text[], array['Oval', 'Power Lift Oval']::text[]);
 
 insert into grip_size (line_id, size64, label, od64_choices, collar)
 select l.id, v.size64, v.label, v.od64_choices, v.collar
@@ -209,7 +210,7 @@ from grip_line l, (values
 ) as v(size64, label, od64_choices, collar)
 where l.manufacturer = 'VISE' and l.name = 'O/PO 7/8″ O.D.';
 
-insert into grip_line (manufacturer, name, kind, colors) values ('VISE', 'Vinyl Oval with Nubs', 'FINGER_INSERT', array['Grape']::text[]);
+insert into grip_line (manufacturer, name, kind, colors, install_styles) values ('VISE', 'Vinyl Oval with Nubs', 'FINGER_INSERT', array['Grape']::text[], '{}'::text[]);
 
 insert into grip_size (line_id, size64, label, od64_choices, collar)
 select l.id, v.size64, v.label, v.od64_choices, v.collar
@@ -239,7 +240,7 @@ from grip_line l, (values
 ) as v(size64, label, od64_choices, collar)
 where l.manufacturer = 'VISE' and l.name = 'Vinyl Oval with Nubs';
 
-insert into grip_line (manufacturer, name, kind, colors) values ('VISE', 'Blue Silicone Round with Nubs', 'FINGER_INSERT', array['Blue']::text[]);
+insert into grip_line (manufacturer, name, kind, colors, install_styles) values ('VISE', 'Blue Silicone Round with Nubs', 'FINGER_INSERT', array['Blue']::text[], array['Round with Nubs']::text[]);
 
 insert into grip_size (line_id, size64, label, od64_choices, collar)
 select l.id, v.size64, v.label, v.od64_choices, v.collar
@@ -259,7 +260,7 @@ from grip_line l, (values
 ) as v(size64, label, od64_choices, collar)
 where l.manufacturer = 'VISE' and l.name = 'Blue Silicone Round with Nubs';
 
-insert into grip_line (manufacturer, name, kind, colors) values ('VISE', 'Blue Silicone Oval with Nubs', 'FINGER_INSERT', array['Blue']::text[]);
+insert into grip_line (manufacturer, name, kind, colors, install_styles) values ('VISE', 'Blue Silicone Oval with Nubs', 'FINGER_INSERT', array['Blue']::text[], array['Oval with Nubs']::text[]);
 
 insert into grip_size (line_id, size64, label, od64_choices, collar)
 select l.id, v.size64, v.label, v.od64_choices, v.collar
@@ -279,7 +280,7 @@ from grip_line l, (values
 ) as v(size64, label, od64_choices, collar)
 where l.manufacturer = 'VISE' and l.name = 'Blue Silicone Oval with Nubs';
 
-insert into grip_line (manufacturer, name, kind, colors) values ('VISE', 'Blue Silicone Power Lift', 'FINGER_INSERT', array['Blue']::text[]);
+insert into grip_line (manufacturer, name, kind, colors, install_styles) values ('VISE', 'Blue Silicone Power Lift', 'FINGER_INSERT', array['Blue']::text[], array['Power Lift']::text[]);
 
 insert into grip_size (line_id, size64, label, od64_choices, collar)
 select l.id, v.size64, v.label, v.od64_choices, v.collar
@@ -299,7 +300,7 @@ from grip_line l, (values
 ) as v(size64, label, od64_choices, collar)
 where l.manufacturer = 'VISE' and l.name = 'Blue Silicone Power Lift';
 
-insert into grip_line (manufacturer, name, kind, colors) values ('VISE', 'Blue Silicone Smooth Oval', 'FINGER_INSERT', array['Blue']::text[]);
+insert into grip_line (manufacturer, name, kind, colors, install_styles) values ('VISE', 'Blue Silicone Smooth Oval', 'FINGER_INSERT', array['Blue']::text[], array['Smooth Oval']::text[]);
 
 insert into grip_size (line_id, size64, label, od64_choices, collar)
 select l.id, v.size64, v.label, v.od64_choices, v.collar
@@ -319,7 +320,7 @@ from grip_line l, (values
 ) as v(size64, label, od64_choices, collar)
 where l.manufacturer = 'VISE' and l.name = 'Blue Silicone Smooth Oval';
 
-insert into grip_line (manufacturer, name, kind, colors) values ('VISE', 'Blue Silicone Semi Grip', 'FINGER_INSERT', array['Blue']::text[]);
+insert into grip_line (manufacturer, name, kind, colors, install_styles) values ('VISE', 'Blue Silicone Semi Grip', 'FINGER_INSERT', array['Blue']::text[], array['Semi Grip']::text[]);
 
 insert into grip_size (line_id, size64, label, od64_choices, collar)
 select l.id, v.size64, v.label, v.od64_choices, v.collar
@@ -339,54 +340,7 @@ from grip_line l, (values
 ) as v(size64, label, od64_choices, collar)
 where l.manufacturer = 'VISE' and l.name = 'Blue Silicone Semi Grip';
 
-insert into grip_line (manufacturer, name, kind, colors) values ('VISE', 'IF Interchangeable Finger Oval', 'FINGER_INSERT', '{}'::text[]);
-
-insert into grip_size (line_id, size64, label, od64_choices, collar)
-select l.id, v.size64, v.label, v.od64_choices, v.collar
-from grip_line l, (values
-    (40, '2', array[64, 65, 66]::smallint[], false),
-    (41, '2.5', array[64, 65, 66]::smallint[], false),
-    (42, '3', array[64, 65, 66]::smallint[], false),
-    (43, '3.5', array[64, 65, 66]::smallint[], false),
-    (44, '4', array[64, 65, 66]::smallint[], false),
-    (45, '4.5', array[64, 65, 66]::smallint[], false),
-    (46, '5', array[64, 65, 66]::smallint[], false),
-    (47, '5.5', array[64, 65, 66]::smallint[], false),
-    (48, '6', array[64, 65, 66]::smallint[], false),
-    (49, '6.5', array[64, 65, 66]::smallint[], false),
-    (50, '7', array[64, 65, 66]::smallint[], false),
-    (51, '7.5', array[64, 65, 66]::smallint[], false),
-    (52, '8', array[64, 65, 66]::smallint[], false),
-    (53, '8.5', array[64, 65, 66]::smallint[], false),
-    (54, '9', array[64, 65, 66]::smallint[], false)
-) as v(size64, label, od64_choices, collar)
-where l.manufacturer = 'VISE' and l.name = 'IF Interchangeable Finger Oval';
-
-insert into grip_line (manufacturer, name, kind, colors) values ('VISE', 'IF Interchangeable Finger Round', 'FINGER_INSERT', array['Black']::text[]);
-
-insert into grip_size (line_id, size64, label, od64_choices, collar)
-select l.id, v.size64, v.label, v.od64_choices, v.collar
-from grip_line l, (values
-    (40, '2', array[64, 65, 66]::smallint[], false),
-    (41, '2.5', array[64, 65, 66]::smallint[], false),
-    (42, '3', array[64, 65, 66]::smallint[], false),
-    (43, '3.5', array[64, 65, 66]::smallint[], false),
-    (44, '4', array[64, 65, 66]::smallint[], false),
-    (45, '4.5', array[64, 65, 66]::smallint[], false),
-    (46, '5', array[64, 65, 66]::smallint[], false),
-    (47, '5.5', array[64, 65, 66]::smallint[], false),
-    (48, '6', array[64, 65, 66]::smallint[], false),
-    (49, '6.5', array[64, 65, 66]::smallint[], false),
-    (50, '7', array[64, 65, 66]::smallint[], false),
-    (51, '7.5', array[64, 65, 66]::smallint[], false),
-    (52, '8', array[64, 65, 66]::smallint[], false),
-    (53, '8.5', array[64, 65, 66]::smallint[], false),
-    (54, '9', array[64, 65, 66]::smallint[], false),
-    (55, '9.5', array[64, 65, 66]::smallint[], false)
-) as v(size64, label, od64_choices, collar)
-where l.manufacturer = 'VISE' and l.name = 'IF Interchangeable Finger Round';
-
-insert into grip_line (manufacturer, name, kind, colors) values ('VISE', 'Urethane Finger Slugs', 'FINGER_SLUG', array['Black']::text[]);
+insert into grip_line (manufacturer, name, kind, colors, install_styles) values ('VISE', 'Urethane Finger Slugs', 'FINGER_SLUG', array['Black']::text[], '{}'::text[]);
 
 insert into grip_size (line_id, size64, label, od64_choices, collar)
 select l.id, v.size64, v.label, v.od64_choices, v.collar
@@ -397,7 +351,7 @@ from grip_line l, (values
 ) as v(size64, label, od64_choices, collar)
 where l.manufacturer = 'VISE' and l.name = 'Urethane Finger Slugs';
 
-insert into grip_line (manufacturer, name, kind, colors) values ('VISE', 'Pro V2 Vinyl Oval Thumb', 'THUMB_INSERT', array['White', 'Black']::text[]);
+insert into grip_line (manufacturer, name, kind, colors, install_styles) values ('VISE', 'Pro V2 Vinyl Oval Thumb', 'THUMB_INSERT', array['White', 'Black']::text[], '{}'::text[]);
 
 insert into grip_size (line_id, size64, label, od64_choices, collar)
 select l.id, v.size64, v.label, v.od64_choices, v.collar
@@ -426,7 +380,7 @@ from grip_line l, (values
 ) as v(size64, label, od64_choices, collar)
 where l.manufacturer = 'VISE' and l.name = 'Pro V2 Vinyl Oval Thumb';
 
-insert into grip_line (manufacturer, name, kind, colors) values ('VISE', 'Tapered Vinyl Oval Thumb', 'THUMB_INSERT', array['White', 'Black']::text[]);
+insert into grip_line (manufacturer, name, kind, colors, install_styles) values ('VISE', 'Tapered Vinyl Oval Thumb', 'THUMB_INSERT', array['White', 'Black']::text[], '{}'::text[]);
 
 insert into grip_size (line_id, size64, label, od64_choices, collar)
 select l.id, v.size64, v.label, v.od64_choices, v.collar
@@ -455,7 +409,7 @@ from grip_line l, (values
 ) as v(size64, label, od64_choices, collar)
 where l.manufacturer = 'VISE' and l.name = 'Tapered Vinyl Oval Thumb';
 
-insert into grip_line (manufacturer, name, kind, colors) values ('VISE', 'Tapered Vinyl Round Thumb', 'THUMB_INSERT', array['White', 'Black']::text[]);
+insert into grip_line (manufacturer, name, kind, colors, install_styles) values ('VISE', 'Tapered Vinyl Round Thumb', 'THUMB_INSERT', array['White', 'Black']::text[], '{}'::text[]);
 
 insert into grip_size (line_id, size64, label, od64_choices, collar)
 select l.id, v.size64, v.label, v.od64_choices, v.collar
@@ -484,7 +438,7 @@ from grip_line l, (values
 ) as v(size64, label, od64_choices, collar)
 where l.manufacturer = 'VISE' and l.name = 'Tapered Vinyl Round Thumb';
 
-insert into grip_line (manufacturer, name, kind, colors) values ('VISE', 'Vinyl Thumb Slugs', 'THUMB_SLUG', array['Yellow', 'White', 'Black', 'Green', 'Orange', 'Blue', 'Purple', 'Pink', 'Red']::text[]);
+insert into grip_line (manufacturer, name, kind, colors, install_styles) values ('VISE', 'Vinyl Thumb Slugs', 'THUMB_SLUG', array['Yellow', 'White', 'Black', 'Green', 'Orange', 'Blue', 'Purple', 'Pink', 'Red']::text[], '{}'::text[]);
 
 insert into grip_size (line_id, size64, label, od64_choices, collar)
 select l.id, v.size64, v.label, v.od64_choices, v.collar
@@ -495,7 +449,7 @@ from grip_line l, (values
 ) as v(size64, label, od64_choices, collar)
 where l.manufacturer = 'VISE' and l.name = 'Vinyl Thumb Slugs';
 
-insert into grip_line (manufacturer, name, kind, colors) values ('VISE', 'Easy Urethane Thumb Slugs', 'THUMB_SLUG', array['Yellow', 'White', 'Black', 'Neon', 'Green', 'Orange', 'Blue', 'Purple', 'Pink', 'Red', 'Grape', 'Clear']::text[]);
+insert into grip_line (manufacturer, name, kind, colors, install_styles) values ('VISE', 'Easy Urethane Thumb Slugs', 'THUMB_SLUG', array['Yellow', 'White', 'Black', 'Neon', 'Green', 'Orange', 'Blue', 'Purple', 'Pink', 'Red', 'Grape', 'Clear']::text[], '{}'::text[]);
 
 insert into grip_size (line_id, size64, label, od64_choices, collar)
 select l.id, v.size64, v.label, v.od64_choices, v.collar
@@ -507,7 +461,7 @@ from grip_line l, (values
 ) as v(size64, label, od64_choices, collar)
 where l.manufacturer = 'VISE' and l.name = 'Easy Urethane Thumb Slugs';
 
-insert into grip_line (manufacturer, name, kind, colors) values ('VISE', 'Dual Easy Urethane Thumb Slugs', 'THUMB_SLUG', array['White/Black', 'Green/Orange', 'Yellow/Grape', 'Neon/Red', 'Pink/Blue']::text[]);
+insert into grip_line (manufacturer, name, kind, colors, install_styles) values ('VISE', 'Dual Easy Urethane Thumb Slugs', 'THUMB_SLUG', array['White/Black', 'Green/Orange', 'Yellow/Grape', 'Neon/Red', 'Pink/Blue']::text[], '{}'::text[]);
 
 insert into grip_size (line_id, size64, label, od64_choices, collar)
 select l.id, v.size64, v.label, v.od64_choices, v.collar
@@ -518,7 +472,7 @@ from grip_line l, (values
 ) as v(size64, label, od64_choices, collar)
 where l.manufacturer = 'VISE' and l.name = 'Dual Easy Urethane Thumb Slugs';
 
-insert into grip_line (manufacturer, name, kind, colors) values ('VISE', 'IT Interchangeable Thumb', 'INTERCHANGEABLE_THUMB', array['Yellow', 'White', 'Black', 'Neon', 'Green', 'Orange', 'Blue', 'Purple', 'Pink', 'Red', 'Grape', 'Clear', 'Black XL']::text[]);
+insert into grip_line (manufacturer, name, kind, colors, install_styles) values ('VISE', 'IT Interchangeable Thumb', 'INTERCHANGEABLE_THUMB', array['Yellow', 'White', 'Black', 'Neon', 'Green', 'Orange', 'Blue', 'Purple', 'Pink', 'Red', 'Grape', 'Clear', 'Black XL']::text[], '{}'::text[]);
 
 insert into grip_size (line_id, size64, label, od64_choices, collar)
 select l.id, v.size64, v.label, v.od64_choices, v.collar
@@ -530,7 +484,7 @@ from grip_line l, (values
 ) as v(size64, label, od64_choices, collar)
 where l.manufacturer = 'VISE' and l.name = 'IT Interchangeable Thumb';
 
-insert into grip_line (manufacturer, name, kind, colors) values ('TURBO', 'Quad', 'FINGER_INSERT', array['Black', 'White', 'Ice/Clear', 'Yellow', 'Red', 'Blue', 'Green', 'Orange', 'Purple', 'Pink']::text[]);
+insert into grip_line (manufacturer, name, kind, colors, install_styles) values ('TURBO', 'Quad', 'FINGER_INSERT', array['Black', 'White', 'Ice/Clear', 'Yellow', 'Red', 'Blue', 'Green', 'Orange', 'Purple', 'Pink']::text[], array['Perfect Oval', 'Power Oval']::text[]);
 
 insert into grip_size (line_id, size64, label, od64_choices, collar)
 select l.id, v.size64, v.label, v.od64_choices, v.collar
@@ -557,7 +511,7 @@ from grip_line l, (values
 ) as v(size64, label, od64_choices, collar)
 where l.manufacturer = 'TURBO' and l.name = 'Quad';
 
-insert into grip_line (manufacturer, name, kind, colors) values ('TURBO', 'Classic', 'FINGER_INSERT', array['Black', 'White', 'Ice/Clear', 'Yellow', 'Red', 'Blue', 'Green', 'Orange', 'Purple', 'Pink']::text[]);
+insert into grip_line (manufacturer, name, kind, colors, install_styles) values ('TURBO', 'Classic', 'FINGER_INSERT', array['Black', 'White', 'Ice/Clear', 'Yellow', 'Red', 'Blue', 'Green', 'Orange', 'Purple', 'Pink']::text[], array['Perfect Oval', 'Power Lift 1/4″']::text[]);
 
 insert into grip_size (line_id, size64, label, od64_choices, collar)
 select l.id, v.size64, v.label, v.od64_choices, v.collar
@@ -584,7 +538,7 @@ from grip_line l, (values
 ) as v(size64, label, od64_choices, collar)
 where l.manufacturer = 'TURBO' and l.name = 'Classic';
 
-insert into grip_line (manufacturer, name, kind, colors) values ('TURBO', 'Classic Pro', 'FINGER_INSERT', array['Black', 'Blue']::text[]);
+insert into grip_line (manufacturer, name, kind, colors, install_styles) values ('TURBO', 'Classic Pro', 'FINGER_INSERT', array['Black', 'Blue']::text[], array['Perfect Oval', 'Power Lift 1/4″']::text[]);
 
 insert into grip_size (line_id, size64, label, od64_choices, collar)
 select l.id, v.size64, v.label, v.od64_choices, v.collar
@@ -611,7 +565,7 @@ from grip_line l, (values
 ) as v(size64, label, od64_choices, collar)
 where l.manufacturer = 'TURBO' and l.name = 'Classic Pro';
 
-insert into grip_line (manufacturer, name, kind, colors) values ('TURBO', 'Quad 2', 'FINGER_INSERT', array['Black', 'Ice/Clear']::text[]);
+insert into grip_line (manufacturer, name, kind, colors, install_styles) values ('TURBO', 'Quad 2', 'FINGER_INSERT', array['Black', 'Ice/Clear']::text[], array['Power Nub', 'Semi-Super Bump']::text[]);
 
 insert into grip_size (line_id, size64, label, od64_choices, collar)
 select l.id, v.size64, v.label, v.od64_choices, v.collar
@@ -638,7 +592,7 @@ from grip_line l, (values
 ) as v(size64, label, od64_choices, collar)
 where l.manufacturer = 'TURBO' and l.name = 'Quad 2';
 
-insert into grip_line (manufacturer, name, kind, colors) values ('TURBO', 'Power-SB', 'FINGER_INSERT', array['Black', 'Ice/Clear']::text[]);
+insert into grip_line (manufacturer, name, kind, colors, install_styles) values ('TURBO', 'Power-SB', 'FINGER_INSERT', array['Black', 'Ice/Clear']::text[], array['Power Lift 1/4″', 'Semi-Super Bump']::text[]);
 
 insert into grip_size (line_id, size64, label, od64_choices, collar)
 select l.id, v.size64, v.label, v.od64_choices, v.collar
@@ -665,7 +619,7 @@ from grip_line l, (values
 ) as v(size64, label, od64_choices, collar)
 where l.manufacturer = 'TURBO' and l.name = 'Power-SB';
 
-insert into grip_line (manufacturer, name, kind, colors) values ('TURBO', 'Ms. Quad', 'FINGER_INSERT', array['Black', 'White', 'Ice/Clear', 'Yellow', 'Pink']::text[]);
+insert into grip_line (manufacturer, name, kind, colors, install_styles) values ('TURBO', 'Ms. Quad', 'FINGER_INSERT', array['Black', 'White', 'Ice/Clear', 'Yellow', 'Pink']::text[], array['Perfect Oval', 'Power Oval']::text[]);
 
 insert into grip_size (line_id, size64, label, od64_choices, collar)
 select l.id, v.size64, v.label, v.od64_choices, v.collar
@@ -688,7 +642,7 @@ from grip_line l, (values
 ) as v(size64, label, od64_choices, collar)
 where l.manufacturer = 'TURBO' and l.name = 'Ms. Quad';
 
-insert into grip_line (manufacturer, name, kind, colors) values ('TURBO', 'Urethane Finger Solids', 'FINGER_SLUG', array['Black']::text[]);
+insert into grip_line (manufacturer, name, kind, colors, install_styles) values ('TURBO', 'Urethane Finger Solids', 'FINGER_SLUG', array['Black']::text[], '{}'::text[]);
 
 insert into grip_size (line_id, size64, label, od64_choices, collar)
 select l.id, v.size64, v.label, v.od64_choices, v.collar
@@ -698,7 +652,7 @@ from grip_line l, (values
 ) as v(size64, label, od64_choices, collar)
 where l.manufacturer = 'TURBO' and l.name = 'Urethane Finger Solids';
 
-insert into grip_line (manufacturer, name, kind, colors) values ('TURBO', 'Xcel Thumb Round', 'THUMB_INSERT', array['Black']::text[]);
+insert into grip_line (manufacturer, name, kind, colors, install_styles) values ('TURBO', 'Xcel Thumb Round', 'THUMB_INSERT', array['Black']::text[], '{}'::text[]);
 
 insert into grip_size (line_id, size64, label, od64_choices, collar)
 select l.id, v.size64, v.label, v.od64_choices, v.collar
@@ -724,7 +678,7 @@ from grip_line l, (values
 ) as v(size64, label, od64_choices, collar)
 where l.manufacturer = 'TURBO' and l.name = 'Xcel Thumb Round';
 
-insert into grip_line (manufacturer, name, kind, colors) values ('TURBO', 'Xcel Thumb Oval', 'THUMB_INSERT', array['Black']::text[]);
+insert into grip_line (manufacturer, name, kind, colors, install_styles) values ('TURBO', 'Xcel Thumb Oval', 'THUMB_INSERT', array['Black']::text[], '{}'::text[]);
 
 insert into grip_size (line_id, size64, label, od64_choices, collar)
 select l.id, v.size64, v.label, v.od64_choices, v.collar
@@ -750,7 +704,7 @@ from grip_line l, (values
 ) as v(size64, label, od64_choices, collar)
 where l.manufacturer = 'TURBO' and l.name = 'Xcel Thumb Oval';
 
-insert into grip_line (manufacturer, name, kind, colors) values ('TURBO', 'Urethane Thumb Solids', 'THUMB_SLUG', array['Black/White', 'Orange/Yellow', 'Blue/Purple', 'Green/Red', 'Pink/White', 'White', 'Black']::text[]);
+insert into grip_line (manufacturer, name, kind, colors, install_styles) values ('TURBO', 'Urethane Thumb Solids', 'THUMB_SLUG', array['Black/White', 'Orange/Yellow', 'Blue/Purple', 'Green/Red', 'Pink/White', 'White', 'Black']::text[], '{}'::text[]);
 
 insert into grip_size (line_id, size64, label, od64_choices, collar)
 select l.id, v.size64, v.label, v.od64_choices, v.collar
@@ -762,7 +716,7 @@ from grip_line l, (values
 ) as v(size64, label, od64_choices, collar)
 where l.manufacturer = 'TURBO' and l.name = 'Urethane Thumb Solids';
 
-insert into grip_line (manufacturer, name, kind, colors) values ('TURBO', 'Switch Grip', 'INTERCHANGEABLE_THUMB', array['Black', 'Orange', 'Yellow', 'Green', 'Blue', 'Red', 'Pink', 'Purple']::text[]);
+insert into grip_line (manufacturer, name, kind, colors, install_styles) values ('TURBO', 'Switch Grip', 'INTERCHANGEABLE_THUMB', array['Black', 'Orange', 'Yellow', 'Green', 'Blue', 'Red', 'Pink', 'Purple']::text[], '{}'::text[]);
 
 insert into grip_size (line_id, size64, label, od64_choices, collar)
 select l.id, v.size64, v.label, v.od64_choices, v.collar
@@ -771,7 +725,7 @@ from grip_line l, (values
 ) as v(size64, label, od64_choices, collar)
 where l.manufacturer = 'TURBO' and l.name = 'Switch Grip';
 
-insert into grip_line (manufacturer, name, kind, colors) values ('TURBO', 'Switch Grip NX', 'INTERCHANGEABLE_THUMB', array['Black', 'Red']::text[]);
+insert into grip_line (manufacturer, name, kind, colors, install_styles) values ('TURBO', 'Switch Grip NX', 'INTERCHANGEABLE_THUMB', array['Black', 'Red']::text[], '{}'::text[]);
 
 insert into grip_size (line_id, size64, label, od64_choices, collar)
 select l.id, v.size64, v.label, v.od64_choices, v.collar
@@ -780,7 +734,7 @@ from grip_line l, (values
 ) as v(size64, label, od64_choices, collar)
 where l.manufacturer = 'TURBO' and l.name = 'Switch Grip NX';
 
-insert into grip_line (manufacturer, name, kind, colors) values ('JOPO', 'Power Flat / Oval', 'FINGER_INSERT', array['Black', 'Blue', 'Green', 'Orange', 'Pink', 'Purple', 'Red', 'White', 'Yellow']::text[]);
+insert into grip_line (manufacturer, name, kind, colors, install_styles) values ('JOPO', 'Power Flat / Oval', 'FINGER_INSERT', array['Black', 'Blue', 'Green', 'Orange', 'Pink', 'Purple', 'Red', 'White', 'Yellow']::text[], array['Power Flat', 'Oval']::text[]);
 
 insert into grip_size (line_id, size64, label, od64_choices, collar)
 select l.id, v.size64, v.label, v.od64_choices, v.collar
@@ -803,7 +757,7 @@ from grip_line l, (values
 ) as v(size64, label, od64_choices, collar)
 where l.manufacturer = 'JOPO' and l.name = 'Power Flat / Oval';
 
-insert into grip_line (manufacturer, name, kind, colors) values ('JOPO', 'Oval / Oval Dots', 'FINGER_INSERT', array['Black', 'Blue', 'Green', 'Orange', 'Pink', 'Purple', 'Red', 'White', 'Yellow']::text[]);
+insert into grip_line (manufacturer, name, kind, colors, install_styles) values ('JOPO', 'Oval / Oval Dots', 'FINGER_INSERT', array['Black', 'Blue', 'Green', 'Orange', 'Pink', 'Purple', 'Red', 'White', 'Yellow']::text[], array['Oval', 'Oval Dots']::text[]);
 
 insert into grip_size (line_id, size64, label, od64_choices, collar)
 select l.id, v.size64, v.label, v.od64_choices, v.collar
@@ -826,7 +780,7 @@ from grip_line l, (values
 ) as v(size64, label, od64_choices, collar)
 where l.manufacturer = 'JOPO' and l.name = 'Oval / Oval Dots';
 
-insert into grip_line (manufacturer, name, kind, colors) values ('JOPO', 'Thumb Slugs', 'THUMB_SLUG', array['Black', 'Blue', 'Green', 'Orange', 'Pink', 'Purple', 'Red', 'White', 'Yellow']::text[]);
+insert into grip_line (manufacturer, name, kind, colors, install_styles) values ('JOPO', 'Thumb Slugs', 'THUMB_SLUG', array['Black', 'Blue', 'Green', 'Orange', 'Pink', 'Purple', 'Red', 'White', 'Yellow']::text[], '{}'::text[]);
 
 insert into grip_size (line_id, size64, label, od64_choices, collar)
 select l.id, v.size64, v.label, v.od64_choices, v.collar
@@ -838,7 +792,7 @@ from grip_line l, (values
 ) as v(size64, label, od64_choices, collar)
 where l.manufacturer = 'JOPO' and l.name = 'Thumb Slugs';
 
-insert into grip_line (manufacturer, name, kind, colors) values ('JOPO', 'Twist', 'INTERCHANGEABLE_THUMB', array['Black', 'Blue', 'Green', 'Orange', 'Pink', 'Purple', 'Red', 'White', 'Yellow', 'Twisted']::text[]);
+insert into grip_line (manufacturer, name, kind, colors, install_styles) values ('JOPO', 'Twist', 'INTERCHANGEABLE_THUMB', array['Black', 'Blue', 'Green', 'Orange', 'Pink', 'Purple', 'Red', 'White', 'Yellow', 'Twisted']::text[], '{}'::text[]);
 
 insert into grip_size (line_id, size64, label, od64_choices, collar)
 select l.id, v.size64, v.label, v.od64_choices, v.collar
@@ -846,7 +800,6 @@ from grip_line l, (values
     (96, 'Outer', array[96]::smallint[], true)
 ) as v(size64, label, od64_choices, collar)
 where l.manufacturer = 'JOPO' and l.name = 'Twist';
-
 
 -- migrate:down
 

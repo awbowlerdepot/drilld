@@ -199,6 +199,7 @@ export interface GripLine {
   active: Generated<boolean>;
   colors: Generated<string[]>;
   id: Generated<string>;
+  install_styles: Generated<string[]>;
   kind: string;
   manufacturer: string;
   name: string;

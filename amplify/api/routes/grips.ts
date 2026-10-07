@@ -28,6 +28,7 @@ export const gripCatalog = new Hono<ApiEnv>()
             name: line.name,
             kind: line.kind as GripLineDto['kind'],
             colors: line.colors,
+            installStyles: line.install_styles,
             sizes: byLine.get(line.id) ?? []
         }));
         return c.json(dto);
