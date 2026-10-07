@@ -12,12 +12,15 @@ import { SPAN_TYPES, fingerName, fingersBySide, spanKey, type Finger, type Sheet
 // the thumb at the bottom. Every value is tappable. Positions are on an
 // 820 × 920 canvas that scales down on small screens.
 
+// Fit first, then the edge measurements.
+const SPAN_COLUMN = [...SPAN_TYPES.filter(t => t.key === 'fit32'), ...SPAN_TYPES.filter(t => t.key !== 'fit32')]
+
 const WIDTH = 820
 const HEIGHT = 920
 const PITCH_WHOLES = [0, 1]
 
 const ARROWS: [number, number, number, number][] = [
-    [286, 402, 272, 320], [547, 402, 560, 320], [316, 512, 366, 664], [517, 512, 466, 664],
+    [266, 402, 252, 320], [567, 402, 580, 320], [296, 512, 356, 664], [537, 512, 476, 664],
     [66, 110, 66, 84], [66, 368, 66, 394], [60, 239, 34, 239],
     [754, 110, 754, 84], [754, 368, 754, 394], [760, 239, 786, 239],
     [416, 565, 416, 540], [416, 900, 416, 916], [205, 731, 181, 731], [626, 731, 650, 731]
@@ -110,6 +113,8 @@ export const HoleLayout = ({ spec, edit, readOnly, hand }: SheetEditProps) => {
         )
     }
 
+    const activeType = SPAN_TYPES.find(t => t.key === spanType)!
+
     const spanBox = (finger: Finger, left: number) => {
         const span = spec.spans[spanKey(finger)]
         const value = span[spanType]
@@ -118,6 +123,7 @@ export const HoleLayout = ({ spec, edit, readOnly, hand }: SheetEditProps) => {
             <ValueBox label={`Thumb to ${fingerName(finger).toLowerCase()} span`} readOnly={readOnly}
                 selected={selectedSpan === finger} className="h-[110px] w-[196px]" style={at(left, 402)}
                 value={value ? `${format32(value)}` : null} onClick={() => pickSpan(finger)}>
+                <span className="font-sans text-xs font-medium text-gray-500">{activeType.label}</span>
                 {others.length > 0 && (
                     <span className="text-[13px] font-medium text-gray-600">
                         {others.map(t => `${t.short} ${format32(span[t.key]!)}`).join(' · ')}
@@ -127,7 +133,6 @@ export const HoleLayout = ({ spec, edit, readOnly, hand }: SheetEditProps) => {
         )
     }
 
-    const activeType = SPAN_TYPES.find(t => t.key === spanType)!
     const flexibility = spec.fitting.flexibilityDegrees
     // Norm warnings are off for a pro fit, which breaks the norms on purpose.
     const flexibilityOutsideNorm = flexibility != null && !spec.fitting.proFit && (flexibility < 70 || flexibility > 135)
@@ -161,23 +166,21 @@ export const HoleLayout = ({ spec, edit, readOnly, hand }: SheetEditProps) => {
                 })} />
             {caption(392, 278, 'Bridge')}
 
-            <div role="radiogroup" aria-label="Span type shown" className="absolute flex gap-3.5" style={{ left: 282, top: 326 }}>
-                {SPAN_TYPES.map(type => (
-                    <button key={type.key} type="button" role="radio" aria-checked={spanType === type.key} aria-label={type.label}
+            {/* Span type: a column down the middle, Fit on top. */}
+            <div role="radiogroup" aria-label="Span type shown" className="absolute flex flex-col items-center gap-1.5" style={{ left: 396, top: 308 }}>
+                {SPAN_COLUMN.map(type => (
+                    <button key={type.key} type="button" role="radio" aria-checked={spanType === type.key}
+                        aria-label={`${type.label}: ${type.description}`} title={`${type.label}: ${type.description}`}
                         onClick={() => setSpanType(type.key)}
-                        className={cn('h-[42px] rounded-full text-[15px] font-semibold transition-colors',
-                            type.short.length > 1 ? 'w-[54px]' : 'w-[42px]',
+                        className={cn('size-10 rounded-full text-[15px] font-semibold transition-colors',
                             spanType === type.key ? 'bg-primary text-primary-foreground' : 'border-[1.5px] border-slate-300 bg-white text-gray-700 hover:bg-muted')}>
                         {type.short}
                     </button>
                 ))}
             </div>
-            <span className="absolute w-[300px] text-center text-sm font-semibold text-gray-800" style={at(266, 374)}>
-                {activeType.label} · {activeType.description}
-            </span>
 
-            {spanBox(sides.left, 196)}
-            {spanBox(sides.right, 441)}
+            {spanBox(sides.left, 176)}
+            {spanBox(sides.right, 461)}
 
             <span className="absolute text-lg font-medium text-gray-900" style={at(196, 590)}>Flexibility</span>
             <button type="button" disabled={readOnly} aria-label="Flexibility"
