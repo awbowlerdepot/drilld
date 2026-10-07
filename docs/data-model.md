@@ -51,7 +51,8 @@ Platform
 
 - **Spans, bridge and pitch**: integer **32nds of an inch** (`4-3/8″+` = 4-13/32″ is stored as `141`). Shops measure in 16ths and write "+" for an extra 1/32; the UI renders `141` back as `4-3/8″+`. Bridge is always edge-to-edge.
 - **Hole and bit sizes**: integer **64ths of an inch** (31/64″ is stored as `31`, 1″ as `64`). Every drill bit size uses 64ths: hole sizes, O.D., pilot holes, step drilling. They are exact and sortable, and the UI renders them as fractions.
-- **Cuts and oval width**: decimal inches, stored as integer **thousandths** (`.032″` is `32`). One standard cut is 1/32″, or "2 bits" (.032″).
+- **Finger cuts**: decimal inches, stored as integer **thousandths** (`.032″` is `32`). One standard cut is 1/32″, or "2 bits" (.032″).
+- **Thumb oval**: measured with bits, so the pilot (narrow side) and width (wide side) are 64ths. The thumb's cuts are calculated from them, never entered (see the spec below).
 - **Pitch**: inches only, never degrees. `forward` is positive forward and negative reverse; `lateral` is positive right and negative left.
 - **Angles**: degrees (flexibility, CLT, thumb oval angle, bevel, axis tilt and rotation).
 - **Delivery**: speed in mph (`numeric(4,1)`), rev rate in RPM (integer). PAP in 32nds of an inch: over from the center line, and up (negative = down).
@@ -349,7 +350,7 @@ alter table drill_sheet
   bridge: { distance32, notes },               // edge-to-edge, middle ↔ ring
   holes: {
     thumb:  { enabled, size64, outsideDiameter64?, depth32?, pitch,
-              oval?, cuts: [cut], slug?, bevel?, drillingSequence?, notes },
+              oval?, slug?, bevel?, drillingSequence?, notes },
     middle: { size64, outsideDiameter64?, depth32?, pitch, insert?, cuts: [cut], bevel?, drillingSequence?, notes },
     ring:   { …same as middle },
     index?: { …same as middle },
@@ -362,8 +363,8 @@ alter table drill_sheet
 
 span             = { full32?, cutToCut32?, outerToCut32?, centerToCenter32?, fit32?, notes }
 pitch            = { forward32, lateral32 }  // negative forward = reverse, negative lateral = left
-oval             = { angleDegrees, pilotHole64, width1000 }
-cut              = { vertical1000, horizontal1000 }       // one entry per successive cut, in order
+oval             = { angleDegrees, pilotHole64, width64 }   // thumb cuts are derived, not stored
+cut              = { vertical1000, horizontal1000 }       // finger holes: one entry per successive cut, in order
 slug             = { manufacturer, type, size64, interchangeable, notes }
 bevel            = { angleDegrees, depth32 }
 drillingSequence = [ { step, bitSize64, depth32, notes } ]   // in drilling order
@@ -371,6 +372,28 @@ drillingSequence = [ { step, bitSize64, depth32, notes } ]   // in drilling orde
 
 - **Left and right holes.** The middle finger is the left hole for a right-hander and the right hole for a left-hander. The spec stores fingers by name (`middle`, `ring`); the editor mirrors the layout by the customer's dominant hand.
 - **O.D.** (`outsideDiameter64`) is the outer hole drilled for an insert or slug; `size64` is the grip hole inside it.
+- **Thumb oval cuts are calculated.** After drilling, the shop measures the oval with two bits: one that fits the narrow side (`pilotHole64`) and one that fits the wide side (`width64`). It also measures the angle. The cuts are derived from these:
+  - The elongation is `width64 − pilotHole64`. It is split evenly on both sides of the pilot hole's center, so each side gets half.
+  - The center is the thumb's desired pitch: the pilot is drilled there.
+  - Order matters. For a right-hander, start at the farthest up-and-left position and work back toward the center. Then work out down and to the right, finishing at the farthest position. A left-hander mirrors this: farthest up-and-right first, finishing at the farthest down-and-left.
+  - Each side is divided into equal cuts of **no more than 1/32″**: `n = ceil(side ÷ 1/32″)` cuts of `side ÷ n` each. Both sides get the same number of cuts.
+  - The angle is measured from horizontal: 0° is a left-to-right oval and 90° is up-and-down. It mirrors with the hand. For a right-hander the oval tilts from up-left to down-right; for a left-hander the same angle tilts from up-right to down-left. The sheet records the same number either way, and the bowler's dominant hand sets the direction. Each cut's horizontal and vertical components are `cut × cos(angle)` and `cut × sin(angle)`. For example, one 1/32″ cut at 45° is about .022″ each way.
+  - The editor and the drill press view list the calculated cuts in drilling order, as **digital readout positions**, rounded to thousandths:
+    - The pitch center comes from the thumb's pitches. Forward/reverse pitch is on the vertical axis and lateral on the horizontal; pitch in inches is the jig offset (see **Pitch on the readout** below).
+    - Each cut's position is the pitch center plus that cut's offset. For example, 3/8″ reverse and 1/8″ left puts the center at −.375 / −.125 (up and right positive). Two .023″ cuts per side at 20° then put the first cut at −.359 / −.169.
+    - Signs follow the press's readout directions (below).
+  - The cuts aren't stored.
+- **Pitch on the readout.** Pitches are measured from the center of the grip, so the vertical direction depends on the hole:
+  - Thumb: reverse is down and forward is up.
+  - Fingers: reverse is up and forward is down.
+  - Lateral is the same for every hole: left on the sheet is left on the press.
+  - The readout number then also depends on the press setting below. For example, with up as plus, a thumb's 3/8″ reverse reads −.375 and a finger's 3/8″ reverse reads +.375. With down as plus, both flip.
+- **Drill press readout direction.** Presses differ in which way their digital readout counts. Some are built one way and some the opposite, and some readouts can be configured. Both axes are a property of the press:
+  - `drillPress.verticalReadout: 'UP_POSITIVE' | 'DOWN_POSITIVE'`
+  - `drillPress.horizontalReadout: 'RIGHT_POSITIVE' | 'LEFT_POSITIVE'`
+  - The defaults are up plus and right plus. They're a company setting that a location can override, and they move to the equipment record once presses are modelled.
+  - It only changes how numbers are shown. The spec always stores pitch one way (forward positive, lateral right positive).
+  - The drill press view and the editor's calculated cuts show every readout value, pitches included, in the press's convention.
 - **Offset** (lateral thumb offset) is left out of v1.
 - **Flexibility** is the hand's spread angle, normally 70–135°. A suggested starting pitch from flexibility and span may come later, only from a validated chart, and never under `proFit`.
 - **CLT** (center line transformation) is the angle between the bowler's finger centerline and the ball's normal centerline. The degree reading is taken at the fingers; the alternative inch reading at the thumb isn't stored, because the chart below is keyed by degrees. It is only shown when the company setting `drillSheets.enableClt` is on. Auto-CLT then suggests the fingers' lateral pitch from the nearest chart line. Accepting fills in `holes.middle.pitch.lateral32` and `holes.ring.pitch.lateral32`, and a manual value always wins. Chart, right-handed (left-handed swaps Left and Right):
