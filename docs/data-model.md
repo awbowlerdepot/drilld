@@ -378,7 +378,13 @@ drillingSequence = [ { step, bitSize64, depth32, notes } ]   // in drilling orde
   - Order matters. For a right-hander, the up-and-left cuts are made first, then the down-and-right ones. A left-hander mirrors this: up and right first, then down and left.
   - Each side is divided into equal cuts of **no more than 1/32″**: `n = ceil(side ÷ 1/32″)` cuts of `side ÷ n` each. Both sides get the same number of cuts.
   - Each cut's vertical and horizontal components are `cut × cos(angle)` and `cut × sin(angle)`. For example, one 1/32″ cut at 45° is about .022″ and .022″.
-  - The editor and the drill press view list the calculated cuts in drilling order. Each cut's position is measured from the pitch center and rounded to thousandths. The cuts aren't stored.
+  - The editor and the drill press view list the calculated cuts in drilling order, as **signed readout values** measured from the pitch center and rounded to thousandths:
+    - Horizontal: negative is left, positive is right.
+    - Vertical: the sign follows the press's readout setting (below).
+  - The cuts aren't stored.
+- **Drill press readout direction.** A press's digital readout can be set so up is plus, or so down is plus. The setting is `drillPress.verticalReadout: 'UP_POSITIVE' | 'DOWN_POSITIVE'`, a company default (up is plus) that a location can override. It will move to the equipment record once presses are modelled.
+  - It only changes how numbers are shown. The spec always stores pitch one way (forward positive, lateral right positive).
+  - The drill press view and the editor's calculated cuts show vertical values, pitches included, in the press's convention.
 - **Offset** (lateral thumb offset) is left out of v1.
 - **Flexibility** is the hand's spread angle, normally 70–135°. A suggested starting pitch from flexibility and span may come later, only from a validated chart, and never under `proFit`.
 - **CLT** (center line transformation) is the angle between the bowler's finger centerline and the ball's normal centerline. The degree reading is taken at the fingers; the alternative inch reading at the thumb isn't stored, because the chart below is keyed by degrees. It is only shown when the company setting `drillSheets.enableClt` is on. Auto-CLT then suggests the fingers' lateral pitch from the nearest chart line. Accepting fills in `holes.middle.pitch.lateral32` and `holes.ring.pitch.lateral32`, and a manual value always wins. Chart, right-handed (left-handed swaps Left and Right):
