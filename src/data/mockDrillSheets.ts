@@ -62,7 +62,8 @@ store.set(sampleId, {
             middle: {
                 size64: 50, outsideDiameter64: 62,
                 pitch: { forward32: -32, lateral32: -8 },
-                insert: { manufacturer: 'Turbo', insertSize64: 50, type: 'Quad Classic Oval' }
+                insert: { gripSizeId: '53ea5e6e-81f1-5a6a-8322-318a72659d75', manufacturer: 'TURBO', line: 'Quad', size64: 50, label: '7', od64: 62, installStyle: 'Perfect Oval Smooth' },
+                vacu: { bit64: 66, depth32: 32 }
             },
             ring: { size64: 42, pitch: { forward32: -24, lateral32: 16 }, fingerOval: { width64: 46 } }
         },

@@ -54,14 +54,42 @@ const drillingStepSchema = z.object({
     notes
 }).strict();
 
-export const insertManufacturerSchema = z.enum(['VISE', 'Turbo', 'JoPo', 'Other']);
+/**
+ * A finger insert: a copy of a grip catalog choice (docs/data-model.md,
+ * "Grip catalog"), kept on the sheet so it reads the same if the catalog
+ * changes. gripSizeId is null for an insert entered by hand ("Other"). Its
+ * od64 is the hole's O.D. Color isn't here; it's picked on the work order.
+ */
+export const insertSchema = z.object({
+    gripSizeId: z.string().uuid().nullish(),
+    manufacturer: z.string().trim().min(1).max(50),     // 'VISE', 'TURBO', 'JOPO', or free text for Other
+    line: z.string().trim().max(100),
+    size64: size64.nullish(),
+    label: z.string().trim().max(20).nullish(),          // the manufacturer's size label: '8.5', '13/16'
+    od64: size64,
+    installStyle: z.string().trim().max(50).nullish()    // which way it installs: 'Power Lift', 'Perfect Oval Mesh'
+}).strict();
 
-const insertSchema = z.object({
-    manufacturer: insertManufacturerSchema,
-    insertSize64: size64.nullish(),
-    type: z.string().trim().max(100).nullish(),
-    model: z.string().trim().max(100).nullish(),
-    color: z.string().trim().max(50).nullish()
+/** Finger insert sizes for a vacu: O.D. − 1/64" (one bit smaller) up to O.D. + 1/16". */
+export const VACU_BIT_RANGE = { below: 1, above: 4 } as const;
+
+/**
+ * Vacu: the top of a finger insert hole drilled with a different bit than the
+ * O.D. Standard is O.D. + 1/16" at 1" deep; a performance fit may use
+ * 1/2"–1-1/2" in 1/16" steps.
+ */
+export const vacuSchema = z.object({
+    bit64: size64,
+    depth32: z.number().int().min(16).max(48).refine(depth => depth % 2 === 0, 'Vacu depth is in 1/16" steps')
+}).strict();
+
+/** The old insert shape (before the grip catalog), read as an "Other" insert. */
+const legacyInsertSchema = z.object({
+    manufacturer: z.string(),
+    insertSize64: z.number().nullish(),
+    type: z.string().nullish(),
+    model: z.string().nullish(),
+    color: z.string().nullish()
 }).strict();
 
 const slugSchema = z.object({
@@ -108,14 +136,48 @@ export const thumbHoleSchema = z.object({
     slug: slugSchema.nullish()
 }).strict();
 
-export const fingerHoleSchema = z.object({
+/** Reads a hole saved with the old insert shape as an "Other" insert, using the hole's size and O.D. */
+const upgradeLegacyInsert = (hole: unknown) => {
+    if (!hole || typeof hole !== 'object') return hole;
+    const { insert, size64: holeSize, outsideDiameter64 } = hole as Record<string, unknown>;
+    const legacy = legacyInsertSchema.safeParse(insert);
+    if (!legacy.success) return hole;
+    const od = typeof outsideDiameter64 === 'number' ? outsideDiameter64 : 62;
+    return {
+        ...hole,
+        outsideDiameter64: od,
+        insert: {
+            gripSizeId: null,
+            manufacturer: legacy.data.manufacturer,
+            line: [legacy.data.type, legacy.data.model].filter(Boolean).join(' '),
+            size64: legacy.data.insertSize64 ?? (typeof holeSize === 'number' ? holeSize : null),
+            label: null,
+            od64: od,
+            installStyle: null
+        }
+    };
+};
+
+export const fingerHoleSchema = z.preprocess(upgradeLegacyInsert, z.object({
     ...holeFields,
     insert: insertSchema.nullish(),
+    vacu: vacuSchema.nullish(),
     fingerOval: fingerOvalSchema.nullish()
-}).strict().refine(hole => !hole.fingerOval || !hole.size64 || hole.fingerOval.width64 > hole.size64, {
-    message: 'The oval width bit must be larger than the hole size',
-    path: ['fingerOval', 'width64']
-});
+}).strict()
+    .refine(hole => !hole.fingerOval || !hole.size64 || hole.fingerOval.width64 > hole.size64, {
+        message: 'The oval width bit must be larger than the hole size',
+        path: ['fingerOval', 'width64']
+    })
+    .refine(hole => !hole.insert || !hole.outsideDiameter64 || hole.outsideDiameter64 === hole.insert.od64, {
+        message: 'The O.D. comes from the insert',
+        path: ['outsideDiameter64']
+    })
+    .refine(hole => !hole.vacu || !!hole.insert, { message: 'Vacu is only for finger insert holes', path: ['vacu'] })
+    .refine(hole => !hole.vacu || !hole.insert
+        || (hole.vacu.bit64 >= hole.insert.od64 - VACU_BIT_RANGE.below && hole.vacu.bit64 <= hole.insert.od64 + VACU_BIT_RANGE.above), {
+        message: 'The vacu bit must be from one bit under the O.D. to 1/16" over',
+        path: ['vacu', 'bit64']
+    }));
 
 export const drillSheetSpecSchema = z.object({
     spans: z.object({

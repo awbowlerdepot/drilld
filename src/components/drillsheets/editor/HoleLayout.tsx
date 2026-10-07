@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { format32 } from '../../../utils/Fractions'
 import { HoleCircle } from './HoleCircle'
+import { applyInsert, describeInsert } from './insertEdits'
 import { ScaledCanvas } from './ScaledCanvas'
 import { ValueBox } from './ValueBox'
 import { usePicker } from './pickers'
@@ -34,7 +35,7 @@ const caption = (left: number, top: number, text: string) => (
     <span className="absolute text-sm text-gray-700" style={{ left, top }}>{text}</span>
 )
 
-export const HoleLayout = ({ spec, edit, readOnly, hand }: SheetEditProps) => {
+export const HoleLayout = ({ spec, edit, readOnly, hand, locationId }: SheetEditProps) => {
     const open = usePicker()
     const [spanType, setSpanType] = useState<SpanType>('full32')
     const [selectedSpan, setSelectedSpan] = useState<Finger | null>(null)
@@ -98,17 +99,28 @@ export const HoleLayout = ({ spec, edit, readOnly, hand }: SheetEditProps) => {
         )
     }
 
+    const pickInsert = (finger: Finger) => open({
+        kind: 'insert',
+        title: `${fingerName(finger)} finger insert`,
+        locationId,
+        value: spec.holes[finger].insert ?? null,
+        onSet: insert => edit(draft => applyInsert(draft, finger, insert))
+    })
+
     const fingerHole = (finger: Finger, left: number) => {
         const hole = spec.holes[finger]
         const name = `${fingerName(finger)} finger`
+        // With an insert, its size and O.D. come from the insert: tapping either opens the insert picker.
         return (
             <>
-                <span className="absolute w-[186px] text-center text-[15px] font-medium text-primary" style={at(left - 17, 108)}>
-                    {hole.insert ? [hole.insert.manufacturer, hole.insert.type].filter(Boolean).join(' ') : 'No insert'}
-                </span>
+                <button type="button" disabled={readOnly} onClick={() => pickInsert(finger)}
+                    className="absolute flex h-[42px] w-[160px] items-end justify-center text-center text-[13px] font-medium leading-tight text-primary hover:underline disabled:no-underline"
+                    style={at(left - 4, 118)}>
+                    {hole.insert ? describeInsert(hole.insert) : 'No insert'}
+                </button>
                 <HoleCircle left={left} top={164}
-                    upper={{ label: 'O.D.', value: hole.outsideDiameter64, onClick: () => pickBit(`${name} O.D.`, finger, 'outsideDiameter64') }}
-                    lower={{ label: hole.insert ? 'Insert size' : 'Hole size', value: hole.size64, onClick: () => pickBit(`${name} hole size`, finger, 'size64') }}
+                    upper={{ label: 'O.D.', value: hole.outsideDiameter64, onClick: () => (hole.insert ? pickInsert(finger) : pickBit(`${name} O.D.`, finger, 'outsideDiameter64')) }}
+                    lower={{ label: hole.insert ? 'Insert size' : 'Hole size', value: hole.size64, onClick: () => (hole.insert ? pickInsert(finger) : pickBit(`${name} hole size`, finger, 'size64')) }}
                     readOnly={readOnly} name={name} />
             </>
         )

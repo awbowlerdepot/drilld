@@ -46,6 +46,32 @@ const promotedColumns = (spec: DrillSheetSpec) => {
     };
 };
 
+const FINGER_HOLES = ['middle', 'ring', 'index', 'pinky'] as const;
+
+/**
+ * Checks catalog inserts against the grip catalog: the size exists, is a
+ * finger insert, and the sheet's size, O.D. and install style are ones it
+ * offers. ("Other" inserts, with no gripSizeId, aren't checked.)
+ */
+const checkInsertsAgainstCatalog = async (tx: Tx, spec: DrillSheetSpec) => {
+    for (const finger of FINGER_HOLES) {
+        const insert = spec.holes[finger]?.insert;
+        if (!insert?.gripSizeId) continue;
+        const size = await tx.selectFrom('grip_size')
+            .innerJoin('grip_line', 'grip_line.id', 'grip_size.line_id')
+            .select(['grip_size.size64', 'grip_size.od64_choices', 'grip_line.kind', 'grip_line.install_styles'])
+            .where('grip_size.id', '=', uuid(insert.gripSizeId))
+            .executeTakeFirst();
+        const problem = !size ? 'is not in the grip catalog'
+            : size.kind !== 'FINGER_INSERT' ? 'is not a finger insert'
+                : insert.size64 != null && insert.size64 !== size.size64 ? 'has the wrong size for its catalog entry'
+                    : !size.od64_choices.includes(insert.od64) ? 'has an O.D. its catalog entry doesn\'t offer'
+                        : insert.installStyle && !size.install_styles.includes(insert.installStyle) ? 'has an install style its line doesn\'t offer'
+                            : null;
+        if (problem) throw new HttpError(400, `The ${finger} finger insert ${problem}`);
+    }
+};
+
 /** A stored spec, validated against its schema version. */
 const readSpec = (row: RevisionRow): DrillSheetSpec => {
     if (row.spec_schema_version !== SPEC_SCHEMA_VERSION) {
@@ -160,6 +186,7 @@ export const customerDrillSheets = new Hono<ApiEnv>()
                 .executeTakeFirst();
             if (!customer) throw new HttpError(404, 'Customer not found');
 
+            await checkInsertsAgainstCatalog(tx, input.spec);
             const spec: DrillSheetSpec = {
                 ...input.spec,
                 delivery: input.spec.delivery ?? {
@@ -240,6 +267,7 @@ export const drillSheets = new Hono<ApiEnv>()
         return withCompany(c.var.db, c.var.user.companyId, async tx => {
             // Locking the sheet serializes concurrent saves to it.
             const sheet = await findSheet(tx, id, { lock: true });
+            await checkInsertsAgainstCatalog(tx, input.spec);
             if (sheet.archived_at) throw new HttpError(409, 'This drill sheet is archived');
             if (input.basedOnRevisionID && input.basedOnRevisionID !== sheet.current_revision_id) {
                 throw new HttpError(409, 'Someone else saved this drill sheet meanwhile. Reload it and try again.');

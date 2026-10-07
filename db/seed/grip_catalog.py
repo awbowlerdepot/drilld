@@ -121,12 +121,14 @@ line('JOPO', 'Twist', 'INTERCHANGEABLE_THUMB', JOPO + ['Twisted'], [(96, 'Outer'
 
 
 if '--json' in sys.argv:
+    import uuid
+    mock_id = lambda *parts: str(uuid.uuid5(uuid.NAMESPACE_URL, 'drilld-mock-grip/' + '/'.join(map(str, parts))))
     catalog = [{
-        'id': f'mock-line-{index}',
+        'id': mock_id(manufacturer, name),
         'manufacturer': manufacturer, 'name': name, 'kind': kind, 'colors': colors, 'installStyles': styles,
-        'sizes': [{'id': f'mock-size-{index}-{s}', 'size64': s, 'label': label, 'od64Choices': od, 'collar': collar}
+        'sizes': [{'id': mock_id(manufacturer, name, s), 'size64': s, 'label': label, 'od64Choices': od, 'collar': collar}
                   for s, label, od, collar in sizes]
-    } for index, (manufacturer, name, kind, colors, styles, sizes) in enumerate(lines)]
+    } for manufacturer, name, kind, colors, styles, sizes in lines]
     catalog.sort(key=lambda line: (line['manufacturer'], line['name']))
     print(json.dumps(catalog, ensure_ascii=False, indent=1))
     sys.exit(0)

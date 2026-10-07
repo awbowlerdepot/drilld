@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react'
+import type { Insert } from './editorTypes'
 
 // Tapping a value on the drill sheet opens a picker dialog. Components ask
 // for one through usePicker(); PickerHost renders it.
@@ -37,7 +38,14 @@ export interface NumberPickerRequest extends PickerBase<number> {
     step: number
 }
 
-export type PickerRequest = LengthPickerRequest | BitPickerRequest | NumberPickerRequest
+/** A finger insert from the grip catalog (what the location carries first), or one entered by hand. */
+export interface InsertPickerRequest extends PickerBase<Insert> {
+    kind: 'insert'
+    /** The location whose stock is offered first. */
+    locationId?: string
+}
+
+export type PickerRequest = LengthPickerRequest | BitPickerRequest | NumberPickerRequest | InsertPickerRequest
 
 export const PickerContext = createContext<((request: PickerRequest) => void) | null>(null)
 

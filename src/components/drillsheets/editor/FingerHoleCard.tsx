@@ -1,11 +1,11 @@
-import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { fingerOvalCuts, pitchCenter, type PressReadout, type ScreenSide } from '../../../utils/DrillReadouts'
 import { format64 } from '../../../utils/Fractions'
 import { DetailRow } from './DetailRow'
-import { InsertDialog } from './InsertDialog'
+import { applyInsert, describeInsert } from './insertEdits'
 import { OvalReadoutTable } from './OvalReadoutTable'
 import { usePicker } from './pickers'
+import { VacuControl } from './VacuControl'
 import { fingerName, type Finger, type SheetEditProps } from './editorTypes'
 
 interface FingerHoleCardProps extends SheetEditProps {
@@ -15,14 +15,21 @@ interface FingerHoleCardProps extends SheetEditProps {
 }
 
 /** A finger hole's details: insert, sizes, oval width and its calculated readouts. */
-export const FingerHoleCard = ({ spec, edit, readOnly, finger, side, press }: FingerHoleCardProps) => {
+export const FingerHoleCard = ({ spec, edit, readOnly, finger, side, press, locationId }: FingerHoleCardProps) => {
     const open = usePicker()
-    const [editingInsert, setEditingInsert] = useState(false)
     const hole = spec.holes[finger]
     const name = `${side === 'LEFT' ? 'Left' : 'Right'} finger · ${fingerName(finger).toLowerCase()}`
     const insert = hole.insert
     const ovalWidth = hole.fingerOval?.width64 ?? null
     const cuts = hole.size64 && ovalWidth ? fingerOvalCuts({ size64: hole.size64, width64: ovalWidth }, side) : []
+
+    const pickInsert = () => open({
+        kind: 'insert',
+        title: `${name}: insert`,
+        locationId,
+        value: insert ?? null,
+        onSet: value => edit(draft => applyInsert(draft, finger, value))
+    })
 
     const pickBit = (title: string, value: number | null | undefined, onSet: (value: number | null) => void, description?: string) =>
         open({ kind: 'bit64', title, description, value: value ?? null, onSet })
@@ -32,19 +39,22 @@ export const FingerHoleCard = ({ spec, edit, readOnly, finger, side, press }: Fi
             <header className="flex items-start justify-between gap-3">
                 <div>
                     <h2 className="text-[17px] font-semibold">{name}</h2>
-                    <p className="text-sm text-gray-600">
-                        {insert ? `${[insert.manufacturer, insert.type].filter(Boolean).join(' ')} insert` : 'No insert'}
-                    </p>
+                    <p className="text-sm text-gray-600">{insert ? describeInsert(insert) : 'No insert'}</p>
                 </div>
-                {!readOnly && <Button variant="outline" size="sm" onClick={() => setEditingInsert(true)}>Insert</Button>}
+                {!readOnly && <Button variant="outline" size="sm" onClick={pickInsert}>{insert ? 'Change insert' : 'Insert'}</Button>}
             </header>
 
             <DetailRow readOnly={readOnly} label={insert ? 'Insert size' : 'Hole size'}
+                hint={insert?.label && insert.label !== format64(hole.size64 ?? 0) ? `Size ${insert.label}` : undefined}
                 value={hole.size64 ? format64(hole.size64) : null}
-                onClick={() => pickBit(`${name}: hole size`, hole.size64, value => edit(draft => { draft.holes[finger].size64 = value }))} />
-            <DetailRow readOnly={readOnly} label="O.D." hint="Outer hole for the insert"
+                onClick={() => (insert ? pickInsert() : pickBit(`${name}: hole size`, hole.size64, value => edit(draft => { draft.holes[finger].size64 = value })))} />
+            <DetailRow readOnly={readOnly} label="O.D." hint={insert ? 'Set by the insert' : 'Outer hole for an insert'}
                 value={hole.outsideDiameter64 ? format64(hole.outsideDiameter64) : null}
-                onClick={() => pickBit(`${name}: O.D.`, hole.outsideDiameter64, value => edit(draft => { draft.holes[finger].outsideDiameter64 = value }))} />
+                onClick={() => (insert ? pickInsert() : pickBit(`${name}: O.D.`, hole.outsideDiameter64, value => edit(draft => { draft.holes[finger].outsideDiameter64 = value })))} />
+            {insert && (
+                <VacuControl id={`vacu-${finger}`} od64={insert.od64} vacu={hole.vacu} readOnly={readOnly}
+                    onChange={vacu => edit(draft => { draft.holes[finger].vacu = vacu })} />
+            )}
             <DetailRow readOnly={readOnly} label="Oval width" hint="Bit that fits across; height is the hole size"
                 value={ovalWidth ? format64(ovalWidth) : null}
                 onClick={() => pickBit(`${name}: oval width`, ovalWidth,
@@ -60,11 +70,6 @@ export const FingerHoleCard = ({ spec, edit, readOnly, finger, side, press }: Fi
                     note={`From the finger pitch center, ${cuts.length} cut${cuts.length > 1 ? 's' : ''} ${side === 'LEFT' ? 'left' : 'right'}, away from the bridge. Never more than 1/32 per cut.`} />
             )}
 
-            {editingInsert && (
-                <InsertDialog title={`${name}: insert`} insert={insert}
-                    onSet={value => edit(draft => { draft.holes[finger].insert = value })}
-                    onClose={() => setEditingInsert(false)} />
-            )}
         </article>
     )
 }
