@@ -37,8 +37,8 @@ export const ThumbHoleCard = ({ spec, edit, readOnly, hand, press }: ThumbHoleCa
         }
     }
 
-    const pickBit = (title: string, value: number | null | undefined, onSet: (value: number | null) => void, description?: string) =>
-        open({ kind: 'bit64', title, description, wholes: [0, 1, 2], value: value ?? null, onSet })
+    const pickBit = (title: string, value: number | null | undefined, onSet: (value: number | null) => void, description?: string, hardwareFirst?: boolean) =>
+        open({ kind: 'bit64', title, description, hardwareFirst, value: value ?? null, onSet })
 
     const angle = ovalValue('angleDegrees')
     const pilot = ovalValue('pilotHole64')
@@ -62,7 +62,7 @@ export const ThumbHoleCard = ({ spec, edit, readOnly, hand, press }: ThumbHoleCa
                 onClick={() => pickBit('Thumb: hole size', thumb.size64, value => edit(draft => { draft.holes.thumb.size64 = value }))} />
             <DetailRow readOnly={readOnly} label="O.D." hint="Outer hole for the slug"
                 value={thumb.outsideDiameter64 ? format64(thumb.outsideDiameter64) : null}
-                onClick={() => pickBit('Thumb: O.D.', thumb.outsideDiameter64, value => edit(draft => { draft.holes.thumb.outsideDiameter64 = value }))} />
+                onClick={() => pickBit('Thumb: O.D.', thumb.outsideDiameter64, value => edit(draft => { draft.holes.thumb.outsideDiameter64 = value }), 'The outer hole for the slug', true)} />
 
             <div className="space-y-1.5">
                 <span className="text-[13px] font-semibold text-gray-700">Oval, measured with bits</span>

@@ -25,7 +25,7 @@ export const FingerHoleCard = ({ spec, edit, readOnly, finger, side, press }: Fi
     const cuts = hole.size64 && ovalWidth ? fingerOvalCuts({ size64: hole.size64, width64: ovalWidth }, side) : []
 
     const pickBit = (title: string, value: number | null | undefined, onSet: (value: number | null) => void, description?: string) =>
-        open({ kind: 'bit64', title, description, wholes: [0, 1, 2], value: value ?? null, onSet })
+        open({ kind: 'bit64', title, description, value: value ?? null, onSet })
 
     return (
         <article aria-label={name} className="flex min-w-0 flex-col gap-3.5 rounded-xl border border-border bg-white p-5">
