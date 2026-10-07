@@ -363,7 +363,7 @@ alter table drill_sheet
 span             = { full32?, cutToCut32?, outerToCut32?, centerToCenter32?, fit32?, notes }
 pitch            = { forward32, lateral32 }  // negative forward = reverse, negative lateral = left
 oval             = { angleDegrees, pilotHole64, width64 }   // thumb cuts are derived, not stored
-fingerOval       = { height64, width64 }                  // bits that fit the hole up-and-down and across; size64 is the pilot
+fingerOval       = { width64 }                            // bit that fits the hole across; size64 is the pilot and sets the height
 slug             = { manufacturer, type, size64, interchangeable, notes }
 bevel            = { angleDegrees, depth32 }
 drillingSequence = [ { step, bitSize64, depth32, notes } ]   // in drilling order
@@ -382,9 +382,8 @@ drillingSequence = [ { step, bitSize64, depth32, notes } ]   // in drilling orde
     - Each cut's position is the pitch center plus that cut's offset. For example, 3/8″ reverse and 1/8″ left puts the center at −.375 / −.125 (up and right positive). Two .023″ cuts per side at 20° then put the first cut at −.359 / −.169.
     - Signs follow the press's readout directions (below).
   - The cuts aren't stored.
-- **Finger ovals have no angle.** The shop records the bit that fits the hole across (`width64`) and the one that fits it up-and-down (`height64`); the hole size is the pilot.
+- **Finger ovals only widen.** A finger hole's height is always its bit size, so fingers are never cut up-and-down. The shop records the bit that fits the hole across (`width64`); the hole size is the pilot.
   - **Across, away from the bridge:** the extra width is all cut on the side away from the bridge. The left finger hole moves left and the right finger hole moves right. Cutting starts at the pitch center and steps outward, in equal cuts of no more than 1/32″.
-  - **Up-and-down:** extra height is split evenly around the center, like the thumb. (Assumed; to confirm whether fingers are ovaled up-and-down at all.)
   - The center is the finger's pitch on the readout.
   - Example: a 21/32″ right finger hole opened to 23/32″ across gets two 1/32″ cuts to the right. With 3/4″ reverse (up for fingers), 1/2″ right, and up and right as plus, the readouts are +.750 / +.531, then +.750 / +.562.
 - **Pitch on the readout.** Pitches are measured from the center of the grip, so the vertical direction depends on the hole:
