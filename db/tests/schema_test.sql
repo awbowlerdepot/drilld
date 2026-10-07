@@ -324,6 +324,25 @@ select test.ok((select (s.drill_count, s.plug_count, s.last_worked_month) = (1, 
                 from ball_service_summary('40000000-0000-0000-0000-000000000001') s),
                'ball_service_summary counts drilling across companies, by month');
 
+-- Grip catalog (0010): platform data, read-only; stock per location
+select test.ok((select od64_choices[1] from grip_size gs join grip_line gl on gl.id = gs.line_id
+                where gl.manufacturer = 'VISE' and gl.name = 'P/O Power Lift & Oval' and gs.label = '8.5') = 66,
+               'VISE size 8.5 (53/64) takes a 1-1/32 O.D.');
+select test.ok((select size64 = 52 and od64_choices = array[62]::smallint[] from grip_size gs join grip_line gl on gl.id = gs.line_id
+                where gl.manufacturer = 'TURBO' and gl.name = 'Quad' and gs.label = '8'),
+               'Turbo size 8 is 13/16 on a 31/32 O.D.');
+select test.ok((select od64_choices = array[76]::smallint[] and collar from grip_size gs join grip_line gl on gl.id = gs.line_id
+                where gl.name = 'IT Interchangeable Thumb' and gs.size64 = 72),
+               'a 1-1/8 IT slug is drilled with the 1-3/16 collar bit');
+select test.fails($$update grip_line set active = false$$, '42501', 'the API cannot change the grip catalog');
+insert into location_grip_stock (company_id, location_id, grip_size_id)
+    select '00000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-0000000000a1', gs.id
+    from grip_size gs join grip_line gl on gl.id = gs.line_id where gl.manufacturer = 'JOPO' and gl.name = 'Power Flat / Oval';
+select test.ok((select count(*) from location_grip_stock) = 15, 'a location records the line sizes it carries');
+select test.fails($$insert into location_grip_stock (company_id, location_id, grip_size_id)
+                    select '00000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-0000000000b1', id from grip_size limit 1$$,
+                  '23503', 'stock must be at one of the company''s own locations');
+
 -- ==========================================
 -- As the API for company B
 -- ==========================================
@@ -333,6 +352,8 @@ select test.ok((select array_agg(first_name) from customer) = array['Bob'], 'com
 select test.ok((select notes from customer where first_name = 'Bob') is null, 'company B''s customer was not modified by company A');
 select test.ok((select count(*) from location) = 1, 'company B does not see company A''s locations');
 select test.ok((select count(*) from layout_template) = 0, 'company B does not see company A''s layout templates');
+select test.ok((select count(*) from location_grip_stock) = 0, 'company B does not see company A''s grip stock');
+select test.ok((select count(*) from grip_line) > 30, 'every company reads the shared grip catalog');
 select test.fails($$insert into work_order (company_id, location_id, company_ball_id, customer_id, work_type, work_date, based_on_layout_template_id)
                     values ('00000000-0000-0000-0000-00000000000b', '10000000-0000-0000-0000-0000000000b1', '50000000-0000-0000-0000-0000000000b1',
                             '30000000-0000-0000-0000-0000000000b1', 'MAINTENANCE', '2025-09-02',

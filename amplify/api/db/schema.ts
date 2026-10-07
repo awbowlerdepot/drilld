@@ -195,6 +195,24 @@ export interface DrillSheetRevision {
   version: number;
 }
 
+export interface GripLine {
+  active: Generated<boolean>;
+  colors: Generated<string[]>;
+  id: Generated<string>;
+  kind: string;
+  manufacturer: string;
+  name: string;
+}
+
+export interface GripSize {
+  collar: Generated<boolean>;
+  id: Generated<string>;
+  label: string;
+  line_id: string;
+  od64_choices: number[];
+  size64: number;
+}
+
 export interface LayoutTemplate {
   archived_at: Timestamp | null;
   company_id: string;
@@ -220,6 +238,13 @@ export interface Location {
   settings_overrides: Generated<Json>;
   timezone: string;
   updated_at: Generated<Timestamp>;
+}
+
+export interface LocationGripStock {
+  company_id: string;
+  created_at: Generated<Timestamp>;
+  grip_size_id: string;
+  location_id: string;
 }
 
 export interface LocationMembership {
@@ -284,8 +309,11 @@ export interface DB {
   customer: Customer;
   drill_sheet: DrillSheet;
   drill_sheet_revision: DrillSheetRevision;
+  grip_line: GripLine;
+  grip_size: GripSize;
   layout_template: LayoutTemplate;
   location: Location;
+  location_grip_stock: LocationGripStock;
   location_membership: LocationMembership;
   plan: Plan;
   work_order: WorkOrder;

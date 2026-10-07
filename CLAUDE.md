@@ -39,7 +39,7 @@ The agreed backend design (Postgres schema, tenant isolation, ball registry, dri
   - `Clt.ts` — the CLT chart (hidden unless `drillSheets.enableClt`)
   - `DrillBits.ts` — the bits a shop has: 1/2–1-1/8 in 64ths, 1-1/4, 1-3/8, 1-1/2, and the interchangeable-hardware collar bits
 - `docs/data-model.md` — backend data model design and open questions
-- `db/` — PostgreSQL migrations (plain SQL, dbmate format) and schema tests; see `db/README.md`. The migrations are the source of truth for the schema; never generate migrations from an ORM.
+- `db/` — PostgreSQL migrations (plain SQL, dbmate format) and schema tests; see `db/README.md`. `db/seed/grip_catalog.py` generates the grip catalog rows for a migration. The migrations are the source of truth for the schema; never generate migrations from an ORM.
 - `src/services/` — the frontend's API layer:
   - `config.ts`: `amplify_outputs.json`, `authEnabled`, `apiUrl`, `apiEnabled`
   - `apiClient.ts`: sends the Cognito ID token
@@ -136,6 +136,8 @@ Look for incorrect imports, circular dependencies, and unnecessary complexity.
     - `/drill-sheets/:id`: get, rename/archive (PATCH), and save the draft (`PUT …/draft`)
     - `/drill-sheets/:id/revisions`: the history, one revision by version, and `POST …/approve`
     - The spec is validated by `shared/api/drillSheetSpec.ts` (spec v1).
+  - `GET /grip-catalog`: the shared catalog of inserts and thumb hardware (VISE, Turbo, JoPo), one entry per line with its sizes.
+  - `GET/PUT /locations/:locationId/grip-stock`: the catalog sizes a location carries. PUT replaces the whole list and needs `manage:settings`.
 - `useCustomers`, `useCustomerDrillSheets` and `useDrillSheetEditor` use the API when signed in; without it, drill sheets use an in-memory mock (`src/data/mockDrillSheets.ts`). The other hooks are still on mock data. Work orders still use the old `DrillSheet` type and `useDrillSheets`.
 - `npm run build` passes.
 - Done on the frontend:

@@ -5,6 +5,7 @@ import type { Db } from './db/client';
 import { HttpError, toErrorResponse } from './errors';
 import { customers } from './routes/customers';
 import { customerDrillSheets, drillSheets } from './routes/drillSheets';
+import { gripCatalog, locationGripStock } from './routes/grips';
 import { me } from './routes/me';
 
 export type ApiEnv = {
@@ -50,6 +51,8 @@ export const createApp = (db: Db) => {
     app.route('/customers', customers);
     app.route('/customers/:customerId/drill-sheets', customerDrillSheets);
     app.route('/drill-sheets', drillSheets);
+    app.route('/grip-catalog', gripCatalog);
+    app.route('/locations/:locationId/grip-stock', locationGripStock);
 
     return app;
 };
