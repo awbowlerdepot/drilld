@@ -5,6 +5,7 @@ import { format64, formatDecimal } from '../../../utils/Fractions'
 import { DetailRow } from './DetailRow'
 import { OvalReadoutTable } from './OvalReadoutTable'
 import { useGripCatalog } from '../../../hooks/useGripCatalog'
+import { collarBitName } from '../../../utils/DrillBits'
 import { applyThumbHardware, describeThumbHardware, MIN_WALL64, thumbWall64 } from './insertEdits'
 import { usePicker } from './pickers'
 import type { SheetEditProps } from './editorTypes'
@@ -78,7 +79,7 @@ export const ThumbHoleCard = ({ spec, edit, readOnly, hand, press, locationId }:
                 onClick={() => (hardware?.kind === 'THUMB_INSERT'
                     ? pickHardware()
                     : pickBit('Thumb: hole size', thumb.size64, value => edit(draft => { draft.holes.thumb.size64 = value })))} />
-            <DetailRow readOnly={readOnly} label={hardware?.collar ? 'Collar bit' : 'O.D.'}
+            <DetailRow readOnly={readOnly} label={hardware?.collar ? collarBitName(hardware) : 'O.D.'}
                 hint={hardware ? 'Set by the hardware' : 'Outer hole for a slug or insert'}
                 value={thumb.outsideDiameter64 ? format64(thumb.outsideDiameter64) : null}
                 onClick={() => (hardware

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
+import { collarBitName } from '../../../utils/DrillBits'
 import { format32 } from '../../../utils/Fractions'
 import { HoleCircle } from './HoleCircle'
 import { applyInsert, applyThumbHardware, describeInsert, describeThumbHardware } from './insertEdits'
@@ -231,7 +232,7 @@ export const HoleLayout = ({ spec, edit, readOnly, hand, locationId }: SheetEdit
                 onClick={() => pickPitch('Thumb pitch', 'thumb', 'forward32', 1)} />
             {caption(386, 640, 'Forward')}
             <HoleCircle left={340} top={659} readOnly={readOnly} name="Thumb"
-                upper={{ label: thumb.hardware?.collar ? 'Collar bit' : 'O.D.', value: thumb.outsideDiameter64,
+                upper={{ label: thumb.hardware?.collar ? collarBitName(thumb.hardware).replace(' bit', '') : 'O.D.', value: thumb.outsideDiameter64,
                     onClick: () => (thumb.hardware ? pickThumbHardware() : pickBit('Thumb O.D.', 'thumb', 'outsideDiameter64')) }}
                 lower={{ label: 'Hole size', value: thumb.size64,
                     onClick: () => (thumb.hardware?.kind === 'THUMB_INSERT' ? pickThumbHardware() : pickBit('Thumb hole size', 'thumb', 'size64')) }} />
