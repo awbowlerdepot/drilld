@@ -381,16 +381,18 @@ drillingSequence = [ { step, bitSize64, depth32, notes } ]   // in drilling orde
   - The editor and the drill press view list the calculated cuts in drilling order, as **digital readout positions**, rounded to thousandths:
     - The pitch center comes from the thumb's pitches. Forward/reverse pitch is on the vertical axis and lateral on the horizontal; pitch in inches is the jig offset (see **Pitch on the readout** below).
     - Each cut's position is the pitch center plus that cut's offset. For example, 3/8″ reverse and 1/8″ left puts the center at −.375 / −.125, so the first cut is at −.331 / −.141.
-    - Signs: horizontal negative is left and positive is right; the vertical sign follows the press's readout setting (below).
+    - Signs follow the press's readout directions (below).
   - The cuts aren't stored.
 - **Pitch on the readout.** Pitches are measured from the center of the grip, so the vertical direction depends on the hole:
   - Thumb: reverse is down and forward is up.
   - Fingers: reverse is up and forward is down.
-  - Lateral pitch reads left as minus and right as plus.
   - The readout number then also depends on the press setting below. For example, with up as plus, a thumb's 3/8″ reverse reads −.375 and a finger's 3/8″ reverse reads +.375. With down as plus, both flip.
-- **Drill press readout direction.** A press's digital readout can be set so up is plus, or so down is plus. The setting is `drillPress.verticalReadout: 'UP_POSITIVE' | 'DOWN_POSITIVE'`, a company default (up is plus) that a location can override. It will move to the equipment record once presses are modelled.
+- **Drill press readout direction.** Presses differ in which way their digital readout counts. Some are built one way and some the opposite, and some readouts can be configured. Both axes are a property of the press:
+  - `drillPress.verticalReadout: 'UP_POSITIVE' | 'DOWN_POSITIVE'`
+  - `drillPress.horizontalReadout: 'RIGHT_POSITIVE' | 'LEFT_POSITIVE'`
+  - The defaults are up plus and right plus. They're a company setting that a location can override, and they move to the equipment record once presses are modelled.
   - It only changes how numbers are shown. The spec always stores pitch one way (forward positive, lateral right positive).
-  - The drill press view and the editor's calculated cuts show vertical values, pitches included, in the press's convention.
+  - The drill press view and the editor's calculated cuts show every readout value, pitches included, in the press's convention.
 - **Offset** (lateral thumb offset) is left out of v1.
 - **Flexibility** is the hand's spread angle, normally 70–135°. A suggested starting pitch from flexibility and span may come later, only from a validated chart, and never under `proFit`.
 - **CLT** (center line transformation) is the angle between the bowler's finger centerline and the ball's normal centerline. The degree reading is taken at the fingers; the alternative inch reading at the thumb isn't stored, because the chart below is keyed by degrees. It is only shown when the company setting `drillSheets.enableClt` is on. Auto-CLT then suggests the fingers' lateral pitch from the nearest chart line. Accepting fills in `holes.middle.pitch.lateral32` and `holes.ring.pitch.lateral32`, and a manual value always wins. Chart, right-handed (left-handed swaps Left and Right):
