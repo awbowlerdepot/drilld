@@ -8,6 +8,7 @@ import { toReadout, type PressReadout } from '../../../utils/DrillReadouts'
 import { format32, format64, formatDecimal } from '../../../utils/Fractions'
 import { PressHoleNav } from './PressHoleNav'
 import type { BevelAmount } from '../../../utils/Bevel'
+import type { CompanyHoleDepths } from '../../../types/settings'
 
 interface DrillPressViewProps {
     sheet: DrillSheetDto
@@ -15,6 +16,7 @@ interface DrillPressViewProps {
     customer: Customer
     press: PressReadout
     standardBevel: BevelAmount
+    holeDepths: CompanyHoleDepths
     onExit: () => void
 }
 
@@ -26,8 +28,8 @@ const signed = (value: number) => formatDecimal(value, { signed: true })
  * should be, signed for this press. Progress is kept on screen until work
  * orders record it.
  */
-export const DrillPressView = ({ sheet, spec, customer, press, standardBevel, onExit }: DrillPressViewProps) => {
-    const holes = buildDrillPlan(spec, customer.dominantHand, standardBevel)
+export const DrillPressView = ({ sheet, spec, customer, press, standardBevel, holeDepths, onExit }: DrillPressViewProps) => {
+    const holes = buildDrillPlan(spec, customer.dominantHand, { gripStyle: sheet.gripStyle, holeDepths, standardBevel })
     const [current, setCurrent] = useState(0)
     const [done, setDone] = useState<Set<string>>(new Set())
     const revision = sheet.currentRevision

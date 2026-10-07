@@ -41,7 +41,8 @@ export const mockCompanySettings: CompanySettings = {
         enableClt: false,
         verticalReadout: 'UP_POSITIVE',
         horizontalReadout: 'RIGHT_POSITIVE',
-        standardBevel: 'MEDIUM'
+        standardBevel: 'MEDIUM',
+        holeDepths: { fingertipInsert32: 64, fingertipNoInsert32: 48, conventional32: 80, thumb32: 88, thumbSlug32: 84 }
     },
     security: {
         enableTwoFactor: false,
@@ -142,7 +143,8 @@ export const mockCompanySettingsBasic: CompanySettings = {
         enableClt: false,
         verticalReadout: 'UP_POSITIVE',
         horizontalReadout: 'RIGHT_POSITIVE',
-        standardBevel: 'MEDIUM'
+        standardBevel: 'MEDIUM',
+        holeDepths: { fingertipInsert32: 64, fingertipNoInsert32: 48, conventional32: 80, thumb32: 88, thumbSlug32: 84 }
     },
     security: {
         enableTwoFactor: false,
@@ -241,7 +243,8 @@ export const mockCompanySettingsEnterprise: CompanySettings = {
         enableClt: false,
         verticalReadout: 'UP_POSITIVE',
         horizontalReadout: 'RIGHT_POSITIVE',
-        standardBevel: 'MEDIUM'
+        standardBevel: 'MEDIUM',
+        holeDepths: { fingertipInsert32: 64, fingertipNoInsert32: 48, conventional32: 80, thumb32: 88, thumbSlug32: 84 }
     },
     security: {
         enableTwoFactor: true,

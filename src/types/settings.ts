@@ -58,6 +58,22 @@ export interface CompanyDrillSheetSettings {
     horizontalReadout: 'RIGHT_POSITIVE' | 'LEFT_POSITIVE';
     /** The bevel every hole gets (insert holes too) unless a drill sheet sets its own. */
     standardBevel: 'LIGHT' | 'MEDIUM' | 'HEAVY';
+    /** Standard hole depths; a location can override them, and a drill sheet any one hole. */
+    holeDepths: CompanyHoleDepths;
+}
+
+/** Standard hole depths in 32nds of an inch. */
+export interface CompanyHoleDepths {
+    /** Fingertip finger with an insert (2"). */
+    fingertipInsert32: number;
+    /** Fingertip finger without an insert (1-1/2"). */
+    fingertipNoInsert32: number;
+    /** Conventional finger (2-1/2"). */
+    conventional32: number;
+    /** Thumb without hardware, or with a thumb insert (2-1/2"–3"; 2-3/4" to start). */
+    thumb32: number;
+    /** Thumb with a slug: no more than 2-5/8". */
+    thumbSlug32: number;
 }
 
 export interface CompanySecuritySettings {
@@ -154,7 +170,9 @@ export interface LocationSettingsOverrides {
     defaultWarrantyPeriod?: number;
     workflow?: Partial<CompanyWorkflowSettings>;
     /** A location's presses may count the other way. */
-    drillSheets?: Partial<Pick<CompanyDrillSheetSettings, 'verticalReadout' | 'horizontalReadout'>>;
+    drillSheets?: Partial<Pick<CompanyDrillSheetSettings, 'verticalReadout' | 'horizontalReadout'>> & {
+        holeDepths?: Partial<CompanyHoleDepths>;
+    };
     notifications?: Partial<Pick<CompanyNotificationSettings, 'notificationEmail' | 'notificationPhone'>>;
 }
 

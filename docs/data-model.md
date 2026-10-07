@@ -503,6 +503,12 @@ drillingSequence = [ { step, bitSize64, depth32, notes } ]   // in drilling orde
   - A bevel can differ around the hole. The palm / hinge side, where the thumb or finger hinges, matters most, so it can have its own amount.
   - Width is measured from the wall of the hole out. The tool is a bevel knife or a bevel sander.
   - The drill press view lists each hole's bevel under "Finishing at the bench".
+- **Hole depth** is a standard by hole type, set by the company (`drillSheets.holeDepths`), overridable per location, then per hole on the sheet (`depth32`; e.g. deeper for long fingernails). Depths are in 1/16″ steps.
+  - Fingertip finger: 2″ with an insert, 1-1/2″ without.
+  - Conventional finger: 2-1/2″.
+  - Thumb: 2-1/2″–3″ without hardware or with a thumb insert (2-3/4″ to start); no more than 2-5/8″ with a slug.
+  - Interchangeable thumbs are piloted instead (see above).
+- **Step drilling** (`drillingSequence`) works like a vacu but with any number of steps: each step's bit drilled to its depth, in order, before the hole. It's for any hole without an insert or hardware, and is most common on thumbs.
 - **Offset** (lateral thumb offset) is left out of v1.
 - **Flexibility** is the hand's spread angle, normally 70–135°. A suggested starting pitch from flexibility and span may come later, only from a validated chart, and never under `proFit`.
 - **CLT** (center line transformation) is the angle between the bowler's finger centerline and the ball's normal centerline. The degree reading is taken at the fingers; the alternative inch reading at the thumb isn't stored, because the chart below is keyed by degrees. It is only shown when the company setting `drillSheets.enableClt` is on. Auto-CLT then suggests the fingers' lateral pitch from the nearest chart line. Accepting fills in `holes.middle.pitch.lateral32` and `holes.ring.pitch.lateral32`, and a manual value always wins. Chart, right-handed (left-handed swaps Left and Right):

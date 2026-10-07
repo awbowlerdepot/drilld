@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { pitchCenter, thumbOvalCuts, type PressReadout } from '../../../utils/DrillReadouts'
-import { format64, formatDecimal } from '../../../utils/Fractions'
+import { format32, format64, formatDecimal } from '../../../utils/Fractions'
 import { DetailRow } from './DetailRow'
 import { OvalReadoutTable } from './OvalReadoutTable'
 import { useGripCatalog } from '../../../hooks/useGripCatalog'
@@ -9,22 +9,28 @@ import { collarBitName } from '../../../utils/DrillBits'
 import { applyThumbHardware, describeThumbHardware, MIN_WALL64, thumbWall64 } from './insertEdits'
 import { usePicker } from './pickers'
 import { BevelRow } from './BevelRow'
+import { StepDrilling } from './StepDrilling'
+import { standardThumbDepth } from '../../../utils/HoleDepth'
+import type { CompanyHoleDepths } from '../../../types/settings'
 import type { BevelAmount } from '../../../utils/Bevel'
 import type { SheetEditProps } from './editorTypes'
 
 interface ThumbHoleCardProps extends SheetEditProps {
     press: PressReadout
     standardBevel: BevelAmount
+    holeDepths: CompanyHoleDepths
 }
 
 type OvalField = 'pilotHole64' | 'width64' | 'angleDegrees'
 
 /** The thumb's details: hardware, sizes, the oval measured with bits, and its calculated cuts. */
-export const ThumbHoleCard = ({ spec, edit, readOnly, hand, press, locationId, standardBevel }: ThumbHoleCardProps) => {
+export const ThumbHoleCard = ({ spec, edit, readOnly, hand, press, locationId, standardBevel, holeDepths }: ThumbHoleCardProps) => {
     const open = usePicker()
     const catalog = useGripCatalog()
     const thumb = spec.holes.thumb
     const hardware = thumb.hardware
+    // Interchangeable hardware is piloted instead (its depths are in the drilling plan).
+    const standardDepth = standardThumbDepth(thumb, holeDepths)
     const oval = thumb.oval
     const cuts = oval && oval.width64 > oval.pilotHole64 ? thumbOvalCuts(oval, hand) : []
 
@@ -95,6 +101,20 @@ export const ThumbHoleCard = ({ spec, edit, readOnly, hand, press, locationId, s
                 </p>
             )}
 
+            {standardDepth !== null && (
+                <DetailRow readOnly={readOnly} label="Depth"
+                    hint={thumb.depth32 ? `Set for this hole · standard ${format32(standardDepth)}″` : 'The standard for this hole'}
+                    value={`${format32(thumb.depth32 ?? standardDepth)}″`}
+                    onClick={() => open({
+                        kind: 'length32', title: 'Thumb: depth', description: 'Clear to go back to the standard', wholes: [0, 1, 2, 3, 4],
+                        value: thumb.depth32 ?? standardDepth,
+                        onSet: value => edit(draft => { draft.holes.thumb.depth32 = value })
+                    })} />
+            )}
+            {!hardware && (
+                <StepDrilling holeName="Thumb" steps={thumb.drillingSequence} readOnly={readOnly}
+                    onChange={steps => edit(draft => { draft.holes.thumb.drillingSequence = steps })} />
+            )}
             <BevelRow holeName="Thumb" bevel={thumb.bevel} standard={standardBevel} readOnly={readOnly}
                 onSet={bevel => edit(draft => { draft.holes.thumb.bevel = bevel })} />
 
