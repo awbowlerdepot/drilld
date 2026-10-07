@@ -32,7 +32,7 @@ interface DrillSheetEditorProps {
  * a new draft revision.
  */
 export const DrillSheetEditor = ({ sheetId, customer, locationID, onBack }: DrillSheetEditorProps) => {
-    const { sheet, spec, dirty, loading, saving, error, edit, save, approve, discard } = useDrillSheetEditor(sheetId, locationID)
+    const { sheet, spec, dirty, loading, saving, error, edit, save, approve, discard, discardDraft } = useDrillSheetEditor(sheetId, locationID)
     const { settings } = useCompanySettings()
     const { locations } = useLocations()
     const location = locations.find(l => l.id === locationID)
@@ -90,7 +90,16 @@ export const DrillSheetEditor = ({ sheetId, customer, locationID, onBack }: Dril
                                     <Drill data-icon="inline-start" /> Drill press
                                 </Button>
                             )}
-                            {dirty && <Button variant="ghost" disabled={saving} onClick={discard}>Discard</Button>}
+                            {dirty && <Button variant="ghost" disabled={saving} onClick={discard}>Discard changes</Button>}
+                            {!dirty && revision?.editable && revision.version > 1 && (
+                                <Button variant="ghost" className="text-destructive" disabled={saving}
+                                    title={`Go back to the revision this draft started from. Revision ${revision.version} stays in the history.`}
+                                    onClick={() => {
+                                        if (window.confirm(`Discard draft revision ${revision.version} and go back to the revision it started from?`)) discardDraft()
+                                    }}>
+                                    Discard revision {revision.version}
+                                </Button>
+                            )}
                             <Button variant="outline" disabled={!dirty || saving} onClick={() => save()}>
                                 {saving ? 'Saving…' : 'Save'}
                             </Button>

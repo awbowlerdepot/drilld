@@ -16,6 +16,8 @@ export interface DrillSheetsApi {
     update: (id: string, changes: DrillSheetUpdate) => Promise<DrillSheetDto>
     /** Saves the draft in place, or starts a new draft revision if the current one is locked. */
     saveDraft: (id: string, draft: DrillSheetDraft) => Promise<DrillSheetDto>
+    /** Discards the current draft revision; the previous revision becomes current again. */
+    discardDraft: (id: string) => Promise<DrillSheetDto>
     revisions: (id: string) => Promise<DrillSheetRevisionSummaryDto[]>
     revision: (id: string, version: number) => Promise<DrillSheetRevisionDto>
     approve: (id: string, version: number) => Promise<DrillSheetRevisionDto>
@@ -28,6 +30,7 @@ export const drillSheetsService: DrillSheetsApi = {
     get: id => apiRequest('GET', `/drill-sheets/${id}`),
     update: (id, changes) => apiRequest('PATCH', `/drill-sheets/${id}`, changes),
     saveDraft: (id, draft) => apiRequest('PUT', `/drill-sheets/${id}/draft`, draft),
+    discardDraft: id => apiRequest('POST', `/drill-sheets/${id}/draft/discard`),
     revisions: id => apiRequest('GET', `/drill-sheets/${id}/revisions`),
     revision: (id, version) => apiRequest('GET', `/drill-sheets/${id}/revisions/${version}`),
     approve: (id, version) => apiRequest('POST', `/drill-sheets/${id}/revisions/${version}/approve`)
