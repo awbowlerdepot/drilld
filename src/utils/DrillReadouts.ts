@@ -44,10 +44,11 @@ export const pitchCenter = (kind: HoleKind, pitch: Pitch32): Offset => {
 
 /**
  * Thumb oval cuts, as offsets from the pitch center in drilling order. The
- * elongation (width bit − pilot bit) is split evenly on both sides of the
+ * elongation (width bit − starting bit) is split evenly on both sides of the
  * center, along the angle from horizontal. A right-hander's oval runs from
- * up-left to down-right (mirrored for a left-hander): start at the farthest
- * up position, work in, then out to the farthest down position.
+ * up-left to down-right (mirrored for a left-hander). Cuts always progress
+ * left to right: from the farthest left position, through the center, out
+ * to the farthest right. (A straight up-and-down oval goes top to bottom.)
  */
 export const thumbOvalCuts = (oval: { pilotHole64: number; width64: number; angleDegrees: number }, hand: Hand): Offset[] => {
     const side = (oval.width64 - oval.pilotHole64) / 64 / 2;
@@ -64,7 +65,8 @@ export const thumbOvalCuts = (oval: { pilotHole64: number; width64: number; angl
     const cuts: Offset[] = [];
     for (let step = count; step >= 1; step--) cuts.push(at(step * cut));
     for (let step = 1; step <= count; step++) cuts.push(at(-step * cut));
-    return cuts;
+    // Built from the up side; a left-hander's up side is on the right, so reverse to go left to right.
+    return up.horizontal > 1e-9 ? cuts.reverse() : cuts;
 };
 
 /**
