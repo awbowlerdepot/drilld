@@ -112,7 +112,7 @@ export const ThumbHoleCard = ({ spec, edit, readOnly, hand, press, locationId }:
 
             {cuts.length > 0 && (
                 <OvalReadoutTable label="Thumb cuts" center={pitchCenter('THUMB', thumb.pitch)} cuts={cuts} centerIndex={cuts.length / 2} press={press}
-                    note={`Left to right from the thumb pitch center: farthest ${hand === 'RIGHT' ? 'up-left' : 'down-left'} first, through center, out to the farthest ${hand === 'RIGHT' ? 'down-right' : 'up-right'}. Never more than 1/32 per cut.`} />
+                    note={`From the thumb pitch center: farthest ${hand === 'RIGHT' ? 'up-left' : 'up-right'} first, through center, out to the farthest ${hand === 'RIGHT' ? 'down-right' : 'down-left'}. Never more than 1/32 per cut.`} />
             )}
 
         </article>
