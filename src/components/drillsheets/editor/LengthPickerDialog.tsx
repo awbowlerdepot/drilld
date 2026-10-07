@@ -19,12 +19,17 @@ const unchosen = 'border-border bg-background hover:bg-muted'
  * "+" for an extra 1/32. Signed values (pitch) also pick a direction.
  */
 export const LengthPickerDialog = ({ request, onClose }: LengthPickerDialogProps) => {
-    const initial = request.value === null ? null : split32(Math.abs(request.value))
+    // Tapping a direction's box (e.g. Reverse) preselects that direction, and the
+    // current value is shown only if it points that way. Otherwise a new pitch has
+    // no direction until one is picked, so it's never set the wrong way by accident.
+    const initialNegative = request.direction !== undefined ? request.direction === 0
+        : request.value === null ? null : request.value < 0
+    const sameDirection = request.value !== null && (!request.directions || (request.value < 0) === initialNegative)
+    const initial = sameDirection && request.value !== null ? split32(Math.abs(request.value)) : null
     const [whole, setWhole] = useState(initial?.whole ?? request.wholes[0])
     const [sixteenths, setSixteenths] = useState(initial?.sixteenths ?? 0)
     const [plus, setPlus] = useState(initial?.plus ?? false)
-    // No direction is preselected for a new pitch: it has to be picked, so it's never left by accident.
-    const [negative, setNegative] = useState<boolean | null>(request.value === null ? null : request.value < 0)
+    const [negative, setNegative] = useState<boolean | null>(initialNegative)
 
     const magnitude = join32(whole, sixteenths, plus)
     const value = request.directions && negative ? -magnitude : magnitude

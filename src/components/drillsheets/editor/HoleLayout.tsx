@@ -38,9 +38,11 @@ export const HoleLayout = ({ spec, edit, readOnly, hand }: SheetEditProps) => {
     const sides = fingersBySide(hand)
     const thumb = spec.holes.thumb
 
-    const pickPitch = (title: string, hole: 'thumb' | Finger, axis: 'forward32' | 'lateral32') => open({
+    /** Opens a pitch picker; `direction` is the tapped box's (0 = reverse/left, 1 = forward/right). */
+    const pickPitch = (title: string, hole: 'thumb' | Finger, axis: 'forward32' | 'lateral32', direction?: 0 | 1) => open({
         kind: 'length32',
         title,
+        direction,
         description: axis === 'forward32' ? 'Pitch in inches' : 'Lateral pitch in inches',
         directions: axis === 'forward32' ? ['Reverse', 'Forward'] : ['Left', 'Right'],
         wholes: PITCH_WHOLES,
@@ -79,14 +81,14 @@ export const HoleLayout = ({ spec, edit, readOnly, hand }: SheetEditProps) => {
                 {caption(left + 16, 88, 'Reverse')}
                 <ValueBox label={`${name} reverse pitch`} readOnly={readOnly} className={boxClass} style={at(left, 110)}
                     value={forward32 && forward32 < 0 ? format32(-forward32) : null}
-                    onClick={() => pickPitch(`${name} pitch`, finger, 'forward32')} />
+                    onClick={() => pickPitch(`${name} pitch`, finger, 'forward32', 0)} />
                 <ValueBox label={`${name} lateral pitch`} readOnly={readOnly} className={boxClass} style={at(left, 204)}
                     value={lateral32 ? format32(Math.abs(lateral32)) : null}
                     onClick={() => pickPitch(`${name} lateral pitch`, finger, 'lateral32')} />
                 {caption(left + 16, 278, lateral32 ? (lateral32 < 0 ? 'Left' : 'Right') : 'Lateral')}
                 <ValueBox label={`${name} forward pitch`} readOnly={readOnly} className={boxClass} style={at(left, 298)}
                     value={forward32 && forward32 > 0 ? format32(forward32) : null}
-                    onClick={() => pickPitch(`${name} pitch`, finger, 'forward32')} />
+                    onClick={() => pickPitch(`${name} pitch`, finger, 'forward32', 1)} />
                 {caption(left + 16, 372, 'Forward')}
             </>
         )
@@ -200,23 +202,23 @@ export const HoleLayout = ({ spec, edit, readOnly, hand }: SheetEditProps) => {
 
             <ValueBox label="Thumb forward pitch" readOnly={readOnly} className="h-[70px] w-28" style={at(360, 565)}
                 value={thumbForward > 0 ? format32(thumbForward) : null}
-                onClick={() => pickPitch('Thumb pitch', 'thumb', 'forward32')} />
+                onClick={() => pickPitch('Thumb pitch', 'thumb', 'forward32', 1)} />
             {caption(386, 640, 'Forward')}
             <HoleCircle left={340} top={659} readOnly={readOnly} name="Thumb"
                 upper={{ label: 'O.D.', value: thumb.outsideDiameter64, onClick: () => pickBit('Thumb O.D.', 'thumb', 'outsideDiameter64') }}
                 lower={{ label: 'Hole size', value: thumb.size64, onClick: () => pickBit('Thumb hole size', 'thumb', 'size64') }} />
             <ValueBox label="Thumb lateral pitch, left" readOnly={readOnly} className="h-[70px] w-[113px]" style={at(205, 696)}
                 value={thumbLateral < 0 ? format32(-thumbLateral) : null}
-                onClick={() => pickPitch('Thumb lateral pitch', 'thumb', 'lateral32')} />
+                onClick={() => pickPitch('Thumb lateral pitch', 'thumb', 'lateral32', 0)} />
             {caption(248, 772, 'Left')}
             <ValueBox label="Thumb lateral pitch, right" readOnly={readOnly} className="h-[70px] w-[113px]" style={at(513, 696)}
                 value={thumbLateral > 0 ? format32(thumbLateral) : null}
-                onClick={() => pickPitch('Thumb lateral pitch', 'thumb', 'lateral32')} />
+                onClick={() => pickPitch('Thumb lateral pitch', 'thumb', 'lateral32', 1)} />
             {caption(550, 772, 'Right')}
             {caption(388, 812, 'Reverse')}
             <ValueBox label="Thumb reverse pitch" readOnly={readOnly} className="h-[70px] w-28" style={at(360, 830)}
                 value={thumbForward < 0 ? format32(-thumbForward) : null}
-                onClick={() => pickPitch('Thumb pitch', 'thumb', 'forward32')} />
+                onClick={() => pickPitch('Thumb pitch', 'thumb', 'forward32', 0)} />
         </ScaledCanvas>
     )
 }

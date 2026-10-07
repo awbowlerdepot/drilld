@@ -17,6 +17,8 @@ export interface LengthPickerRequest extends PickerBase<number> {
     wholes: number[]
     /** For signed values such as pitch: the two directions, negative first. */
     directions?: [string, string]
+    /** The direction of the box that was tapped (0 = the first, negative one), preselected. */
+    direction?: 0 | 1
 }
 
 /** A drill bit size in 64ths. */
