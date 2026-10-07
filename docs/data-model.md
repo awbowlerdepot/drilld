@@ -382,11 +382,11 @@ drillingSequence = [ { step, bitSize64, depth32, notes } ]   // in drilling orde
     - Each cut's position is the pitch center plus that cut's offset. For example, 3/8″ reverse and 1/8″ left puts the center at −.375 / −.125 (up and right positive). Two .023″ cuts per side at 20° then put the first cut at −.359 / −.169.
     - Signs follow the press's readout directions (below).
   - The cuts aren't stored.
-- **Finger ovals have no angle.** The shop records the bit that fits the hole up-and-down (`height64`) and the bit that fits it across (`width64`); the hole size is the pilot. Each axis that's larger than the pilot is cut the same way as the thumb:
-  - The extra is split evenly on both sides of the center, in equal cuts of no more than 1/32″.
-  - Order follows the thumb's pattern. Start at the farthest up point (for an across-only oval, the farthest left for a right-hander and the farthest right for a left-hander), work in toward the center, then out to the other side. (Assumed; to confirm.)
+- **Finger ovals have no angle.** The shop records the bit that fits the hole across (`width64`) and the one that fits it up-and-down (`height64`); the hole size is the pilot.
+  - **Across, away from the bridge:** the extra width is all cut on the side away from the bridge. The left finger hole moves left and the right finger hole moves right. Cutting starts at the pitch center and steps outward, in equal cuts of no more than 1/32″.
+  - **Up-and-down:** extra height is split evenly around the center, like the thumb. (Assumed; to confirm whether fingers are ovaled up-and-down at all.)
   - The center is the finger's pitch on the readout.
-  - Example: a 21/32″ hole that should end 23/32″ tall gets one 1/32″ cut up and one down. With 3/4″ reverse (up for fingers) and up as plus, the readouts are +.781, then +.719.
+  - Example: a 21/32″ right finger hole opened to 23/32″ across gets two 1/32″ cuts to the right. With 3/4″ reverse (up for fingers), 1/2″ right, and up and right as plus, the readouts are +.750 / +.531, then +.750 / +.562.
 - **Pitch on the readout.** Pitches are measured from the center of the grip, so the vertical direction depends on the hole:
   - Thumb: reverse is down and forward is up.
   - Fingers: reverse is up and forward is down.
