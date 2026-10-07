@@ -472,7 +472,7 @@ drillingSequence = [ { step, bitSize64, depth32, notes } ]   // in drilling orde
 - **Thumb oval cuts are calculated.** After drilling, the shop measures the oval with two bits: one that fits the narrow side (`pilotHole64`) and one that fits the wide side (`width64`). It also measures the angle. The cuts are derived from these:
   - The elongation is `width64 − pilotHole64`. It is split evenly on both sides of the pilot hole's center, so each side gets half.
   - The center is the thumb's desired pitch: the pilot is drilled there.
-  - Order matters. For a right-hander, start at the farthest up-and-left position and work back toward the center. Then work out down and to the right, finishing at the farthest position. A left-hander mirrors this: farthest up-and-right first, finishing at the farthest down-and-left.
+  - Order matters: cuts **start at the top**. For a right-hander (oval up-left to down-right), start at the farthest up-and-left position, work back to the center, then out to the farthest down-and-right. For a left-hander (oval up-right to down-left), start at the farthest up-and-right and finish at the farthest down-and-left.
   - Each side is divided into equal cuts of **no more than 1/32″**: `n = ceil(side ÷ 1/32″)` cuts of `side ÷ n` each. Both sides get the same number of cuts.
   - The angle is measured from horizontal: 0° is a left-to-right oval and 90° is up-and-down. It mirrors with the hand. For a right-hander the oval tilts from up-left to down-right; for a left-hander the same angle tilts from up-right to down-left. The sheet records the same number either way, and the bowler's dominant hand sets the direction. Each cut's horizontal and vertical components are `cut × cos(angle)` and `cut × sin(angle)`. For example, one 1/32″ cut at 45° is about .022″ each way.
   - The editor and the drill press view list the calculated cuts in drilling order, as **digital readout positions**, rounded to thousandths:
@@ -517,6 +517,9 @@ vacu     = { bit64, depth32 }                                                   
 ```
 
 - **O.D.** With an insert or hardware set, the hole's `outsideDiameter64` is its `od64`. The API checks catalog choices against the catalog: the size must match, the O.D. must be one of that size's `od64_choices`, and the install style must be one the line offers.
+- **Drilling interchangeable thumb hardware** (the drill press plan): pilot, then the collar bit down to the collar, then install the hardware. The thumb hole and its oval are drilled into the inner, not the ball.
+  - The pilot is about 1/2″ smaller than the collar bit.
+  - Pilot depth is 2-3/4″, which is safe for every system. JoPo Twist can go 3″; Turbo Switch Grip shouldn't go past 3″; VISE IT won't install if piloted too deep.
 - **Thumb hardware and the hole.** A thumb insert sets both the hole size and the O.D. A slug, or an interchangeable system's inner, has the thumb hole drilled into it, and the hardware sets only the O.D. (the collar bit, for interchangeable systems). The editor warns when the hole, or its oval width, leaves less than 1/8″ of wall in a slug or VISE IT inner, and suggests the next size up.
 - **Older sheets.** A sheet saved with the old insert shape (`{ manufacturer, insertSize64, type, model, color }`) is read as an "Other" insert, using the hole's size and O.D. An old `slug` is read as "Other" thumb hardware.
 - **Vacu** applies to finger insert holes only. The top of the hole is drilled with a different bit from the O.D. below it.

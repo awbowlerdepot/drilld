@@ -26,7 +26,7 @@ export const PressHoleNav = ({ holes, current, done, onSelect }: PressHoleNavPro
                         </span>
                     </span>
                     <span className="block font-mono text-base text-[#A7B4C8]">
-                        {hole.steps.map(step => format64(step.bit64)).filter((bit, i, all) => all.indexOf(bit) === i).join(' · ')}
+                        {hole.steps.flatMap(step => (step.bit64 ? [format64(step.bit64)] : [])).filter((bit, i, all) => all.indexOf(bit) === i).join(' · ')}
                     </span>
                 </button>
             )

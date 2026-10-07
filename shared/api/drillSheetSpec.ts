@@ -145,8 +145,8 @@ const upgradeLegacySlug = (hole: unknown) => {
 };
 
 /**
- * Thumb oval, measured with bits after drilling: the bit that fits the narrow
- * side (pilot) and the wide side (width), and the angle from horizontal
+ * Thumb oval, measured with bits after drilling: the starting bit, which fits
+ * the narrow side (pilotHole64), and the bit that fits the wide side (width), and the angle from horizontal
  * (0 = across, 90 = up and down; mirrored for left-handers). Cuts are calculated.
  */
 const thumbOvalSchema = z.object({
@@ -154,7 +154,7 @@ const thumbOvalSchema = z.object({
     pilotHole64: size64,
     width64: size64
 }).strict().refine(oval => oval.width64 > oval.pilotHole64, {
-    message: 'The width bit must be larger than the pilot',
+    message: 'The width bit must be larger than the starting bit',
     path: ['width64']
 });
 

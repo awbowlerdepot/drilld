@@ -72,9 +72,9 @@ The agreed backend design (Postgres schema, tenant isolation, ball registry, dri
   - **Aurora PostgreSQL**, reached through the **RDS Data API** with **Kysely**. The Lambda isn't in a VPC.
   - Not Prisma: it needs direct database connections.
 - Hosting: Amplify Hosting app `d1fijf3mjtco4q` in **us-west-1**. It auto-builds `main`, using the service role `drilld-amplify-backend-role` (`AmplifyBackendDeployFullAccess` only).
-  - Production URL: **https://app.drilld.io**. It's the Amplify custom domain for `main`, with an Amplify-managed certificate.
-    - `drilld.io` is registered at GoDaddy, which also hosts its DNS (not Route 53). There are two CNAMEs there: `app` points to the Amplify CloudFront distribution, and an `_…acm-validations.aws` record is used for certificate renewal. Keep both.
-    - The apex `drilld.io` is not served by this app.
+  - Production URL: **https://app.drilld.io**. It's this app's Amplify custom domain (the domain association is `app.drilld.io` itself, mapped to `main`), with an Amplify-managed certificate.
+    - `drilld.io` is registered at GoDaddy. Its DNS is in **Route 53** (hosted zone `Z05229691H3PVFBG2G53K`), and GoDaddy's nameservers point there. Amplify writes its own records into the zone, including the `_…acm-validations.aws` CNAMEs used for certificate renewal. Don't edit those by hand.
+    - The apex `drilld.io` and `www` serve the marketing site. That's a separate repo, `awbowlerdepot/drilld-site`, with its own Amplify app (`d3e71a8hqcpj8z`), which auto-deploys `main`. Its hero demo mirrors the drill sheet editor, so update it when the editor changes.
   - `amplify.yml` backend phase: `npm ci`, then `ampx pipeline-deploy`, which deploys `amplify/` and writes `amplify_outputs.json`.
   - Frontend phase: `npm run build`, serving `dist/`.
   - Env vars are documented in `.env.example`.
