@@ -42,10 +42,31 @@ export const pitchSchema = z.object({
     lateral32: signed32.nullish()
 }).strict();
 
-const bevelSchema = z.object({
-    angleDegrees: z.number().min(0).max(90),
-    depth32: inches32(64)
-}).strict();
+export const bevelAmountSchema = z.enum(['LIGHT', 'MEDIUM', 'HEAVY']);
+export const bevelToolSchema = z.enum(['KNIFE', 'SANDER']);
+
+/**
+ * Bevel on the top edge of a hole, done at the bench when finishing the ball.
+ * Every hole (insert holes too) gets the company's standard bevel unless the
+ * sheet sets one. It can differ around the hole: the palm / hinge side, where
+ * the thumb or finger hinges, matters most. Width is measured from the wall
+ * of the hole outward.
+ */
+const bevelSchema = z.preprocess(bevel => {
+    // The first shape ({ angleDegrees, depth32 }) reads as a medium bevel of that width.
+    if (bevel && typeof bevel === 'object' && 'angleDegrees' in bevel) {
+        const { depth32 } = bevel as { depth32?: number };
+        return { amount: 'MEDIUM', width32: depth32 ?? null };
+    }
+    return bevel;
+}, z.object({
+    amount: bevelAmountSchema,
+    /** A different amount on the palm / hinge side, if any. */
+    palmSide: bevelAmountSchema.nullish(),
+    width32: z.number().int().positive().max(16).nullish(),
+    tool: bevelToolSchema.nullish(),
+    notes
+}).strict());
 
 const drillingStepSchema = z.object({
     step: z.number().int().positive(),

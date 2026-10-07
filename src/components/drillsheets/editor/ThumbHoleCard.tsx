@@ -8,16 +8,19 @@ import { useGripCatalog } from '../../../hooks/useGripCatalog'
 import { collarBitName } from '../../../utils/DrillBits'
 import { applyThumbHardware, describeThumbHardware, MIN_WALL64, thumbWall64 } from './insertEdits'
 import { usePicker } from './pickers'
+import { BevelRow } from './BevelRow'
+import type { BevelAmount } from '../../../utils/Bevel'
 import type { SheetEditProps } from './editorTypes'
 
 interface ThumbHoleCardProps extends SheetEditProps {
     press: PressReadout
+    standardBevel: BevelAmount
 }
 
 type OvalField = 'pilotHole64' | 'width64' | 'angleDegrees'
 
 /** The thumb's details: hardware, sizes, the oval measured with bits, and its calculated cuts. */
-export const ThumbHoleCard = ({ spec, edit, readOnly, hand, press, locationId }: ThumbHoleCardProps) => {
+export const ThumbHoleCard = ({ spec, edit, readOnly, hand, press, locationId, standardBevel }: ThumbHoleCardProps) => {
     const open = usePicker()
     const catalog = useGripCatalog()
     const thumb = spec.holes.thumb
@@ -91,6 +94,9 @@ export const ThumbHoleCard = ({ spec, edit, readOnly, hand, press, locationId }:
                     {nextSizeUp ? ` Go up to ${format64(nextSizeUp.size64)}″.` : ' Go up a size.'}
                 </p>
             )}
+
+            <BevelRow holeName="Thumb" bevel={thumb.bevel} standard={standardBevel} readOnly={readOnly}
+                onSet={bevel => edit(draft => { draft.holes.thumb.bevel = bevel })} />
 
             <div className="space-y-1.5">
                 <span className="text-[13px] font-semibold text-gray-700">Oval, measured with bits</span>

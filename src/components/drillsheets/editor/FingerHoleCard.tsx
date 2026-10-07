@@ -6,16 +6,19 @@ import { applyInsert, describeInsert } from './insertEdits'
 import { OvalReadoutTable } from './OvalReadoutTable'
 import { usePicker } from './pickers'
 import { VacuControl } from './VacuControl'
+import { BevelRow } from './BevelRow'
+import type { BevelAmount } from '../../../utils/Bevel'
 import { fingerName, type Finger, type SheetEditProps } from './editorTypes'
 
 interface FingerHoleCardProps extends SheetEditProps {
     finger: Finger
     side: ScreenSide
     press: PressReadout
+    standardBevel: BevelAmount
 }
 
 /** A finger hole's details: insert, sizes, oval width and its calculated readouts. */
-export const FingerHoleCard = ({ spec, edit, readOnly, finger, side, press, locationId }: FingerHoleCardProps) => {
+export const FingerHoleCard = ({ spec, edit, readOnly, finger, side, press, locationId, standardBevel }: FingerHoleCardProps) => {
     const open = usePicker()
     const hole = spec.holes[finger]
     const name = `${side === 'LEFT' ? 'Left' : 'Right'} finger · ${fingerName(finger).toLowerCase()}`
@@ -55,6 +58,8 @@ export const FingerHoleCard = ({ spec, edit, readOnly, finger, side, press, loca
                 <VacuControl id={`vacu-${finger}`} od64={insert.od64} vacu={hole.vacu} readOnly={readOnly}
                     onChange={vacu => edit(draft => { draft.holes[finger].vacu = vacu })} />
             )}
+            <BevelRow holeName={name} bevel={hole.bevel} standard={standardBevel} readOnly={readOnly}
+                onSet={bevel => edit(draft => { draft.holes[finger].bevel = bevel })} />
             <DetailRow readOnly={readOnly} label="Oval width" hint="Bit that fits across; height is the hole size"
                 value={ovalWidth ? format64(ovalWidth) : null}
                 onClick={() => pickBit(`${name}: oval width`, ovalWidth,

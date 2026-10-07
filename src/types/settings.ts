@@ -56,6 +56,8 @@ export interface CompanyDrillSheetSettings {
     enableClt: boolean;
     verticalReadout: 'UP_POSITIVE' | 'DOWN_POSITIVE';
     horizontalReadout: 'RIGHT_POSITIVE' | 'LEFT_POSITIVE';
+    /** The bevel every hole gets (insert holes too) unless a drill sheet sets its own. */
+    standardBevel: 'LIGHT' | 'MEDIUM' | 'HEAVY';
 }
 
 export interface CompanySecuritySettings {

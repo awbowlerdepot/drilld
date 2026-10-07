@@ -4,6 +4,7 @@
 
 import type { DrillSheetSpec } from '../../shared/api/drillSheetSpec'
 import { addOffsets, fingerOvalCuts, pitchCenter, thumbOvalCuts, type Hand, type Offset } from './DrillReadouts'
+import { describeBevel, type BevelAmount } from './Bevel'
 import { collarBitName } from './DrillBits'
 import { format32, format64 } from './Fractions'
 
@@ -31,6 +32,8 @@ export interface DrillHole {
     /** "3/8 reverse · 1/8 left" */
     pitch: string
     steps: DrillStep[]
+    /** Done at the bench after drilling, not a press step: the bevel. */
+    finishing: { label: string; value: string }[]
 }
 
 type Pitch = DrillSheetSpec['holes']['thumb']['pitch']
@@ -70,7 +73,9 @@ const cutSteps = (key: string, bit64: number, center: Offset, cuts: Offset[]): D
         offset: cut
     }))
 
-const fingerHole = (spec: DrillSheetSpec, finger: 'middle' | 'ring', side: 'LEFT' | 'RIGHT'): DrillHole | null => {
+type PlannedHole = Omit<DrillHole, 'finishing'>
+
+const fingerHole = (spec: DrillSheetSpec, finger: 'middle' | 'ring', side: 'LEFT' | 'RIGHT'): PlannedHole | null => {
     const hole = spec.holes[finger]
     const key = side === 'LEFT' ? 'left' : 'right'
     const center = pitchCenter('FINGER', hole.pitch)
@@ -109,7 +114,7 @@ const fingerHole = (spec: DrillSheetSpec, finger: 'middle' | 'ring', side: 'LEFT
     }
 }
 
-const thumbHole = (spec: DrillSheetSpec, hand: Hand): DrillHole | null => {
+const thumbHole = (spec: DrillSheetSpec, hand: Hand): PlannedHole | null => {
     const thumb = spec.holes.thumb
     if (!thumb.enabled) return null
     const center = pitchCenter('THUMB', thumb.pitch)
@@ -170,12 +175,18 @@ const thumbHole = (spec: DrillSheetSpec, hand: Hand): DrillHole | null => {
     }
 }
 
-/** The holes to drill, fingers then thumb, each with its steps in order. */
-export const buildDrillPlan = (spec: DrillSheetSpec, hand: Hand): DrillHole[] => {
+/**
+ * The holes to drill, fingers then thumb, each with its steps in order, and
+ * what's finished at the bench afterwards (the bevel; the company's standard
+ * unless the sheet sets one).
+ */
+export const buildDrillPlan = (spec: DrillSheetSpec, hand: Hand, standardBevel?: BevelAmount): DrillHole[] => {
     const leftFinger = hand === 'RIGHT' ? 'middle' : 'ring'
     const rightFinger = hand === 'RIGHT' ? 'ring' : 'middle'
+    const bevelOf = { left: spec.holes[leftFinger].bevel, right: spec.holes[rightFinger].bevel, thumb: spec.holes.thumb.bevel }
     return [fingerHole(spec, leftFinger, 'LEFT'), fingerHole(spec, rightFinger, 'RIGHT'), thumbHole(spec, hand)]
-        .filter((hole): hole is DrillHole => hole !== null)
+        .filter((hole): hole is PlannedHole => hole !== null)
+        .map(hole => ({ ...hole, finishing: [{ label: 'Bevel', value: describeBevel(bevelOf[hole.key], standardBevel) }] }))
 }
 
 /** "61/64″" or "1-5/16″ · 1″ deep"; empty for a step without a bit. */
