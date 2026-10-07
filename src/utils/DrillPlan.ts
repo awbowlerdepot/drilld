@@ -146,13 +146,16 @@ const thumbHole = (spec: DrillSheetSpec, hand: Hand): DrillHole | null => {
     const insertSetsHole = hardware?.kind === 'THUMB_INSERT'
     const holeBit = thumb.oval?.pilotHole64 ?? thumb.size64
     if (!insertSetsHole && holeBit) {
-        steps.push({
-            id: 'thumb-hole', title: thumb.oval ? 'Starting bit' : 'Drill', bit64: holeBit, position: center,
+        const centerStep: DrillStep = {
+            id: 'thumb-hole', title: thumb.oval ? 'Starting bit · center' : 'Drill', bit64: holeBit, position: center,
             note: hardware ? 'Drilled into the slug' : undefined
-        })
-        if (thumb.oval && thumb.oval.width64 > thumb.oval.pilotHole64) {
-            steps.push(...cutSteps('thumb', thumb.oval.pilotHole64, center, thumbOvalCuts(thumb.oval, hand)))
         }
+        const cuts = thumb.oval && thumb.oval.width64 > thumb.oval.pilotHole64
+            ? cutSteps('thumb', thumb.oval.pilotHole64, center, thumbOvalCuts(thumb.oval, hand))
+            : []
+        // An oval is drilled in order across the hole: the up-side cuts, the center, then the down-side cuts.
+        const half = cuts.length / 2
+        steps.push(...cuts.slice(0, half), centerStep, ...cuts.slice(half))
     }
     if (steps.length === 0) return null
 
