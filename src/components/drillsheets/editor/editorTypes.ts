@@ -23,6 +23,25 @@ export type Span = DrillSheetSpec['spans']['thumbToMiddle']
 
 export type SpanType = 'full32' | 'cutToCut32' | 'outerToCut32' | 'centerToCenter32' | 'fit32'
 
+/** Whether either span (thumb–middle or thumb–ring) has a value of this type. */
+export const spanTypeRecorded = (spec: DrillSheetSpec, type: SpanType) =>
+    spec.spans.thumbToMiddle[type] != null || spec.spans.thumbToRing[type] != null
+
+/**
+ * The span type to show first. Interchangeable thumb hardware is measured
+ * outer-to-cut; finger inserts cut-to-cut (drilled edges, before hardware);
+ * otherwise full. If that type has no values but another does, show one
+ * that has values instead.
+ */
+export const defaultSpanType = (spec: DrillSheetSpec): SpanType => {
+    const preferred: SpanType = spec.holes.thumb.hardware?.kind === 'INTERCHANGEABLE_THUMB' ? 'outerToCut32'
+        : spec.holes.middle.insert || spec.holes.ring.insert ? 'cutToCut32'
+            : 'full32'
+    const order: SpanType[] = [preferred, 'full32', 'cutToCut32', 'outerToCut32', 'fit32', 'centerToCenter32']
+    const anyRecorded = order.some(type => spanTypeRecorded(spec, type))
+    return anyRecorded ? order.find(type => spanTypeRecorded(spec, type))! : preferred
+}
+
 export const SPAN_TYPES: { key: SpanType; short: string; label: string; description: string }[] = [
     { key: 'full32', short: 'F', label: 'Full', description: 'gripping edge to gripping edge' },
     { key: 'cutToCut32', short: 'C', label: 'Cut-to-cut', description: 'drilled edge to drilled edge' },

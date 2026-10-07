@@ -7,7 +7,7 @@ import { applyInsert, applyThumbHardware, describeInsert, describeThumbHardware 
 import { ScaledCanvas } from './ScaledCanvas'
 import { ValueBox } from './ValueBox'
 import { usePicker } from './pickers'
-import { SPAN_TYPES, fingerName, fingersBySide, spanKey, type Finger, type SheetEditProps, type SpanType } from './editorTypes'
+import { SPAN_TYPES, defaultSpanType, fingerName, fingersBySide, spanKey, spanTypeRecorded, type Finger, type SheetEditProps, type SpanType } from './editorTypes'
 
 // The drill sheet the way shops draw it (canvas design D): finger holes side
 // by side with their pitches outside them, bridge between, spans below, and
@@ -38,7 +38,9 @@ const caption = (left: number, top: number, text: string) => (
 
 export const HoleLayout = ({ spec, edit, readOnly, hand, locationId }: SheetEditProps) => {
     const open = usePicker()
-    const [spanType, setSpanType] = useState<SpanType>('full32')
+    // Follows the sheet (hardware, inserts, what's recorded) until a type is picked.
+    const [pickedSpanType, setSpanType] = useState<SpanType | null>(null)
+    const spanType = pickedSpanType ?? defaultSpanType(spec)
     const [selectedSpan, setSelectedSpan] = useState<Finger | null>(null)
     const sides = fingersBySide(hand)
     const thumb = spec.holes.thumb
@@ -190,15 +192,24 @@ export const HoleLayout = ({ spec, edit, readOnly, hand, locationId }: SheetEdit
 
             {/* Span type: a column down the middle, Fit on top. */}
             <div role="radiogroup" aria-label="Span type shown" className="absolute flex flex-col items-center gap-1.5" style={{ left: 396, top: 308 }}>
-                {SPAN_COLUMN.map(type => (
-                    <button key={type.key} type="button" role="radio" aria-checked={spanType === type.key}
-                        aria-label={`${type.label}: ${type.description}`} title={`${type.label}: ${type.description}`}
-                        onClick={() => setSpanType(type.key)}
-                        className={cn('size-10 rounded-full text-[15px] font-semibold transition-colors',
-                            spanType === type.key ? 'bg-primary text-primary-foreground' : 'border-[1.5px] border-slate-300 bg-white text-gray-700 hover:bg-muted')}>
-                        {type.short}
-                    </button>
-                ))}
+                {SPAN_COLUMN.map(type => {
+                    // Selected: solid. Recorded: tinted with a solid border. Blank: dashed and muted.
+                    const recorded = spanTypeRecorded(spec, type.key)
+                    return (
+                        <button key={type.key} type="button" role="radio" aria-checked={spanType === type.key}
+                            aria-label={`${type.label}: ${type.description}${recorded ? '' : ' (not recorded)'}`}
+                            title={`${type.label}: ${type.description}${recorded ? '' : ' (not recorded)'}`}
+                            onClick={() => setSpanType(type.key)}
+                            className={cn('size-10 rounded-full text-[15px] font-semibold transition-colors',
+                                spanType === type.key
+                                    ? cn('bg-primary text-primary-foreground', !recorded && 'ring-2 ring-primary/30 ring-offset-1')
+                                    : recorded
+                                        ? 'border-2 border-primary bg-blue-50 text-primary hover:bg-blue-100'
+                                        : 'border-[1.5px] border-dashed border-slate-300 bg-white text-gray-400 hover:bg-muted')}>
+                            {type.short}
+                        </button>
+                    )
+                })}
             </div>
 
             {spanBox(sides.left, 176)}
