@@ -391,10 +391,11 @@ drillingSequence = [ { step, bitSize64, depth32, notes } ]   // in drilling orde
   - Fingers: reverse is up and forward is down.
   - Lateral is the same for every hole: left on the sheet is left on the press.
   - The readout number then also depends on the press setting below. For example, with up as plus, a thumb's 3/8″ reverse reads −.375 and a finger's 3/8″ reverse reads +.375. With down as plus, both flip.
-- **Drill press readout direction.** Presses differ in which way their digital readout counts. Some are built one way and some the opposite, and some readouts can be configured. Both axes are a property of the press:
-  - `drillPress.verticalReadout: 'UP_POSITIVE' | 'DOWN_POSITIVE'`
-  - `drillPress.horizontalReadout: 'RIGHT_POSITIVE' | 'LEFT_POSITIVE'`
-  - The defaults are up plus and right plus. They're a company setting that a location can override, and they move to the equipment record once presses are modelled.
+- **Drill press readout direction.** The readout counts how the *ball* moves, which is opposite to the hole: to put a hole further right on the ball, the ball moves left. Presses also differ in which way they count, and some readouts can be configured. So each axis is a setting, saying which sign the readout shows when the *hole* moves up or right on the ball:
+  - `drillSheets.verticalReadout: 'UP_POSITIVE' | 'DOWN_POSITIVE'`
+  - `drillSheets.horizontalReadout: 'RIGHT_POSITIVE' | 'LEFT_POSITIVE'`
+  - The defaults match the first shop's press. Horizontal is `LEFT_POSITIVE`: a hole moving right reads minus. For example, a 1/2″ right lateral centers at −.500, and a right finger's oval cuts read −.531, then −.563. Vertical is `UP_POSITIVE`, which hasn't been checked on a press yet.
+  - They're a company setting that a location can override, and they move to the equipment record once presses are modelled.
   - It only changes how numbers are shown. The spec always stores pitch one way (forward positive, lateral right positive).
   - The drill press view and the editor's calculated cuts show every readout value, pitches included, in the press's convention.
 - **Offset** (lateral thumb offset) is left out of v1.

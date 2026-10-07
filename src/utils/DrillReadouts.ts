@@ -12,6 +12,7 @@ export type HoleKind = 'THUMB' | 'FINGER';
 export type ScreenSide = 'LEFT' | 'RIGHT';
 export type Hand = 'LEFT' | 'RIGHT';
 
+/** The sign the press readout shows when the hole moves up / right on the ball. */
 export interface PressReadout {
     verticalReadout: 'UP_POSITIVE' | 'DOWN_POSITIVE';
     horizontalReadout: 'RIGHT_POSITIVE' | 'LEFT_POSITIVE';

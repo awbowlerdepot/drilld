@@ -45,10 +45,12 @@ export interface CompanyWorkflowSettings {
 }
 
 /**
- * Drill sheet settings. The readout directions describe how a drill press's
- * digital readout counts (presses differ); they only change how pitch and cut
- * positions are shown, never what's stored. They move to each press once
- * equipment is modelled.
+ * Drill sheet settings. The readout directions say which sign the press's
+ * digital readout shows when the hole moves up or right on the ball. The
+ * readout counts the ball's movement, which is opposite to the hole's (move
+ * the ball left to put the hole further right), and presses differ, so it's a
+ * setting. It only changes how pitch and cut positions are shown, never
+ * what's stored. It moves to each press once equipment is modelled.
  */
 export interface CompanyDrillSheetSettings {
     /** Show CLT (center line transformation) and Auto-CLT lateral pitch suggestions. */

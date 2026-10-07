@@ -79,7 +79,7 @@ export const defineApi = (stack: Stack, options: ApiOptions) => {
         apiName: `drilld-api-${stack.stackName}`.slice(0, 128),
         corsPreflight: {
             allowOrigins: ALLOWED_ORIGINS,
-            allowMethods: [CorsHttpMethod.GET, CorsHttpMethod.POST, CorsHttpMethod.PATCH, CorsHttpMethod.DELETE],
+            allowMethods: [CorsHttpMethod.GET, CorsHttpMethod.POST, CorsHttpMethod.PUT, CorsHttpMethod.PATCH, CorsHttpMethod.DELETE],
             allowHeaders: ['Authorization', 'Content-Type'],
             maxAge: Duration.hours(1)
         }
@@ -87,7 +87,7 @@ export const defineApi = (stack: Stack, options: ApiOptions) => {
 
     httpApi.addRoutes({
         path: '/{proxy+}',
-        methods: [HttpMethod.GET, HttpMethod.POST, HttpMethod.PATCH, HttpMethod.DELETE],
+        methods: [HttpMethod.GET, HttpMethod.POST, HttpMethod.PUT, HttpMethod.PATCH, HttpMethod.DELETE],
         integration: new HttpLambdaIntegration('ApiIntegration', fn),
         authorizer: new HttpUserPoolAuthorizer('CognitoAuthorizer', options.userPool, {
             userPoolClients: [options.userPoolClient]
