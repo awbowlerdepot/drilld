@@ -51,8 +51,7 @@ Platform
 
 - **Spans, bridge and pitch**: integer **32nds of an inch** (`4-3/8″+` = 4-13/32″ is stored as `141`). Shops measure in 16ths and write "+" for an extra 1/32; the UI renders `141` back as `4-3/8″+`. Bridge is always edge-to-edge.
 - **Hole and bit sizes**: integer **64ths of an inch** (31/64″ is stored as `31`, 1″ as `64`). Every drill bit size uses 64ths: hole sizes, O.D., pilot holes, step drilling. They are exact and sortable, and the UI renders them as fractions.
-- **Finger cuts**: decimal inches, stored as integer **thousandths** (`.032″` is `32`). One standard cut is 1/32″, or "2 bits" (.032″).
-- **Thumb oval**: measured with bits, so the pilot (narrow side) and width (wide side) are 64ths. The thumb's cuts are calculated from them, never entered (see the spec below).
+- **Ovals**: measured with bits, so every oval dimension is in 64ths. The cuts are calculated from them and never entered (see the spec below). One standard cut is 1/32″, or "2 bits" (.032″). Calculated readouts are shown in decimal inches to the thousandth.
 - **Pitch**: inches only, never degrees. `forward` is positive forward and negative reverse; `lateral` is positive right and negative left.
 - **Angles**: degrees (flexibility, CLT, thumb oval angle, bevel, axis tilt and rotation).
 - **Delivery**: speed in mph (`numeric(4,1)`), rev rate in RPM (integer). PAP in 32nds of an inch: over from the center line, and up (negative = down).
@@ -351,7 +350,7 @@ alter table drill_sheet
   holes: {
     thumb:  { enabled, size64, outsideDiameter64?, depth32?, pitch,
               oval?, slug?, bevel?, drillingSequence?, notes },
-    middle: { size64, outsideDiameter64?, depth32?, pitch, insert?, cuts: [cut], bevel?, drillingSequence?, notes },
+    middle: { size64, outsideDiameter64?, depth32?, pitch, insert?, fingerOval?, bevel?, drillingSequence?, notes },
     ring:   { …same as middle },
     index?: { …same as middle },
     pinky?: { …same as middle }
@@ -364,7 +363,7 @@ alter table drill_sheet
 span             = { full32?, cutToCut32?, outerToCut32?, centerToCenter32?, fit32?, notes }
 pitch            = { forward32, lateral32 }  // negative forward = reverse, negative lateral = left
 oval             = { angleDegrees, pilotHole64, width64 }   // thumb cuts are derived, not stored
-cut              = { vertical1000, horizontal1000 }       // finger holes: one entry per successive cut, in order
+fingerOval       = { width64 }                            // bit that fits the hole across; size64 is the pilot and sets the height
 slug             = { manufacturer, type, size64, interchangeable, notes }
 bevel            = { angleDegrees, depth32 }
 drillingSequence = [ { step, bitSize64, depth32, notes } ]   // in drilling order
@@ -383,6 +382,10 @@ drillingSequence = [ { step, bitSize64, depth32, notes } ]   // in drilling orde
     - Each cut's position is the pitch center plus that cut's offset. For example, 3/8″ reverse and 1/8″ left puts the center at −.375 / −.125 (up and right positive). Two .023″ cuts per side at 20° then put the first cut at −.359 / −.169.
     - Signs follow the press's readout directions (below).
   - The cuts aren't stored.
+- **Finger ovals only widen.** A finger hole's height is always its bit size, so fingers are never cut up-and-down. The shop records the bit that fits the hole across (`width64`); the hole size is the pilot.
+  - **Across, away from the bridge:** the extra width is all cut on the side away from the bridge. The left finger hole moves left and the right finger hole moves right. Cutting starts at the pitch center and steps outward, in equal cuts of no more than 1/32″.
+  - The center is the finger's pitch on the readout.
+  - Example: a 21/32″ right finger hole opened to 23/32″ across gets two 1/32″ cuts to the right. With 3/4″ reverse (up for fingers), 1/2″ right, and up and right as plus, the readouts are +.750 / +.531, then +.750 / +.562.
 - **Pitch on the readout.** Pitches are measured from the center of the grip, so the vertical direction depends on the hole:
   - Thumb: reverse is down and forward is up.
   - Fingers: reverse is up and forward is down.
