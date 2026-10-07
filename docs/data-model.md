@@ -300,8 +300,10 @@ create table thumb_inner (
     A repeat order starts a new work order from it.
   - **Pitch within the inner.** The ball's thumb pitch is set when the outer piece is drilled. The inner's pitch is measured from the inner's center: 0 × 0 is the pitch center, and the default.
     - It can be offset (forward/reverse and lateral, in 32nds) to add some pitch in the inner.
-    - It's limited so the hole never breaks through the inner's wall. The hole's farthest edge, including the oval at its angle, plus the offset, must leave at least a minimum wall.
-    - So the catalog needs, per inner: its drillable diameter and the minimum wall. Still to get (Turbo publishes a wall thickness chart).
+    - **The 1/8″ wall rule.** The hole has to leave at least 1/8″ of wall all the way around:
+      - farthest hole edge (the hole radius, or the oval's half-length along its angle) + offset ≤ inner diameter ÷ 2 − 1/8″
+      - The inner's diameter is its catalog size (`grip_size.size64`, e.g. a 1-1/4″ inner or IT slug).
+    - When a hole or offset breaks the rule, the shop's rule of thumb is to go up an inner size. The editor warns and suggests the next size up in that system.
 
 ### Balls
 
