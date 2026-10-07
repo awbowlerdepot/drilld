@@ -95,10 +95,16 @@ export const useDrillSheetEditor = (sheetId: string, currentLocationID?: string)
         setSheet(prev => (prev ? { ...prev, name: updated.name } : prev))
     }), [run, sheet])
 
+    /** Discards the saved draft revision; the previous revision becomes current again. */
+    const discardDraft = useCallback(() => run(async () => {
+        if (!sheet) return
+        apply(await drillSheetsApi.discardDraft(sheet.id))
+    }), [run, apply, sheet])
+
     /** Drops unsaved changes. */
     const discard = useCallback(() => {
         if (sheet) apply(sheet)
     }, [sheet, apply])
 
-    return { sheet, spec, dirty, loading, saving, error, updateSpec, edit, save, approve, rename, discard }
+    return { sheet, spec, dirty, loading, saving, error, updateSpec, edit, save, approve, rename, discard, discardDraft }
 }

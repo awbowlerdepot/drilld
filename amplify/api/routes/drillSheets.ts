@@ -339,6 +339,46 @@ export const drillSheets = new Hono<ApiEnv>()
         });
     })
 
+    /**
+     * Discards the current draft revision: the revision it started from (the
+     * latest approved or drilled one) becomes current again. Only for a saved draft (not approved, not drilled) with
+     * an earlier revision to go back to. Revisions are never deleted, so the
+     * discarded draft stays in the history; the next save starts a new one.
+     */
+    .post('/:id/draft/discard', c => withCompany(c.var.db, c.var.user.companyId, async tx => {
+        const id = idParam(c.req.param('id'), 'Drill sheet not found');
+        const sheet = await findSheet(tx, id, { lock: true });
+        if (sheet.archived_at) throw new HttpError(409, 'This drill sheet is archived');
+        const current = sheet.current_revision_id
+            ? await tx.selectFrom('drill_sheet_revision').selectAll()
+                .where('id', '=', uuid(sheet.current_revision_id))
+                .executeTakeFirstOrThrow()
+            : undefined;
+        if (!current) throw new HttpError(409, 'This drill sheet has no revisions');
+        requirePermission(await loadAccess(tx, c.var.user), 'write:drillsheets', current.location_id ?? undefined);
+        if (current.approved_at || (await drilledRevisionIds(tx, [current.id])).has(current.id)) {
+            throw new HttpError(409, 'Only a draft can be discarded; this revision is approved or drilled');
+        }
+        // A new draft only starts from an approved or drilled revision, so go back
+        // to the latest of those (skipping any draft discarded before).
+        const previous = await tx.selectFrom('drill_sheet_revision').select('id')
+            .where('drill_sheet_id', '=', uuid(id))
+            .where('version', '<', current.version)
+            .where(eb => eb.or([
+                eb('approved_at', 'is not', null),
+                eb.exists(eb.selectFrom('work_order').select('id').whereRef('work_order.drill_sheet_revision_id', '=', 'drill_sheet_revision.id'))
+            ]))
+            .orderBy('version', 'desc')
+            .executeTakeFirst();
+        if (!previous) throw new HttpError(409, 'There is no earlier revision to go back to');
+
+        await tx.updateTable('drill_sheet')
+            .set({ current_revision_id: uuid(previous.id), updated_at: sql<Date>`now()` })
+            .where('id', '=', uuid(id))
+            .execute();
+        return c.json(await sheetDto(tx, id));
+    }))
+
     /** Revision history, newest first, without specs. */
     .get('/:id/revisions', c => withCompany(c.var.db, c.var.user.companyId, async tx => {
         requirePermission(await loadAccess(tx, c.var.user), 'read:drillsheets');

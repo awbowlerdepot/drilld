@@ -135,7 +135,7 @@ Look for incorrect imports, circular dependencies, and unnecessary complexity.
   - customers: list, get, create, update, delete (including the bowler's current delivery)
   - drill sheets:
     - `/customers/:customerId/drill-sheets`: list (`?archived=true` includes archived) and create (the sheet plus draft revision 1)
-    - `/drill-sheets/:id`: get, rename/archive (PATCH), and save the draft (`PUT …/draft`)
+    - `/drill-sheets/:id`: get, rename/archive (PATCH), save the draft (`PUT …/draft`), and discard the draft (`POST …/draft/discard`: the revision it started from becomes current again; the draft stays in the history)
     - `/drill-sheets/:id/revisions`: the history, one revision by version, and `POST …/approve`
     - The spec is validated by `shared/api/drillSheetSpec.ts` (spec v1).
   - locations:

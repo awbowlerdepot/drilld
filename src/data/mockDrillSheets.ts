@@ -153,6 +153,18 @@ export const mockDrillSheetsApi: DrillSheetsApi = {
         return toDto(entry)
     },
 
+    async discardDraft(id) {
+        await pause()
+        const entry = find(id)
+        const current = entry.revisions[entry.revisions.length - 1]
+        if (!current?.editable) throw new Error('Only a draft can be discarded; this revision is approved or drilled')
+        if (entry.revisions.length < 2) throw new Error('There is no earlier revision to go back to')
+        // The mock keeps the current revision last, so a discarded draft is simply dropped.
+        entry.revisions.pop()
+        entry.sheet.updatedAt = now()
+        return toDto(entry)
+    },
+
     async revisions(id) {
         await pause()
         return clone(find(id).revisions.slice().reverse().map(toSummary))
