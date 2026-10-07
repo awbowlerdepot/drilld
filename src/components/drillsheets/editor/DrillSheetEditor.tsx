@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowLeft, Drill } from 'lucide-react'
+import { ArrowLeft, Drill, History } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useCompanySettings } from '../../../hooks/useCompanySettings'
@@ -14,6 +14,7 @@ import { FitPanel } from './FitPanel'
 import { HoleLayout } from './HoleLayout'
 import { NotesPanel } from './NotesPanel'
 import { PickerHost } from './PickerHost'
+import { RevisionHistoryDialog } from './RevisionHistoryDialog'
 import { ThumbHoleCard } from './ThumbHoleCard'
 import { fingersBySide, type SheetEditProps } from './editorTypes'
 
@@ -38,6 +39,7 @@ export const DrillSheetEditor = ({ sheetId, customer, locationID, onBack }: Dril
     const location = locations.find(l => l.id === locationID)
     const drillSheetSettings = resolveLocationSettings(settings, location?.settingsOverrides).drillSheets
     const [pressView, setPressView] = useState(false)
+    const [historyOpen, setHistoryOpen] = useState(false)
 
     if (loading) return <p className="py-12 text-center text-gray-500">Loading drill sheet…</p>
     if (!sheet || !spec) {
@@ -85,6 +87,11 @@ export const DrillSheetEditor = ({ sheetId, customer, locationID, onBack }: Dril
                     {!sheet.archived && (
                         <div className="ml-auto flex flex-wrap gap-2">
                             {revision && (
+                                <Button variant="outline" onClick={() => setHistoryOpen(true)}>
+                                    <History data-icon="inline-start" /> History
+                                </Button>
+                            )}
+                            {revision && (
                                 <Button variant="outline" disabled={saving} onClick={() => setPressView(true)}
                                     title={dirty ? 'Shows the saved revision, not unsaved changes' : undefined}>
                                     <Drill data-icon="inline-start" /> Drill press
@@ -130,6 +137,8 @@ export const DrillSheetEditor = ({ sheetId, customer, locationID, onBack }: Dril
                 </section>
 
                 <NotesPanel {...editProps} />
+
+                {historyOpen && <RevisionHistoryDialog sheetId={sheet.id} sheetName={sheet.name} onClose={() => setHistoryOpen(false)} />}
             </div>
         </PickerHost>
     )

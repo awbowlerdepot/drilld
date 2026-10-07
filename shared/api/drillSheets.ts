@@ -54,13 +54,22 @@ export interface DrillSheetRevisionSummaryDto {
     version: number;
     locationID: string | null;
     createdByUserID: string;
+    createdByName: string | null;
+    /** Who last saved it (a draft is edited in place). */
+    updatedByUserID: string | null;
+    updatedByName: string | null;
     revisionNotes: string | null;
     approvedByUserID: string | null;
+    approvedByName: string | null;
     approvedAt: string | null;
     /** Used on at least one work order. */
     drilled: boolean;
     /** A draft: not approved and not drilled. */
     editable: boolean;
+    /** The sheet's current revision. */
+    isCurrent: boolean;
+    /** A draft that was discarded (no longer current, never approved or drilled). */
+    discarded: boolean;
     createdAt: string;
     updatedAt: string;
 }
