@@ -324,6 +324,10 @@ export interface PaperImport {
   attachment_id: string | null;
   company_id: string;
   content_type: string;
+  /**
+   * The transcription as the reviewer corrected it; differences from reading become hints for this company's later imports.
+   */
+  corrected_reading: Json | null;
   created_at: Generated<Timestamp>;
   created_by_user_id: string;
   customer_id: string | null;

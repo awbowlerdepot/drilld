@@ -17,20 +17,17 @@ export type GripStyle = 'FINGERTIP' | 'CONVENTIONAL' | 'TWO_HANDED_NO_THUMB'
 export interface ImportIssue {
     field: string
     message: string
+    /** Set for issues that picking an insert or hardware answers: 'middle-insert', 'ring-insert', 'thumb-hardware'. */
+    topic?: string
 }
 
-/** One value that will be filled in: the label, what the sheet said, and what it becomes. */
+/** One value read from the sheet: where it is in the reading, what it says, and what it becomes. */
 export interface ImportRow {
     group: string
     label: string
     raw: string
     value: string
-}
-
-export interface ImportProposal {
-    spec: DrillSheetSpecInput
-    rows: ImportRow[]
-    issues: ImportIssue[]
+    path: string[]
 }
 
 // ==========================================
@@ -94,9 +91,60 @@ const joinNotes = (...parts: (string | null | undefined)[]) => parts.filter(Bool
 // The proposal
 // ==========================================
 
+/** Where a value is in the reading, so the reviewer can correct it there: ['thumb', 'inCircle']. */
+export type ReadingPath = string[]
+
+/** What the sheet says about a finger hole's insert: matched against the grip catalog. */
+export interface FingerGripClue {
+    finger: 'middle' | 'ring'
+    /** The insert size as written: "7.5", "6". */
+    sizeLabel: string | null
+    /** The O.D. written over the size ("31/32 / 6"), in 64ths. */
+    od64: number | null
+    /** The style written for it: "Lift", "Oval". */
+    style: string | null
+    /** A brand mark: "VG", "VISE", "Turbo". */
+    brand: string | null
+}
+
+/** What the sheet says about the thumb hardware: "Slug", "IT", a size. */
+export interface ThumbGripClue {
+    style: string | null
+    size: string | null
+    brand: string | null
+    /** The thumb hole drilled into it, for the 1/8″ wall rule. */
+    holeSize64: number | null
+}
+
+export interface ImportProposal {
+    spec: DrillSheetSpecInput
+    rows: ImportRow[]
+    issues: ImportIssue[]
+    grips: { middle: FingerGripClue | null; ring: FingerGripClue | null; thumb: ThumbGripClue | null }
+}
+
+const BRAND = /\b(VG|VISE|TURBO|JOPO|JO PO)\b/i
+const brandIn = (...texts: (string | null)[]) => {
+    for (const text of texts) {
+        const match = text ? BRAND.exec(text) : null
+        if (match) return match[1].toUpperCase()
+    }
+    return null
+}
+/** "Lift" from "VG Lift"; brand marks and sizes aren't the style. */
+const styleIn = (...texts: (string | null)[]) => {
+    for (const text of texts) {
+        const words = text?.replace(BRAND, ' ').replace(/[\d./-]+/g, ' ').trim()
+        if (words) return words
+    }
+    return null
+}
+const isSizeLabel = (text: string) => /^-?\d+(\.\d+)?$/.test(text.trim()) && Number(text) < 30
+
 /**
  * The drill sheet values a reading proposes, for this hand and span type,
- * with what each was read from and what the reviewer should check.
+ * with where each was read from, what the reviewer should check, and the
+ * clues for picking inserts and thumb hardware from the catalog.
  */
 export const proposeFromReading = (reading: PaperSheetReading, options: { hand: Hand; spanType: SpanTypeKey }): ImportProposal => {
     const rows: ImportRow[] = []
@@ -105,10 +153,13 @@ export const proposeFromReading = (reading: PaperSheetReading, options: { hand: 
     const sides = fingersBySide(options.hand)
     const brandNote = reading.template.brand === 'ULTIMATE' ? ' (Ultimate crosshair: up read as reverse for fingers, forward for the thumb)' : ''
 
-    const length32 = (group: string, label: string, raw: string | null, max = 320): number | null => {
+    const length32 = (group: string, label: string, raw: string | null, path: ReadingPath, max = 320): number | null => {
         const inches = parseInches(raw)
         if (inches == null) {
-            if (raw && !isCrossed(raw)) issues.push({ field: `${group} ${label}`, message: `Couldn't read "${raw}" as a measurement` })
+            if (raw && !isCrossed(raw)) {
+                issues.push({ field: `${group} ${label}`, message: `Couldn't read "${raw}" as a measurement` })
+                rows.push({ group, label, raw, value: '—', path })
+            }
             return null
         }
         const { value, exact } = to32(inches)
@@ -117,20 +168,21 @@ export const proposeFromReading = (reading: PaperSheetReading, options: { hand: 
             issues.push({ field: `${group} ${label}`, message: `"${raw}" is out of range` })
             return null
         }
-        rows.push({ group, label, raw: raw ?? '', value: value === 0 ? '0' : `${format32(value)}″` })
+        rows.push({ group, label, raw: raw ?? '', value: value === 0 ? '0' : `${format32(value)}″`, path })
         return value
     }
 
     /** One pitch direction from its pair of boxes: positive one way, negative the other. */
-    const pitch = (group: string, label: string, positive: [string, string | null], negative: [string, string | null]): number | null => {
+    const pitch = (group: string, label: string, positive: [string, string | null, ReadingPath], negative: [string, string | null, ReadingPath]): number | null => {
         const plus = parseInches(positive[1])
         const minus = parseInches(negative[1])
-        if ((positive[1] && plus == null && !isCrossed(positive[1])) || (negative[1] && minus == null && !isCrossed(negative[1]))) {
-            issues.push({ field: `${group} ${label}`, message: `Couldn't read the pitch (${positive[0]} "${positive[1] ?? ''}", ${negative[0]} "${negative[1] ?? ''}")` })
-        }
+        const unreadable = (positive[1] && plus == null && !isCrossed(positive[1])) || (negative[1] && minus == null && !isCrossed(negative[1]))
+        if (unreadable) issues.push({ field: `${group} ${label}`, message: `Couldn't read the pitch (${positive[0]} "${positive[1] ?? ''}", ${negative[0]} "${negative[1] ?? ''}")` })
         if (plus == null && minus == null) return null
         if (plus && minus) {
             issues.push({ field: `${group} ${label}`, message: `Both ${positive[0]} (${positive[1]}) and ${negative[0]} (${negative[1]}) have values; left blank` })
+            rows.push({ group, label: `${label} (${positive[0]})`, raw: positive[1] ?? '', value: '—', path: positive[2] })
+            rows.push({ group, label: `${label} (${negative[0]})`, raw: negative[1] ?? '', value: '—', path: negative[2] })
             return null
         }
         const inches = plus ? plus : minus ? -minus : 0
@@ -140,67 +192,91 @@ export const proposeFromReading = (reading: PaperSheetReading, options: { hand: 
             issues.push({ field: `${group} ${label}`, message: 'Pitch is over 2″; left blank' })
             return null
         }
-        const raw = plus ? `${positive[0]} ${positive[1]}` : minus ? `${negative[0]} ${negative[1]}` : 'X'
-        const direction = value === 0 ? '0' : `${format32(Math.abs(value))} ${value > 0 ? positive[0] : negative[0]}`
-        rows.push({ group, label, raw, value: direction })
+        const box = plus ? positive : minus ? negative : (positive[1] != null ? positive : negative)
+        rows.push({
+            group, label: `${label} (${box[0]})`, raw: box[1] ?? '', path: box[2],
+            value: value === 0 ? '0' : `${format32(Math.abs(value))} ${value > 0 ? positive[0] : negative[0]}`
+        })
         return value
     }
 
-    const fingerPitch = (group: string, boxes: PaperSheetReading['leftFingerPitch']) => ({
+    const fingerPitch = (group: string, key: 'leftFingerPitch' | 'rightFingerPitch') => {
+        const boxes = reading[key]
         // Fingers: reverse is up on the form; forward down.
-        forward32: pitch(group, 'Forward / reverse', ['forward', boxes.forward ?? boxes.down], ['reverse', boxes.reverse ?? boxes.up]),
-        lateral32: pitch(group, 'Lateral', ['right', boxes.right], ['left', boxes.left])
-    })
+        const forwardKey = boxes.forward != null ? 'forward' : 'down'
+        const reverseKey = boxes.reverse != null ? 'reverse' : 'up'
+        return {
+            forward32: pitch(group, 'Pitch', ['forward', boxes[forwardKey], [key, forwardKey]], ['reverse', boxes[reverseKey], [key, reverseKey]]),
+            lateral32: pitch(group, 'Lateral', ['right', boxes.right, [key, 'right']], ['left', boxes.left, [key, 'left']])
+        }
+    }
 
-    // A finger hole: a bit size, or an insert's O.D. over its size.
+    // A finger hole: a bit size, or an insert (its O.D. over its size, or just its size).
     const fingerHole = (side: 'left' | 'right') => {
         const finger = sides[side]
         const group = `${finger === 'middle' ? 'Middle' : 'Ring'} finger`
-        const hole = side === 'left' ? reading.leftFinger : reading.rightFinger
-        const insertRow = finger === 'middle' ? reading.inserts.middle : reading.inserts.ring
+        const holeKey = side === 'left' ? 'leftFinger' : 'rightFinger'
+        const hole = reading[holeKey]
+        const insertRow = reading.inserts[finger]
         const parts = holeParts(hole.inCircle)
-        const result: Record<string, unknown> = { pitch: fingerPitch(group, side === 'left' ? reading.leftFingerPitch : reading.rightFingerPitch) }
+        const result: Record<string, unknown> = { pitch: fingerPitch(group, side === 'left' ? 'leftFingerPitch' : 'rightFingerPitch') }
         const notes: string[] = []
         const sizeParts = parts.filter(isFraction)
-        const otherParts = parts.filter(part => !isFraction(part))
+        const labelParts = parts.filter(isSizeLabel)
+        let od64: number | null = null
+        let sizeLabel: string | null = labelParts[0] ?? null
+        let description = '—'
 
-        if (sizeParts.length === 1) {
+        if (sizeParts.length === 1 && labelParts.length > 0) {
+            // "31/32 / 6": the insert's O.D. and its size.
+            od64 = to64(parseInches(sizeParts[0]) ?? 0).value
+            result.outsideDiameter64 = od64
+            description = `O.D. ${format64(od64)}″, insert size ${labelParts.join(' ')}`
+        } else if (sizeParts.length === 1) {
             const { value, exact } = to64(parseInches(sizeParts[0]) ?? 0)
             if (!exact) issues.push({ field: group, message: `"${sizeParts[0]}" isn't a whole 64th; rounded to ${format64(value)}` })
-            if (otherParts.length > 0) {
-                // "31/32 / 6": the insert's O.D. and its size. The insert itself is picked in the editor.
-                result.outsideDiameter64 = value
-                rows.push({ group, label: 'O.D.', raw: sizeParts[0], value: `${format64(value)}″` })
-                notes.push(`Paper sheet: ${hole.inCircle}`)
-                issues.push({ field: group, message: `Read "${hole.inCircle}" as the insert O.D. and size ${otherParts.join(' ')}; pick the insert in the editor` })
-            } else {
-                result.size64 = value
-                rows.push({ group, label: 'Hole size', raw: sizeParts[0], value: `${format64(value)}″` })
-            }
+            result.size64 = value
+            description = `Hole ${format64(value)}″`
         } else if (parts.length === 1 && /^\d+$/.test(parts[0]) && Number(parts[0]) >= 32 && Number(parts[0]) <= 80) {
             // A bare "47": a bit size in 64ths.
             result.size64 = Number(parts[0])
-            rows.push({ group, label: 'Hole size', raw: parts[0], value: `${format64(Number(parts[0]))}″` })
+            sizeLabel = null
+            description = `Hole ${format64(Number(parts[0]))}″`
             issues.push({ field: group, message: `Read "${parts[0]}" as a ${format64(Number(parts[0]))}″ bit (64ths)` })
+        } else if (labelParts.length === 1 && parts.length === 1) {
+            // "7.5": an insert size by itself.
+            description = `Insert size ${labelParts[0]}`
         } else if (parts.length > 0) {
             notes.push(`Paper sheet: ${hole.inCircle}`)
-            issues.push({ field: group, message: `"${hole.inCircle}" isn't a bit size (an insert size?); kept in the hole notes` })
+            issues.push({ field: group, message: `Couldn't make sense of "${hole.inCircle}"; kept in the hole notes`, topic: `${finger}-insert` })
         }
-        const style = [hole.beside, insertRow.style, insertRow.size].filter(Boolean).join(' ')
-        if (style) notes.push(`Insert / style on the sheet: ${style}`)
+        if (hole.inCircle) rows.push({ group, label: 'In the circle', raw: hole.inCircle, value: description, path: [holeKey, 'inCircle'] })
+        if (hole.beside) rows.push({ group, label: 'Beside the circle', raw: hole.beside, value: 'Used to find the insert', path: [holeKey, 'beside'] })
+        if (insertRow.style) rows.push({ group, label: 'Insert style (table)', raw: insertRow.style, value: 'Used to find the insert', path: ['inserts', finger, 'style'] })
+        if (insertRow.size) {
+            rows.push({ group, label: 'Insert size (table)', raw: insertRow.size, value: 'Used to find the insert', path: ['inserts', finger, 'size'] })
+            if (!sizeLabel && isSizeLabel(insertRow.size)) sizeLabel = insertRow.size.trim()
+        }
+        const style = styleIn(insertRow.style, hole.beside)
+        const brand = brandIn(hole.beside, insertRow.style, hole.inCircle)
+        if (style || brand) notes.push(`Insert on the sheet: ${[hole.beside, insertRow.style, insertRow.size].filter(Boolean).join(' ')}`)
         result.notes = joinNotes(...notes)
-        return { finger, hole: result }
+        const clue: FingerGripClue | null = sizeLabel || od64 ? { finger, sizeLabel, od64, style, brand } : null
+        return { finger, hole: result, clue }
     }
 
     const left = fingerHole('left')
     const right = fingerHole('right')
 
-    // The thumb: bit size, oval, pitch.
+    // The thumb: bit size, oval, pitch, hardware.
+    const thumbBoxes = reading.thumbPitch
+    // Thumb: reverse is down on the form; forward up.
+    const thumbForwardKey = thumbBoxes.forward != null ? 'forward' : 'up'
+    const thumbReverseKey = thumbBoxes.reverse != null ? 'reverse' : 'down'
     const thumb: Record<string, unknown> = {
         pitch: {
-            // Thumb: reverse is down on the form; forward up.
-            forward32: pitch('Thumb', 'Forward / reverse', ['forward', reading.thumbPitch.forward ?? reading.thumbPitch.up], ['reverse', reading.thumbPitch.reverse ?? reading.thumbPitch.down]),
-            lateral32: pitch('Thumb', 'Lateral', ['right', reading.thumbPitch.right], ['left', reading.thumbPitch.left])
+            forward32: pitch('Thumb', 'Pitch', ['forward', thumbBoxes[thumbForwardKey], ['thumbPitch', thumbForwardKey]], ['reverse', thumbBoxes[thumbReverseKey], ['thumbPitch', thumbReverseKey]]),
+            lateral32: pitch('Thumb', 'Lateral', ['right', thumbBoxes.right, ['thumbPitch', 'right']], ['left', thumbBoxes.left, ['thumbPitch', 'left']])
         }
     }
     const thumbNotes: string[] = []
@@ -212,31 +288,37 @@ export const proposeFromReading = (reading: PaperSheetReading, options: { hand: 
         if (!exact) issues.push({ field: 'Thumb', message: `"${thumbSize}" isn't a whole 64th; rounded to ${format64(value)}` })
         thumbSize64 = value
         thumb.size64 = value
-        rows.push({ group: 'Thumb', label: 'Hole size', raw: thumbSize, value: `${format64(value)}″` })
+    }
+    if (reading.thumb.inCircle) {
+        rows.push({ group: 'Thumb', label: 'In the circle', raw: reading.thumb.inCircle, value: thumbSize64 ? `Hole ${format64(thumbSize64)}″` : '—', path: ['thumb', 'inCircle'] })
     }
     const thumbExtra = [...thumbParts.filter(part => part !== thumbSize), reading.thumb.beside].filter(Boolean).join(' ')
     if (thumbExtra) {
         thumbNotes.push(`Paper sheet: ${[reading.thumb.inCircle, reading.thumb.beside].filter(Boolean).join(' ')}`)
         issues.push({ field: 'Thumb', message: `Also written with the thumb: "${thumbExtra}"; kept in the thumb notes` })
     }
-    const thumbStyle = [reading.inserts.thumb.style, reading.inserts.thumb.size].filter(Boolean).join(' ')
-    if (thumbStyle) {
-        thumbNotes.push(`Thumb insert / slug on the sheet: ${thumbStyle}`)
-        issues.push({ field: 'Thumb', message: `The sheet says "${thumbStyle}" for the thumb; pick the hardware in the editor` })
-    }
+    const thumbRow = reading.inserts.thumb
+    if (thumbRow.style) rows.push({ group: 'Thumb', label: 'Hardware (table)', raw: thumbRow.style, value: 'Used to find the hardware', path: ['inserts', 'thumb', 'style'] })
+    if (thumbRow.size) rows.push({ group: 'Thumb', label: 'Hardware size (table)', raw: thumbRow.size, value: 'Used to find the hardware', path: ['inserts', 'thumb', 'size'] })
+    const thumbClue: ThumbGripClue | null = thumbRow.style || thumbRow.size
+        ? { style: styleIn(thumbRow.style), size: thumbRow.size, brand: brandIn(thumbRow.style, reading.thumb.beside), holeSize64: thumbSize64 }
+        : null
+    if (thumbClue) thumbNotes.push(`Thumb hardware on the sheet: ${[thumbRow.style, thumbRow.size].filter(Boolean).join(' ')}`)
 
     // Oval: the angle, and the width as decimal inches added to the starting bit.
     const degrees = reading.oval.degree ? Number(/\d+(\.\d+)?/.exec(reading.oval.degree)?.[0]) : NaN
     const width = parseInches(reading.oval.width)
     if (reading.oval.degree || reading.oval.width) {
-        if (!thumbSize64 || Number.isNaN(degrees) || !width || degrees > 90) {
+        const ok = thumbSize64 && !Number.isNaN(degrees) && width && degrees <= 90
+        const width64 = ok ? thumbSize64! + Math.max(1, Math.round(width! * 64)) : null
+        if (reading.oval.degree) rows.push({ group: 'Thumb', label: 'Oval angle', raw: reading.oval.degree, value: ok ? `${degrees}°` : '—', path: ['oval', 'degree'] })
+        if (reading.oval.width) rows.push({ group: 'Thumb', label: 'Oval width', raw: reading.oval.width, value: ok ? `${format64(thumbSize64!)}″ to ${format64(width64!)}″` : '—', path: ['oval', 'width'] })
+        if (ok) {
+            thumb.oval = { angleDegrees: degrees, pilotHole64: thumbSize64, width64 }
+            issues.push({ field: 'Thumb oval', message: `Read width ${reading.oval.width} as ${width}″ added to the ${format64(thumbSize64!)}″ starting bit (≈${format64(width64!)}″)` })
+        } else {
             thumbNotes.push(`Oval on the sheet: ${[reading.oval.degree, reading.oval.width].filter(Boolean).join(', ')}`)
             issues.push({ field: 'Thumb oval', message: `Couldn't set the oval from "${reading.oval.degree ?? ''}" / "${reading.oval.width ?? ''}"; kept in the thumb notes` })
-        } else {
-            const width64 = thumbSize64 + Math.max(1, Math.round(width * 64))
-            thumb.oval = { angleDegrees: degrees, pilotHole64: thumbSize64, width64 }
-            rows.push({ group: 'Thumb', label: 'Oval', raw: `${reading.oval.degree}, ${reading.oval.width}`, value: `${degrees}°, ${format64(thumbSize64)}″ to ${format64(width64)}″` })
-            issues.push({ field: 'Thumb oval', message: `Read width ${reading.oval.width} as ${width}″ added to the ${format64(thumbSize64)}″ starting bit (≈${format64(width64)}″)` })
         }
     }
     thumb.notes = joinNotes(...thumbNotes)
@@ -244,26 +326,28 @@ export const proposeFromReading = (reading: PaperSheetReading, options: { hand: 
 
     // Spans, in the type the reviewer chose. A value written later (another ink) wins.
     const spans: Record<string, Record<string, unknown>> = { thumbToMiddle: {}, thumbToRing: {} }
-    for (const [side, span] of [['left', reading.leftSpan], ['right', reading.rightSpan]] as const) {
+    for (const side of ['left', 'right'] as const) {
+        const key = side === 'left' ? 'leftSpan' : 'rightSpan'
+        const span = reading[key]
         const finger = sides[side]
         const group = `Span to ${finger}`
-        const raw = span.alternate ?? span.value
+        const useAlternate = !!span.alternate
         if (span.alternate && span.value) issues.push({ field: group, message: `Used the later value ${span.alternate} (the sheet also has ${span.value})` })
-        const value = length32(group, SPAN_LABELS[options.spanType], raw)
+        const value = length32(group, SPAN_LABELS[options.spanType], useAlternate ? span.alternate : span.value, [key, useAlternate ? 'alternate' : 'value'])
         if (value) spans[spanKeyFor(finger)][options.spanType] = value
         const spanNotes = joinNotes(span.annotation ? `Marked "${span.annotation}" on the paper sheet` : null, span.alternate && span.value ? `Paper sheet: ${span.value}, later ${span.alternate}` : null)
         if (spanNotes) spans[spanKeyFor(finger)].notes = spanNotes
         if (span.annotation) issues.push({ field: group, message: `Marked "${span.annotation}" on the sheet: check the span type` })
     }
 
-    const bridge = length32('Bridge', 'Bridge', reading.bridge, 64)
+    const bridge = length32('Bridge', 'Bridge', reading.bridge, ['bridge'], 64)
 
     const sheetNotes = joinNotes(
         reading.notes,
         reading.layout ? `Layout: ${reading.layout}` : null,
         reading.pap ? `PAP: ${reading.pap}` : null,
         reading.ball.name || reading.ball.weight || reading.ball.serial ? `Ball: ${[reading.ball.name, reading.ball.weight, reading.ball.serial].filter(Boolean).join(', ')}` : null,
-        `Imported from a ${reading.template.brand === 'UNKNOWN' || reading.template.brand === 'OTHER' ? 'paper' : `${reading.template.brand.charAt(0)}${reading.template.brand.slice(1).toLowerCase()}`} drill sheet${brandNote}`
+        `Imported from a ${templateName(reading.template.brand) ?? 'paper'} drill sheet${brandNote}`
     )
 
     const spec: DrillSheetSpecInput = {
@@ -272,7 +356,10 @@ export const proposeFromReading = (reading: PaperSheetReading, options: { hand: 
         holes: { thumb, [left.finger]: left.hole, [right.finger]: right.hole } as DrillSheetSpecInput['holes'],
         notes: sheetNotes
     }
-    return { spec, rows, issues }
+    return {
+        spec, rows, issues,
+        grips: { [left.finger]: left.clue, [right.finger]: right.clue, thumb: thumbClue } as ImportProposal['grips']
+    }
 }
 
 /** The bowler from the reading: first and last name split if the model didn't. */

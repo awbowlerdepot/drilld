@@ -37,7 +37,12 @@ export const paperImportAcceptSchema = z.object({
     sheetName: z.string().trim().min(1, 'Name the drill sheet').max(100),
     gripStyle: gripStyleSchema,
     spanType: z.enum(SPAN_TYPE_KEYS),
-    spec: drillSheetSpecSchema
+    spec: drillSheetSpecSchema,
+    /**
+     * The transcription as the reviewer corrected it (a PaperSheetReading,
+     * checked against its schema by the API), when they changed anything.
+     */
+    correctedReading: z.record(z.unknown()).nullish().transform(value => value ?? null)
 }).strict();
 
 export type PaperImportCreate = z.input<typeof paperImportCreateSchema>;

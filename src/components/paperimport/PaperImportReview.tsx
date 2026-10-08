@@ -8,12 +8,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { AttachmentRotation } from '../../../shared/api/attachments'
 import { customerCreateSchema } from '../../../shared/api/customers'
 import type { PaperImportAccept, PaperImportDto, SpanTypeKey } from '../../../shared/api/paperImports'
+import { readingCorrections, type PaperSheetReading } from '../../../shared/api/paperReading'
+import { usePaperImportGrips } from '../../hooks/usePaperImportGrips'
 import type { Customer } from '../../types'
 import { EMPTY_READING, bowlerFromReading, proposeFromReading, templateName, type GripStyle, type Hand } from '../../utils/PaperSheetImport'
 import { AttachmentPreview } from '../attachments/AttachmentPreview'
 import { AttachmentViewControls } from '../attachments/AttachmentViewControls'
 import { likelyMatches } from '../../utils/CustomerMatch'
 import { BowlerMatch } from './BowlerMatch'
+import { GripChoice } from './GripChoice'
 import { ImportValues } from './ImportValues'
 
 interface PaperImportReviewProps {
@@ -48,8 +51,10 @@ const GRIPS: { value: GripStyle; label: string }[] = [
  * the values become draft revision 1, to finish in the editor.
  */
 export const PaperImportReview = ({ paperImport, customers, locationID, hasNext, onAccept, onRetry, onDiscard, onExpired }: PaperImportReviewProps) => {
-    const reading = paperImport.reading ?? EMPTY_READING
-    const bowler = useMemo(() => bowlerFromReading(reading), [reading])
+    const original = paperImport.reading ?? EMPTY_READING
+    // The reviewer's corrected copy of the reading.
+    const [reading, setReading] = useState<PaperSheetReading>(original)
+    const bowler = useMemo(() => bowlerFromReading(original), [original])
     const template = templateName(paperImport.template)
 
     const [firstName, setFirstName] = useState(bowler.firstName)
@@ -71,6 +76,25 @@ export const PaperImportReview = ({ paperImport, customers, locationID, hasNext,
     const effectiveHand = existing?.dominantHand ?? hand
     const proposal = useMemo(() => effectiveHand ? proposeFromReading(reading, { hand: effectiveHand, spanType: spanType ?? 'full32' }) : null,
         [reading, effectiveHand, spanType])
+    const grips = usePaperImportGrips(proposal, locationID)
+    const corrections = useMemo(() => readingCorrections(original, reading), [original, reading])
+    const correctedPaths = useMemo(() => new Set(corrections.map(c => c.field)), [corrections])
+
+    /** Fixes what the sheet says at this place in the reading. */
+    const correct = (path: string[], text: string) => setReading(prev => {
+        const next = structuredClone(prev) as unknown as Record<string, unknown>
+        let node = next
+        for (const key of path.slice(0, -1)) node = node[key] as Record<string, unknown>
+        node[path[path.length - 1]] = text.trim() === '' ? null : text
+        return next as unknown as PaperSheetReading
+    })
+
+    // Issues an insert or hardware pick settles are dropped once it's picked.
+    const issues = proposal?.issues.filter(issue => {
+        if (issue.topic === 'middle-insert') return !grips.slots.middle?.selectedId
+        if (issue.topic === 'ring-insert') return !grips.slots.ring?.selectedId
+        return true
+    }) ?? []
 
     const run = async (action: NonNullable<typeof busy>, work: () => Promise<void>) => {
         setBusy(action)
@@ -105,7 +129,11 @@ export const PaperImportReview = ({ paperImport, customers, locationID, hasNext,
         if (other.length > 0) found.form = other.map(([key, message]) => `${key}: ${message}`).join('; ')
         setErrors(found)
         if (Object.keys(found).length > 0 || !customer || !proposal || !spanType) return
-        void run(then, () => onAccept({ customer, sheetName: sheetName.trim(), gripStyle: grip, spanType, spec: proposal.spec }, then))
+        void run(then, () => onAccept({
+            customer, sheetName: sheetName.trim(), gripStyle: grip, spanType,
+            spec: grips.apply(proposal.spec),
+            correctedReading: corrections.length > 0 ? reading as unknown as Record<string, unknown> : null
+        }, then))
     }
 
     const text = (id: string, label: string, value: string, set: (value: string) => void, props: React.ComponentProps<typeof Input> = {}) => (
@@ -196,9 +224,23 @@ export const PaperImportReview = ({ paperImport, customers, locationID, hasNext,
                             {errors.spanType && <FieldError>{errors.spanType}</FieldError>}
                         </Field>
                     </div>
-                    {proposal
-                        ? <ImportValues rows={proposal.rows} issues={proposal.issues} />
-                        : <p className="text-sm text-gray-500">Pick the bowler's hand to see which finger each value goes to.</p>}
+                    {proposal ? (
+                        <>
+                            {(grips.slots.middle || grips.slots.ring || grips.slots.thumb) && (
+                                <div className="grid gap-3 rounded-lg border border-border p-3">
+                                    {grips.slots.middle && <GripChoice title="Middle finger insert" {...grips.slots.middle} onSelect={id => grips.select('middle', id)} />}
+                                    {grips.slots.ring && <GripChoice title="Ring finger insert" {...grips.slots.ring} onSelect={id => grips.select('ring', id)} />}
+                                    {grips.slots.thumb && <GripChoice title="Thumb hardware" {...grips.slots.thumb} onSelect={id => grips.select('thumb', id)} />}
+                                </div>
+                            )}
+                            <ImportValues rows={proposal.rows} issues={issues} onCorrect={correct} corrected={correctedPaths} />
+                            {corrections.length > 0 && (
+                                <p className="text-xs text-gray-500">
+                                    {corrections.length === 1 ? 'Your correction is' : `Your ${corrections.length} corrections are`} remembered for reading this shop's next sheets.
+                                </p>
+                            )}
+                        </>
+                    ) : <p className="text-sm text-gray-500">Pick the bowler's hand to see which finger each value goes to.</p>}
                 </div>
 
                 {errors.form && <p role="alert" className="text-sm text-red-700">{errors.form}</p>}
