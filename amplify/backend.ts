@@ -4,6 +4,7 @@ import { PLATFORM_ADMIN_GROUP } from './auth/groups';
 import { auth } from './auth/resource';
 import { defineApi } from './api/resource';
 import { defineDatabase } from './database/resource';
+import { defineFileStorage } from './storage/resource';
 
 const backend = defineBackend({
     auth
@@ -30,6 +31,9 @@ new CfnUserPoolGroup(backend.auth.stack, 'PlatformAdminGroup', {
 const isSandbox = backend.stack.node.tryGetContext('amplify-backend-type') === 'sandbox';
 const database = defineDatabase(backend.createStack('database'), { protect: !isSandbox });
 
+// Private files bucket (customer attachments), reached only through API-signed URLs.
+const storage = defineFileStorage(backend.createStack('storage'), { protect: !isSandbox });
+
 // REST API (API Gateway + one Lambda), authorized by Cognito, reaching Postgres as drilld_api.
 const api = defineApi(backend.createStack('api'), {
     userPool: backend.auth.resources.userPool,
@@ -37,6 +41,7 @@ const api = defineApi(backend.createStack('api'), {
     cluster: database.cluster,
     apiSecret: database.apiSecret,
     databaseName: database.databaseName,
+    filesBucket: storage.bucket,
     // New-signup emails: set on the Amplify app (and locally for a sandbox). See .env.example.
     leadNotifyTo: process.env.LEAD_NOTIFY_TO,
     leadNotifyFrom: process.env.LEAD_NOTIFY_FROM

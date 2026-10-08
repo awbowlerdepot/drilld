@@ -1,10 +1,12 @@
 // src/components/customers/CustomerDetailView.tsx
 import React, { useState } from 'react';
-import { ArrowLeft, Plus, FileText, Target, Edit, Eye } from 'lucide-react';
+import { ArrowLeft, Plus, FileText, Target, Edit, Eye, Paperclip } from 'lucide-react';
 import { Customer, BowlingBall } from '../../types';
+import { useCustomerAttachments } from '../../hooks/useCustomerAttachments';
 import { useCustomerDrillSheets } from '../../hooks/useCustomerDrillSheets';
 import { useBalls } from '../../hooks/useBalls';
 import { Button } from '../common/Button';
+import { CustomerFiles } from '../attachments/CustomerFiles';
 import { CustomerDrillSheets } from '../drillsheets/CustomerDrillSheets';
 import { DrillSheetEditor } from '../drillsheets/editor/DrillSheetEditor';
 import { BallCard } from '../balls/BallCard';
@@ -27,11 +29,12 @@ export const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({
                                                                       }) => {
     const { addBall, updateBall, deleteBall, getBallsByCustomer } = useBalls();
 
-    const [activeTab, setActiveTab] = useState<'overview' | 'drillsheets' | 'balls'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'drillsheets' | 'files' | 'balls'>('overview');
     const [includeArchivedSheets, setIncludeArchivedSheets] = useState(false);
     const [creatingDrillSheet, setCreatingDrillSheet] = useState(false);
     const [openDrillSheetId, setOpenDrillSheetId] = useState<string | null>(null);
     const drillSheets = useCustomerDrillSheets(customer.id, { includeArchived: includeArchivedSheets });
+    const files = useCustomerAttachments(customer.id);
     const [showBallForm, setShowBallForm] = useState(false);
     const [editingBall, setEditingBall] = useState<BowlingBall | null>(null);
 
@@ -96,6 +99,7 @@ export const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({
     const tabs: { id: typeof activeTab; label: string; icon: React.ReactNode; count?: number }[] = [
         { id: 'overview', label: 'Overview', icon: <Eye className="w-4 h-4" /> },
         { id: 'drillsheets', label: 'Drill Sheets', icon: <FileText className="w-4 h-4" />, count: drillSheets.sheets.length },
+        { id: 'files', label: 'Files', icon: <Paperclip className="w-4 h-4" />, count: files.attachments.length },
         { id: 'balls', label: 'Bowling Balls', icon: <Target className="w-4 h-4" />, count: customerBalls.length }
     ];
 
@@ -233,6 +237,8 @@ export const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({
                             onCreatingChange={setCreatingDrillSheet}
                         />
                     )}
+
+                    {activeTab === 'files' && <CustomerFiles customer={customer} files={files} />}
 
                     {activeTab === 'balls' && (
                         <div className="space-y-6">
