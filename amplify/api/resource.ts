@@ -9,6 +9,7 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import type { IDatabaseCluster } from 'aws-cdk-lib/aws-rds';
+import type { IBucket } from 'aws-cdk-lib/aws-s3';
 import type { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
 
 /** Browser origins allowed to call the API: the app, and drilld.io for the signup form. */
@@ -32,6 +33,8 @@ interface ApiOptions {
     /** The drilld_api login (member of drilld_app). Never the admin secret. */
     apiSecret: ISecret;
     databaseName: string;
+    /** Customer attachments; the API signs upload and view URLs under companies/. */
+    filesBucket: IBucket;
     /**
      * Where new-signup emails go (comma-separated), and who sends them (an
      * SES-verified address). Without both, signups are stored but not emailed.
@@ -69,14 +72,20 @@ export const defineApi = (stack: Stack, options: ApiOptions) => {
             DB_SECRET_ARN: options.apiSecret.secretArn,
             DATABASE_NAME: options.databaseName,
             USER_POOL_ID: options.userPool.userPoolId,
+            FILES_BUCKET: options.filesBucket.bucketName,
             APP_URL: 'https://app.drilld.io',
             ...(options.leadNotifyTo && options.leadNotifyFrom
                 ? { LEAD_NOTIFY_TO: options.leadNotifyTo, LEAD_NOTIFY_FROM: options.leadNotifyFrom }
                 : {})
         },
         bundling: {
-            // The AWS SDK is part of the Lambda runtime.
-            externalModules: ['@aws-sdk/*']
+            // These AWS SDK clients are part of the Lambda runtime. S3 is bundled:
+            // the runtime has no s3-request-presigner, and it must match client-s3.
+            externalModules: [
+                '@aws-sdk/client-cognito-identity-provider',
+                '@aws-sdk/client-rds-data',
+                '@aws-sdk/client-sesv2'
+            ]
         }
     });
 
@@ -106,6 +115,9 @@ export const defineApi = (stack: Stack, options: ApiOptions) => {
         ],
         resources: [options.userPool.userPoolArn]
     }));
+    // Customer attachments: sign uploads and views, check uploads, delete files.
+    options.filesBucket.grantReadWrite(fn, 'companies/*');
+    options.filesBucket.grantDelete(fn, 'companies/*');
     // New-signup emails, from this account's verified SES identities.
     fn.addToRolePolicy(new iam.PolicyStatement({
         actions: ['ses:SendEmail'],

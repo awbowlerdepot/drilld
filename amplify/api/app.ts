@@ -3,6 +3,7 @@ import type { LambdaContext, LambdaEvent } from 'hono/aws-lambda';
 import { resolveCurrentUser, type CurrentUser, type TokenClaims } from './auth';
 import type { Db } from './db/client';
 import { HttpError, toErrorResponse } from './errors';
+import { attachments, customerAttachments } from './routes/attachments';
 import { customers } from './routes/customers';
 import { customerDrillSheets, drillSheets } from './routes/drillSheets';
 import { employees } from './routes/employees';
@@ -70,6 +71,8 @@ export const createApp = (db: Db) => {
     app.route('/me', me);
     app.route('/customers', customers);
     app.route('/customers/:customerId/drill-sheets', customerDrillSheets);
+    app.route('/customers/:customerId/attachments', customerAttachments);
+    app.route('/attachments', attachments);
     app.route('/drill-sheets', drillSheets);
     app.route('/employees', employees);
     app.route('/grip-catalog', gripCatalog);

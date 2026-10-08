@@ -167,6 +167,18 @@ create table customer (
 );
 ```
 
+### Customer attachments (paper drill sheets)
+
+Shops arrive with binders of paper drill sheets. Moving them in starts with a photo or scan on the bowler's profile (`db/migrations/0014_customer_attachments.sql`), shown beside the drill sheet editor while the first sheet is entered.
+
+- `customer_attachment`: `file_name`, `content_type` (JPEG, PNG, WebP or PDF; iPhones send JPEG to a web page), `size_bytes` (up to 25 MB), `kind` (`DRILL_SHEET` by default, or `OTHER`), `label`, `rotation` (0/90/180/270, saved so a sideways photo opens upright), `uploaded`, `created_by_user_id`. Row-level security like every tenant table; the rows cascade with the customer.
+- **Files** live in one private S3 bucket per environment (`amplify/storage/resource.ts`), at `companies/<company>/customers/<customer>/attachments/<id>`. No public access and no Cognito storage rules: the API decides access (row-level security) and signs short-lived URLs (`amplify/api/files.ts`).
+- **Upload:** `POST /customers/:id/attachments` records the file (`uploaded = false`) and returns a presigned PUT URL with the content type and length signed in. The browser PUTs the file straight to S3, then `POST /attachments/:id/complete` checks the stored size and type and sets `uploaded`. Uploads never confirmed are dropped after an hour.
+- **View:** listing returns a presigned GET URL per file (15 minutes; the app reloads before they expire).
+- **Remove:** whoever added a file, or anyone with `delete:customers`. Deleting a customer removes their files. Production's bucket is versioned, so a removed file is recoverable for 30 days.
+
+**Next (paper import, not built):** read an uploaded sheet with an AI model to identify the template (Motiv, Storm, Ultimate, Innovative…), the bowler and the measurements, and propose a customer plus draft revision 1 for review. Never auto-approved; span types come from what the template means, never converted. Shops' handwriting conventions are consistent within a company (the same person filled them in for years), so reviewed corrections should be kept per company and reused for its later imports.
+
 ### Ball catalog (BowlerIQ)
 
 Ball products come from the **BowlerIQ Partner API v1**. The API docs and OpenAPI schema live in the `brunswick-scraper` repo: `docs/partner-api-v1.md` and `tests/fixtures/partner_api_v1_openapi.json`.

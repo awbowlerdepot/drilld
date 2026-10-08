@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { ArrowLeft, Drill, History } from 'lucide-react'
+import { ArrowLeft, Drill, FileImage, History } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useCompanySettings } from '../../../hooks/useCompanySettings'
+import { useCustomerAttachments } from '../../../hooks/useCustomerAttachments'
 import { useDrillSheetEditor } from '../../../hooks/useDrillSheetEditor'
 import { useLocations } from '../../../hooks/useLocations'
 import type { Customer } from '../../../types'
@@ -13,6 +14,7 @@ import { FingerHoleCard } from './FingerHoleCard'
 import { FitPanel } from './FitPanel'
 import { HoleLayout } from './HoleLayout'
 import { NotesPanel } from './NotesPanel'
+import { PaperSheetPanel } from './PaperSheetPanel'
 import { PickerHost } from './PickerHost'
 import { RevisionHistoryDialog } from './RevisionHistoryDialog'
 import { ThumbHoleCard } from './ThumbHoleCard'
@@ -40,6 +42,9 @@ export const DrillSheetEditor = ({ sheetId, customer, locationID, onBack }: Dril
     const drillSheetSettings = resolveLocationSettings(settings, location?.settingsOverrides).drillSheets
     const [pressView, setPressView] = useState(false)
     const [historyOpen, setHistoryOpen] = useState(false)
+    const files = useCustomerAttachments(customer.id)
+    const [paperOpen, setPaperOpen] = useState(false)
+    const paperSheets = files.attachments.filter(a => a.kind === 'DRILL_SHEET').length
 
     if (loading) return <p className="py-12 text-center text-gray-500">Loading drill sheet…</p>
     if (!sheet || !spec) {
@@ -68,7 +73,8 @@ export const DrillSheetEditor = ({ sheetId, customer, locationID, onBack }: Dril
 
     return (
         <PickerHost>
-            <div className="mx-auto flex max-w-[1180px] flex-col gap-4">
+            <div className={paperOpen ? 'mx-auto flex max-w-[1660px] items-start gap-4' : undefined}>
+            <div className="mx-auto flex w-full min-w-0 max-w-[1180px] flex-col gap-4">
                 <div className="flex flex-wrap items-center gap-3">
                     <Button variant="ghost" size="sm" onClick={onBack}>
                         <ArrowLeft data-icon="inline-start" /> {customer.firstName} {customer.lastName}
@@ -86,6 +92,11 @@ export const DrillSheetEditor = ({ sheetId, customer, locationID, onBack }: Dril
                     </span>
                     {!sheet.archived && (
                         <div className="ml-auto flex flex-wrap gap-2">
+                            <Button variant="outline" aria-pressed={paperOpen}
+                                onClick={() => { files.refreshIfStale(); setPaperOpen(!paperOpen) }}
+                                title="The bowler's paper drill sheet beside the editor">
+                                <FileImage data-icon="inline-start" /> Paper sheet{paperSheets > 0 ? ` (${paperSheets})` : ''}
+                            </Button>
                             {revision && (
                                 <Button variant="outline" onClick={() => setHistoryOpen(true)}>
                                     <History data-icon="inline-start" /> History
@@ -142,6 +153,8 @@ export const DrillSheetEditor = ({ sheetId, customer, locationID, onBack }: Dril
                 <NotesPanel {...editProps} />
 
                 {historyOpen && <RevisionHistoryDialog sheetId={sheet.id} sheetName={sheet.name} onClose={() => setHistoryOpen(false)} />}
+            </div>
+            {paperOpen && <PaperSheetPanel files={files} onClose={() => setPaperOpen(false)} />}
             </div>
         </PickerHost>
     )

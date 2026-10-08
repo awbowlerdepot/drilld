@@ -9,6 +9,8 @@ export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   ? ColumnType<S, I | undefined, U>
   : ColumnType<T, T | undefined, T>;
 
+export type Int8 = ColumnType<string, bigint | number | string, bigint | number | string>;
+
 export type Json = JsonValue;
 
 export type JsonArray = JsonValue[];
@@ -131,6 +133,23 @@ export interface Customer {
   speed_mph: Numeric | null;
   updated_at: Generated<Timestamp>;
   uses_thumb: Generated<boolean>;
+}
+
+export interface CustomerAttachment {
+  company_id: string;
+  content_type: string;
+  created_at: Generated<Timestamp>;
+  created_by_user_id: string;
+  customer_id: string;
+  file_name: string;
+  id: Generated<string>;
+  kind: Generated<string>;
+  label: string | null;
+  rotation: Generated<number>;
+  size_bytes: Int8;
+  storage_key: string;
+  updated_at: Generated<Timestamp>;
+  uploaded: Generated<boolean>;
 }
 
 export interface DrillSheet {
@@ -353,6 +372,7 @@ export interface DB {
   company: Company;
   company_ball: CompanyBall;
   customer: Customer;
+  customer_attachment: CustomerAttachment;
   drill_sheet: DrillSheet;
   drill_sheet_revision: DrillSheetRevision;
   grip_line: GripLine;

@@ -136,6 +136,18 @@ select set_config('app.company_id', '00000000-0000-0000-0000-00000000000a', fals
 -- Isolation
 select test.ok((select count(*) from company) = 1, 'company A sees only its own company');
 select test.ok((select array_agg(first_name) from customer) = array['Alice'], 'company A sees only its customers');
+
+-- Customer attachments (0014)
+insert into customer_attachment (company_id, customer_id, storage_key, file_name, content_type, size_bytes, created_by_user_id) values
+    ('00000000-0000-0000-0000-00000000000a', '30000000-0000-0000-0000-0000000000a1', 'companies/a/customers/a1/sheet-1', 'sheet.jpg', 'image/jpeg', 580000, '20000000-0000-0000-0000-0000000000a2');
+select test.ok((select kind from customer_attachment) = 'DRILL_SHEET', 'an attachment is a drill sheet scan by default');
+select test.fails($$insert into customer_attachment (company_id, customer_id, storage_key, file_name, content_type, size_bytes, created_by_user_id)
+    values ('00000000-0000-0000-0000-00000000000a', '30000000-0000-0000-0000-0000000000b1', 'companies/a/x', 'x.jpg', 'image/jpeg', 1, '20000000-0000-0000-0000-0000000000a2')$$,
+    '23503', 'an attachment cannot be put on another company''s customer');
+select test.fails($$insert into customer_attachment (company_id, customer_id, storage_key, file_name, content_type, size_bytes, created_by_user_id)
+    values ('00000000-0000-0000-0000-00000000000a', '30000000-0000-0000-0000-0000000000a1', 'companies/a/y', 'y.exe', 'application/octet-stream', 1, '20000000-0000-0000-0000-0000000000a2')$$,
+    '23514', 'only images and PDFs can be attached');
+select test.fails($$update customer_attachment set rotation = 45$$, '23514', 'rotation is a quarter turn');
 select test.ok((select count(*) from company_ball) = 1, 'company A sees only its record of the shared ball');
 select test.ok((select count(*) from work_order) = 1, 'company A sees only its work orders');
 select test.ok((select count(*) from drill_sheet_revision) = 1, 'company A sees only its drill sheet revisions');
@@ -359,6 +371,7 @@ select test.fails($$insert into location_grip_stock (company_id, location_id, gr
 select set_config('app.company_id', '00000000-0000-0000-0000-00000000000b', false);
 
 select test.ok((select array_agg(first_name) from customer) = array['Bob'], 'company B sees only its customers');
+select test.ok((select count(*) from customer_attachment) = 0, 'company B does not see company A''s attachments');
 select test.ok((select notes from customer where first_name = 'Bob') is null, 'company B''s customer was not modified by company A');
 select test.ok((select count(*) from location) = 1, 'company B does not see company A''s locations');
 select test.ok((select count(*) from layout_template) = 0, 'company B does not see company A''s layout templates');

@@ -9,6 +9,7 @@ import type { Delivery, DeliveryDto } from '../../../shared/api/delivery';
 import { uuid, withCompany } from '../db/client';
 import type { Customer } from '../db/schema';
 import { HttpError } from '../errors';
+import { deleteFiles } from '../files';
 import { loadAccess, requirePermission } from '../permissions';
 import type { ApiEnv } from '../app';
 
@@ -130,10 +131,14 @@ export const customers = new Hono<ApiEnv>()
 
     .delete('/:id', c => withCompany(c.var.db, c.var.user.companyId, async tx => {
         requirePermission(await loadAccess(tx, c.var.user), 'delete:customers');
+        const id = uuid(idParam(c.req.param('id')));
+        // Their attachments go with them (the rows cascade; the files are removed after).
+        const files = await tx.selectFrom('customer_attachment').select('storage_key').where('customer_id', '=', id).execute();
         // Refused (409) once the customer has balls, drill sheets or work orders.
         const result = await tx.deleteFrom('customer')
-            .where('id', '=', uuid(idParam(c.req.param('id'))))
+            .where('id', '=', id)
             .executeTakeFirst();
         if (Number(result.numDeletedRows) === 0) throw new HttpError(404, 'Customer not found');
+        if (files.length > 0) await deleteFiles(files.map(f => f.storage_key));
         return c.body(null, 204);
     }));
