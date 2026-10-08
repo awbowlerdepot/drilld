@@ -11,6 +11,7 @@ import { gripCatalog, locationGripStock } from './routes/grips';
 import { leads, publicLeads } from './routes/leads';
 import { locations } from './routes/locations';
 import { me } from './routes/me';
+import { paperImports } from './routes/paperImports';
 
 export type ApiEnv = {
     Bindings: { event: LambdaEvent; lambdaContext: LambdaContext };
@@ -73,6 +74,7 @@ export const createApp = (db: Db) => {
     app.route('/customers/:customerId/drill-sheets', customerDrillSheets);
     app.route('/customers/:customerId/attachments', customerAttachments);
     app.route('/attachments', attachments);
+    app.route('/paper-imports', paperImports);
     app.route('/drill-sheets', drillSheets);
     app.route('/employees', employees);
     app.route('/grip-catalog', gripCatalog);

@@ -38,6 +38,7 @@ const toRequest = (customer: Partial<CustomerFields>): CustomerUpdate => {
 
 export const customersService = {
     list: async () => (await apiRequest<CustomerDto[]>('GET', '/customers')).map(toCustomer),
+    get: async (id: string) => toCustomer(await apiRequest<CustomerDto>('GET', `/customers/${id}`)),
     create: async (customer: CustomerFields) =>
         toCustomer(await apiRequest<CustomerDto>('POST', '/customers', toRequest(customer) as CustomerCreate)),
     update: async (id: string, changes: Partial<CustomerFields>) =>

@@ -320,6 +320,32 @@ export interface LocationMembership {
   user_id: string;
 }
 
+export interface PaperImport {
+  attachment_id: string | null;
+  company_id: string;
+  content_type: string;
+  created_at: Generated<Timestamp>;
+  created_by_user_id: string;
+  customer_id: string | null;
+  drill_sheet_id: string | null;
+  error: string | null;
+  file_name: string;
+  id: Generated<string>;
+  imported_at: Timestamp | null;
+  imported_by_user_id: string | null;
+  imported_spec: Json | null;
+  location_id: string | null;
+  read_at: Timestamp | null;
+  reader_model: string | null;
+  reading: Json | null;
+  size_bytes: Int8;
+  span_type: string | null;
+  status: Generated<string>;
+  storage_key: string;
+  template: string | null;
+  updated_at: Generated<Timestamp>;
+}
+
 export interface Plan {
   code: string;
   included_locations: number;
@@ -383,6 +409,7 @@ export interface DB {
   location: Location;
   location_grip_stock: LocationGripStock;
   location_membership: LocationMembership;
+  paper_import: PaperImport;
   plan: Plan;
   work_order: WorkOrder;
   work_order_photo: WorkOrderPhoto;

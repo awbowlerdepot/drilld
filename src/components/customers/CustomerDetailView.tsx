@@ -19,20 +19,23 @@ interface CustomerDetailViewProps {
     onEditCustomer: (customer: Customer) => void;
     /** The location picked in the sidebar; recorded on drill sheet revisions. */
     currentLocationID?: string;
+    /** A drill sheet to open straight away, with its paper sheet beside it (after a paper import). */
+    initialDrillSheetId?: string | null;
 }
 
 export const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({
                                                                           customer,
                                                                           onBack,
                                                                           onEditCustomer,
-                                                                          currentLocationID
+                                                                          currentLocationID,
+                                                                          initialDrillSheetId
                                                                       }) => {
     const { addBall, updateBall, deleteBall, getBallsByCustomer } = useBalls();
 
     const [activeTab, setActiveTab] = useState<'overview' | 'drillsheets' | 'files' | 'balls'>('overview');
     const [includeArchivedSheets, setIncludeArchivedSheets] = useState(false);
     const [creatingDrillSheet, setCreatingDrillSheet] = useState(false);
-    const [openDrillSheetId, setOpenDrillSheetId] = useState<string | null>(null);
+    const [openDrillSheetId, setOpenDrillSheetId] = useState<string | null>(initialDrillSheetId ?? null);
     const drillSheets = useCustomerDrillSheets(customer.id, { includeArchived: includeArchivedSheets });
     const files = useCustomerAttachments(customer.id);
     const [showBallForm, setShowBallForm] = useState(false);
@@ -88,6 +91,7 @@ export const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({
                 sheetId={openDrillSheetId}
                 customer={customer}
                 locationID={currentLocationID}
+                initialPaperOpen={openDrillSheetId === initialDrillSheetId}
                 onBack={() => {
                     setOpenDrillSheetId(null);
                     drillSheets.reload();

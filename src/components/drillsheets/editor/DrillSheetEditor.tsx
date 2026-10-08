@@ -25,6 +25,8 @@ interface DrillSheetEditorProps {
     customer: Customer
     /** Where the fitting is happening; recorded on the revision. */
     locationID?: string
+    /** Open with the paper sheet beside the editor (after a paper import). */
+    initialPaperOpen?: boolean
     onBack: () => void
 }
 
@@ -34,7 +36,7 @@ interface DrillSheetEditorProps {
  * Edits stay local until saved; saving an approved or drilled revision starts
  * a new draft revision.
  */
-export const DrillSheetEditor = ({ sheetId, customer, locationID, onBack }: DrillSheetEditorProps) => {
+export const DrillSheetEditor = ({ sheetId, customer, locationID, initialPaperOpen = false, onBack }: DrillSheetEditorProps) => {
     const { sheet, spec, dirty, loading, saving, error, edit, save, approve, discard, discardDraft } = useDrillSheetEditor(sheetId, locationID)
     const { settings } = useCompanySettings()
     const { locations } = useLocations()
@@ -43,7 +45,7 @@ export const DrillSheetEditor = ({ sheetId, customer, locationID, onBack }: Dril
     const [pressView, setPressView] = useState(false)
     const [historyOpen, setHistoryOpen] = useState(false)
     const files = useCustomerAttachments(customer.id)
-    const [paperOpen, setPaperOpen] = useState(false)
+    const [paperOpen, setPaperOpen] = useState(initialPaperOpen)
     const paperSheets = files.attachments.filter(a => a.kind === 'DRILL_SHEET').length
 
     if (loading) return <p className="py-12 text-center text-gray-500">Loading drill sheet…</p>

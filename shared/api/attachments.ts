@@ -58,6 +58,9 @@ export interface AttachmentDto {
     viewUrl: string;
 }
 
+/** What it takes to show a file: an attachment, or a page being imported. */
+export type ViewableFile = Pick<AttachmentDto, 'viewUrl' | 'contentType' | 'fileName' | 'rotation'> & { label?: string | null };
+
 /** Response of POST /customers/:customerId/attachments. */
 export interface AttachmentUploadDto {
     id: string;

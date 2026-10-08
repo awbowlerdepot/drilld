@@ -23,6 +23,10 @@ const STALE_MS = 10 * 60 * 1000
 // Without sign-in, files live in memory for the session (object URLs).
 const mockFiles = new Map<string, AttachmentDto[]>()
 
+/** Without sign-in: puts a file on a customer (paper import does this). */
+export const addMockAttachment = (attachment: AttachmentDto) =>
+    mockFiles.set(attachment.customerID, [attachment, ...(mockFiles.get(attachment.customerID) ?? [])])
+
 /** Why a file can't be attached, or null if it can. */
 export const attachmentProblem = (file: File): string | null => {
     if (!(ATTACHMENT_CONTENT_TYPES as readonly string[]).includes(file.type)) {

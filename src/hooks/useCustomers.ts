@@ -52,6 +52,11 @@ export const useCustomers = () => {
         setCustomers(prev => prev.filter(customer => customer.id !== id));
     }, []);
 
+    /** Adds or refreshes one customer in the list (e.g. one created by paper import). */
+    const rememberCustomer = useCallback((customer: Customer) => {
+        setCustomers(prev => [...prev.filter(c => c.id !== customer.id), customer]);
+    }, []);
+
     const getCustomerById = useCallback(
         (id: string) => customers.find(customer => customer.id === id),
         [customers]
@@ -64,6 +69,7 @@ export const useCustomers = () => {
         addCustomer,
         updateCustomer,
         deleteCustomer,
+        rememberCustomer,
         getCustomerById
     };
 };

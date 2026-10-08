@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
-import type { AttachmentDto } from '../../../shared/api/attachments'
+import type { ViewableFile } from '../../../shared/api/attachments'
 
 interface AttachmentPreviewProps {
-    attachment: AttachmentDto
+    attachment: ViewableFile
     /** 1 fits the width; larger zooms in (scroll to pan). */
     zoom?: number
     className?: string

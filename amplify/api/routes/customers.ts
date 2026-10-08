@@ -6,7 +6,7 @@ import {
     type CustomerDto
 } from '../../../shared/api/customers';
 import type { Delivery, DeliveryDto } from '../../../shared/api/delivery';
-import { uuid, withCompany } from '../db/client';
+import { uuid, withCompany, type Tx } from '../db/client';
 import type { Customer } from '../db/schema';
 import { HttpError } from '../errors';
 import { deleteFiles } from '../files';
@@ -55,6 +55,26 @@ const idParam = (value: string) => {
     return value;
 };
 
+/** Adds a customer (also used by paper import). */
+export const insertCustomer = async (tx: Tx, companyId: string, input: ReturnType<typeof customerCreateSchema.parse>) => {
+    return tx.insertInto('customer')
+        .values({
+            company_id: uuid(companyId),
+            first_name: input.firstName,
+            last_name: input.lastName,
+            email: input.email,
+            phone: input.phone,
+            dominant_hand: input.dominantHand,
+            preferred_grip_style: input.preferredGripStyle,
+            uses_thumb: input.usesThumb,
+            notes: input.notes,
+            home_location_id: input.homeLocationID ? uuid(input.homeLocationID) : null,
+            ...deliveryColumns(input.delivery)
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
+};
+
 /** Customers belong to the company and are shared across its locations. */
 export const customers = new Hono<ApiEnv>()
     .get('/', c => withCompany(c.var.db, c.var.user.companyId, async tx => {
@@ -78,22 +98,7 @@ export const customers = new Hono<ApiEnv>()
         const input = customerCreateSchema.parse(await c.req.json());
         return withCompany(c.var.db, c.var.user.companyId, async tx => {
             requirePermission(await loadAccess(tx, c.var.user), 'write:customers');
-            const row = await tx.insertInto('customer')
-                .values({
-                    company_id: uuid(c.var.user.companyId),
-                    first_name: input.firstName,
-                    last_name: input.lastName,
-                    email: input.email,
-                    phone: input.phone,
-                    dominant_hand: input.dominantHand,
-                    preferred_grip_style: input.preferredGripStyle,
-                    uses_thumb: input.usesThumb,
-                    notes: input.notes,
-                    home_location_id: input.homeLocationID ? uuid(input.homeLocationID) : null,
-                    ...deliveryColumns(input.delivery)
-                })
-                .returningAll()
-                .executeTakeFirstOrThrow();
+            const row = await insertCustomer(tx, c.var.user.companyId, input);
             return c.json(toDto(row), 201);
         });
     })
