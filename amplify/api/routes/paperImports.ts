@@ -10,7 +10,7 @@ import {
     type PaperImportUploadDto,
     type SpanTypeKey
 } from '../../../shared/api/paperImports';
-import type { PaperSheetReading, PaperTemplate } from '../../../shared/api/paperReading';
+import { paperSheetReadingSchema, type PaperSheetReading, type PaperTemplate } from '../../../shared/api/paperReading';
 import { json, uuid, withCompany, type Tx } from '../db/client';
 import type { PaperImport } from '../db/schema';
 import { HttpError } from '../errors';
@@ -180,6 +180,10 @@ export const paperImports = new Hono<ApiEnv>()
             requirePermission(access, 'write:drillsheets', row.location_id ?? undefined);
             if (row.status !== 'READ' && row.status !== 'FAILED') throw new HttpError(409, 'This page has already been imported or discarded');
 
+            // Corrections must be a whole reading; anything else is ignored rather than stored.
+            const corrected = input.correctedReading ? paperSheetReadingSchema.safeParse(input.correctedReading) : null;
+            if (corrected && !corrected.success) throw new HttpError(400, 'The corrected reading isn\'t valid');
+
             const customerId = 'id' in input.customer
                 ? (await tx.selectFrom('customer').select('id').where('id', '=', uuid(input.customer.id)).executeTakeFirst())?.id
                 : (await insertCustomer(tx, c.var.user.companyId, input.customer.create)).id;
@@ -215,6 +219,7 @@ export const paperImports = new Hono<ApiEnv>()
                 attachment_id: uuid(attachment.id),
                 drill_sheet_id: uuid(drillSheetId),
                 imported_spec: json(input.spec),
+                corrected_reading: corrected?.success ? json(corrected.data) : null,
                 imported_at: sql`now()`,
                 imported_by_user_id: uuid(c.var.user.userId)
             }).where('id', '=', uuid(id)).execute();

@@ -46,7 +46,8 @@ Layout (as printed, finger holes at the top, thumb hole at the bottom):
 - bridge is the small value between the two finger holes, usually a fraction like 1/4.
 - Pitch: each hole has boxes. Put a value in reverse or forward when the printed label next to that box says Reverse Pitch or Forward Pitch, and in left or right for the sideways boxes, by the direction their arrow points. Some forms (Ultimate) have unlabeled crosshairs with values at the ends of the arms: use up, down, left and right for those, by which arm the value is at.
 - oval: Degree of Oval and Width (or an Oval Info box).
-- inserts: the Insert / Style / Size table rows for Thumb, Middle Finger, Ring Finger.
+- inserts: the Insert / Style / Size table near the bottom of the form (Motiv, Storm), rows Thumb, Middle Finger, Ring Finger. Read every entry, even single words like "Lift", "Slug", "Oval", "IT", and any size written there. Hardware or slug sizes written elsewhere for the thumb go in the thumb row too.
+- A number by itself in a finger hole circle (e.g. "7.5", "5.5", "6") is an insert size: copy it as written.
 - template.brand: the company whose form this is, from the logo or printed name (Motiv, Storm, Ultimate, Innovative). OTHER for another company, UNKNOWN if no brand is visible.
 - hand, grip, twoHanded: from the checked boxes or marked circles; null if none is marked.
 
@@ -76,7 +77,7 @@ const check = (stopReason: string | null, parsed: PaperSheetReading | null | und
  * corrections, which help with how this shop writes things.
  */
 export const readPaperSheet = async (image: SheetImage, hints?: string): Promise<PaperSheetReading> => {
-    const system = hints ? `${INSTRUCTIONS}\n\nThis shop's conventions and past corrections:\n${hints}` : INSTRUCTIONS;
+    const system = hints ? `${INSTRUCTIONS}\n\n${hints}\nUse these to read this shop's handwriting, but always transcribe what this sheet actually says.` : INSTRUCTIONS;
     const format = zodOutputFormat(paperSheetReadingSchema);
 
     if (onBedrock) {

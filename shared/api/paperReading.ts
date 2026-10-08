@@ -90,3 +90,28 @@ export const paperSheetReadingSchema = z.object({
 });
 
 export type PaperSheetReading = z.infer<typeof paperSheetReadingSchema>;
+
+/** One value the reviewer corrected: where, what the reader read, and what the sheet actually says. */
+export interface ReadingCorrection {
+    field: string;
+    read: string;
+    corrected: string;
+}
+
+const flatten = (value: unknown, path: string, out: Map<string, string>) => {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+        for (const [key, inner] of Object.entries(value)) flatten(inner, path ? `${path}.${key}` : key, out);
+    } else if (!Array.isArray(value)) {
+        out.set(path, value == null ? '' : String(value));
+    }
+};
+
+/** The values that differ between the reading and the reviewer's corrected copy (lists are ignored). */
+export const readingCorrections = (read: PaperSheetReading, corrected: PaperSheetReading): ReadingCorrection[] => {
+    const before = new Map<string, string>();
+    const after = new Map<string, string>();
+    flatten(read, '', before);
+    flatten(corrected, '', after);
+    return [...after].filter(([field, value]) => (before.get(field) ?? '') !== value)
+        .map(([field, value]) => ({ field, read: before.get(field) ?? '', corrected: value }));
+};

@@ -10,9 +10,9 @@ export const mockPaperReading: PaperSheetReading = {
     hand: 'RIGHT',
     grip: 'FINGERTIP',
     twoHanded: false,
-    leftFinger: { inCircle: '31/32 / 6', beside: 'Lift' },
-    rightFinger: { inCircle: '31/32 / 4', beside: 'Lift' },
-    thumb: { inCircle: '57/64', beside: null },
+    leftFinger: { inCircle: '7.5', beside: null },
+    rightFinger: { inCircle: '5.5', beside: null },
+    thumb: { inCircle: '13/16', beside: null },
     bridge: '1/4',
     leftSpan: { value: '4 3/16', annotation: null, alternate: null },
     rightSpan: { value: '4 1/4', annotation: null, alternate: null },
@@ -20,11 +20,11 @@ export const mockPaperReading: PaperSheetReading = {
     rightFingerPitch: { reverse: '1/8', forward: 'X', left: null, right: '3/8', up: null, down: null },
     thumbPitch: { reverse: '1/8', forward: null, left: 'X', right: '3/16', up: null, down: null },
     oval: { degree: '45°', width: '.060' },
-    inserts: { thumb: { style: null, size: null }, middle: { style: null, size: null }, ring: { style: null, size: null } },
+    inserts: { thumb: { style: 'Slug', size: null }, middle: { style: 'Lift', size: null }, ring: { style: 'Lift', size: null } },
     layout: null,
     pap: null,
     ball: { name: null, weight: null, serial: null },
     notes: null,
     corrections: [],
-    uncertain: [{ field: 'oval.width', reason: 'digits are crowded; could be .060 or .080' }]
+    uncertain: [{ field: 'thumb.inCircle', reason: 'could be 13/16 or 15/16' }]
 }
