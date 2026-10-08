@@ -177,7 +177,19 @@ Shops arrive with binders of paper drill sheets. Moving them in starts with a ph
 - **View:** listing returns a presigned GET URL per file (15 minutes; the app reloads before they expire).
 - **Remove:** whoever added a file, or anyone with `delete:customers`. Deleting a customer removes their files. Production's bucket is versioned, so a removed file is recoverable for 30 days.
 
-**Next (paper import, not built):** read an uploaded sheet with an AI model to identify the template (Motiv, Storm, Ultimate, Innovative…), the bowler and the measurements, and propose a customer plus draft revision 1 for review. Never auto-approved; span types come from what the template means, never converted. Shops' handwriting conventions are consistent within a company (the same person filled them in for years), so reviewed corrections should be kept per company and reused for its later imports.
+### Paper import (AI reading of paper drill sheets)
+
+Shops import their binders: one page at a time (a single photo straight to review) or a stack (an inbox worked through one by one). `db/migrations/0015_paper_imports.sql`.
+
+1. **Upload** (`POST /paper-imports` → PUT → `POST /paper-imports/:id/complete`): the page is stored like an attachment, under `companies/<company>/paper-imports/<id>`. Photos are shrunk in the browser first (long edge 2400 px, JPEG).
+2. **Read** in the background by the reader Lambda (`amplify/api/readerHandler.ts`; reading takes ~30 s, longer than an API request may). Claude Opus 5.5 transcribes what's written into `paper_import.reading` (`shared/api/paperReading.ts`): template brand, bowler, hand, grip, each circle's contents, spans (with any later value), bridge, pitch boxes by their printed label (or crosshair arm), oval, insert table, notes, corrections and what it wasn't sure of. **It transcribes only**: no unit conversion, no interpretation. Failed reads keep the error and can be read again.
+3. **Propose** (`src/utils/PaperSheetImport.ts`, in the browser): fractions to 32nds/64ths, X = 0, pitch boxes to signed pitch (fingers: reverse is up on the form; thumb: reverse is down), left/right circles to middle/ring by hand, "31/32 / 6" to the insert O.D. (the insert itself is picked in the editor), oval width as decimal inches added to the starting bit. What isn't a value goes in the hole or sheet notes; every assumption is listed for the reviewer.
+4. **Review**: the page beside the proposal. The reviewer confirms the bowler (an existing customer with the same name is offered first), hand, grip, sheet name, and **which span type the sheet's spans are**: never assumed or converted; later imports of the same template default to the company's last choice (`paper_import.span_type`).
+5. **Import** (`POST /paper-imports/:id/import`): creates the customer if new, attaches the page (`customer_attachment`, same file), and creates the drill sheet with the reviewed values as **draft revision 1** ("Imported from a paper drill sheet"). Never approved automatically. Or discard (`DELETE`).
+
+**The model:** Anthropic's API with Claude Opus 5.5, processed in the US (`inference_geo: us`), with the default refusal fallback. The key is in Secrets Manager (`drilld/anthropic-api-key`, JSON `{ "apiKey" }`, created by hand) and only the reader Lambda can read it. Amazon Bedrock in this account works too (set `PAPER_READER_MODEL` to an inference profile id), but the account only has Claude Haiku 4.5, which misread too many handwritten fractions; access to stronger models has been requested from AWS.
+
+**Next:** learn each company's conventions. One shop's sheets were usually filled in by the same person for years, so how they write things is consistent within a company and differs between companies. `paper_import.imported_spec` keeps what was imported; comparing it with the revision when it's approved shows what reviewers corrected, to pass back to the reader as that company's hints (`readPaperSheet(image, hints)`).
 
 ### Ball catalog (BowlerIQ)
 

@@ -13,6 +13,9 @@ const bucket = () => {
     return name;
 };
 
+/** Pages uploaded for paper import, before they're imported to a customer. */
+export const paperImportKey = (companyId: string, importId: string) => `companies/${companyId}/paper-imports/${importId}`;
+
 export const attachmentKey = (companyId: string, customerId: string, attachmentId: string) =>
     `companies/${companyId}/customers/${customerId}/attachments/${attachmentId}`;
 
@@ -50,4 +53,11 @@ export const deleteFiles = async (keys: string[]) => {
             Delete: { Objects: keys.slice(i, i + 1000).map(Key => ({ Key })), Quiet: true }
         }));
     }
+};
+
+/** The file's bytes (for reading a paper sheet). */
+export const readFile = async (key: string): Promise<Uint8Array> => {
+    const object = await s3.send(new GetObjectCommand({ Bucket: bucket(), Key: key }));
+    if (!object.Body) throw new Error(`Empty file ${key}`);
+    return object.Body.transformToByteArray();
 };

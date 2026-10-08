@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
-import { Plus } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { FileImage, Plus } from 'lucide-react';
 import { Customer } from '../../types';
 import { useCustomers } from '../../hooks/useCustomers';
 import { Button } from '../common/Button';
 import { CustomerForm } from './CustomerForm';
 import { CustomerList } from './CustomerList';
 import { CustomerDetailView } from './CustomerDetailView';
+import { PaperImportPage } from '../paperimport/PaperImportPage';
+import { apiEnabled } from '../../services/config';
+import { customersService } from '../../services/customersService';
 
 interface CustomerManagementProps {
     searchTerm: string;
@@ -17,11 +20,23 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({
                                                                           searchTerm,
                                                                           currentLocationID
                                                                       }) => {
-    const { customers, loading, error, addCustomer, updateCustomer, deleteCustomer } = useCustomers();
+    const { customers, loading, error, addCustomer, updateCustomer, deleteCustomer, rememberCustomer } = useCustomers();
     const [actionError, setActionError] = useState<string | null>(null);
     const [showForm, setShowForm] = useState(false);
     const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+    const [importing, setImporting] = useState(false);
+    // A drill sheet to open straight away (with its paper sheet), after a paper import.
+    const [openSheetId, setOpenSheetId] = useState<string | null>(null);
+    // The customer to open once they're in the list (a new one from paper import).
+    const [pendingCustomerId, setPendingCustomerId] = useState<string | null>(null);
+
+    useEffect(() => {
+        const customer = pendingCustomerId ? customers.find(c => c.id === pendingCustomerId) : undefined;
+        if (!customer) return;
+        setSelectedCustomer(customer);
+        setPendingCustomerId(null);
+    }, [pendingCustomerId, customers]);
 
     // If a customer is selected, show the detail view
     if (selectedCustomer) {
@@ -29,10 +44,41 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({
             <CustomerDetailView
                 customer={selectedCustomer}
                 currentLocationID={currentLocationID}
-                onBack={() => setSelectedCustomer(null)}
+                initialDrillSheetId={openSheetId}
+                onBack={() => { setSelectedCustomer(null); setOpenSheetId(null); }}
                 onEditCustomer={(customer) => {
                     setEditingCustomer(customer);
                     setShowForm(true);
+                }}
+            />
+        );
+    }
+
+    if (importing) {
+        return (
+            <PaperImportPage
+                customers={customers}
+                locationID={currentLocationID || null}
+                onBack={() => setImporting(false)}
+                onImported={async (result, input) => {
+                    if (customers.some(c => c.id === result.customerID)) return;
+                    // A new customer: from the API, or (without sign-in) from what was entered.
+                    rememberCustomer(apiEnabled || !('create' in input.customer)
+                        ? await customersService.get(result.customerID)
+                        : {
+                            ...input.customer.create,
+                            id: result.customerID,
+                            email: input.customer.create.email || undefined,
+                            phone: input.customer.create.phone || undefined,
+                            notes: input.customer.create.notes || undefined,
+                            homeLocationID: input.customer.create.homeLocationID || undefined,
+                            createdAt: new Date().toISOString()
+                        } as Customer);
+                }}
+                onOpenSheet={result => {
+                    setImporting(false);
+                    setOpenSheetId(result.drillSheetID);
+                    setPendingCustomerId(result.customerID);
                 }}
             />
         );
@@ -109,9 +155,14 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({
                         Manage your customers and their drill sheets
                     </p>
                 </div>
-                <Button icon={Plus} onClick={() => setShowForm(true)}>
-                    Add Customer
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                    <Button variant="secondary" icon={FileImage} onClick={() => setImporting(true)}>
+                        Import paper sheets
+                    </Button>
+                    <Button icon={Plus} onClick={() => setShowForm(true)}>
+                        Add Customer
+                    </Button>
+                </div>
             </div>
 
             {showForm && (

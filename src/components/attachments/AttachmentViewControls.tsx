@@ -1,9 +1,9 @@
 import { ExternalLink, RotateCcw, RotateCw, ZoomIn, ZoomOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import type { AttachmentDto, AttachmentRotation } from '../../../shared/api/attachments'
+import type { AttachmentRotation, ViewableFile } from '../../../shared/api/attachments'
 
 interface AttachmentViewControlsProps {
-    attachment: AttachmentDto
+    attachment: ViewableFile
     zoom: number
     onZoom: (zoom: number) => void
     /** Saves the new rotation; absent when the viewer can't change files. */

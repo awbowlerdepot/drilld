@@ -14,6 +14,7 @@ import type { DrillSheet, DrillSheetRevision } from '../db/schema';
 import { HttpError } from '../errors';
 import { loadAccess, requirePermission } from '../permissions';
 import type { ApiEnv } from '../app';
+import type { CurrentUser } from '../auth';
 
 type SheetRow = Selectable<DrillSheet>;
 type RevisionRow = Selectable<DrillSheetRevision>;
@@ -210,6 +211,61 @@ const sheetDto = async (tx: Tx, id: string) => (await toSheetDtos(tx, [await fin
  * /customers/:customerId/drill-sheets: a customer's sheets. Drill sheets
  * belong to the company and are shared across its locations.
  */
+/**
+ * Creates a drill sheet and its first draft revision for a customer (without
+ * spec.delivery, the customer's current delivery is copied in). Returns the
+ * sheet id. Also used by paper import.
+ */
+export const createSheetWithDraft = async (tx: Tx, user: CurrentUser, customerId: string, input: ReturnType<typeof drillSheetCreateSchema.parse>): Promise<string> => {
+    const customer = await tx.selectFrom('customer').selectAll()
+        .where('id', '=', uuid(customerId))
+        .executeTakeFirst();
+    if (!customer) throw new HttpError(404, 'Customer not found');
+
+    await checkInsertsAgainstCatalog(tx, input.spec);
+    const spec: DrillSheetSpec = {
+        ...input.spec,
+        delivery: input.spec.delivery ?? {
+            axisTiltDegrees: customer.axis_tilt_degrees === null ? null : Number(customer.axis_tilt_degrees),
+            axisRotationDegrees: customer.axis_rotation_degrees === null ? null : Number(customer.axis_rotation_degrees),
+            papOver32: customer.pap_over_32,
+            papUp32: customer.pap_up_32,
+            speedMph: customer.speed_mph === null ? null : Number(customer.speed_mph),
+            revRateRpm: customer.rev_rate_rpm
+        }
+    };
+
+    const sheet = await tx.insertInto('drill_sheet')
+        .values({
+            company_id: uuid(user.companyId),
+            customer_id: uuid(customerId),
+            name: input.name,
+            grip_style: input.gripStyle
+        })
+        .returning('id')
+        .executeTakeFirstOrThrow();
+    const revision = await tx.insertInto('drill_sheet_revision')
+        .values({
+            company_id: uuid(user.companyId),
+            drill_sheet_id: uuid(sheet.id),
+            version: 1,
+            location_id: input.locationID ? uuid(input.locationID) : null,
+            created_by_user_id: uuid(user.userId),
+            updated_by_user_id: uuid(user.userId),
+            revision_notes: input.revisionNotes,
+            spec: json(spec),
+            spec_schema_version: SPEC_SCHEMA_VERSION,
+            ...promotedColumns(spec)
+        })
+        .returning('id')
+        .executeTakeFirstOrThrow();
+    await tx.updateTable('drill_sheet')
+        .set({ current_revision_id: uuid(revision.id) })
+        .where('id', '=', uuid(sheet.id))
+        .execute();
+    return sheet.id;
+};
+
 export const customerDrillSheets = new Hono<ApiEnv>()
     .get('/', c => withCompany(c.var.db, c.var.user.companyId, async tx => {
         requirePermission(await loadAccess(tx, c.var.user), 'read:drillsheets');
@@ -229,54 +285,8 @@ export const customerDrillSheets = new Hono<ApiEnv>()
         return withCompany(c.var.db, c.var.user.companyId, async tx => {
             requirePermission(await loadAccess(tx, c.var.user), 'write:drillsheets', input.locationID ?? undefined);
 
-            const customer = await tx.selectFrom('customer').selectAll()
-                .where('id', '=', uuid(customerId))
-                .executeTakeFirst();
-            if (!customer) throw new HttpError(404, 'Customer not found');
-
-            await checkInsertsAgainstCatalog(tx, input.spec);
-            const spec: DrillSheetSpec = {
-                ...input.spec,
-                delivery: input.spec.delivery ?? {
-                    axisTiltDegrees: customer.axis_tilt_degrees === null ? null : Number(customer.axis_tilt_degrees),
-                    axisRotationDegrees: customer.axis_rotation_degrees === null ? null : Number(customer.axis_rotation_degrees),
-                    papOver32: customer.pap_over_32,
-                    papUp32: customer.pap_up_32,
-                    speedMph: customer.speed_mph === null ? null : Number(customer.speed_mph),
-                    revRateRpm: customer.rev_rate_rpm
-                }
-            };
-
-            const sheet = await tx.insertInto('drill_sheet')
-                .values({
-                    company_id: uuid(c.var.user.companyId),
-                    customer_id: uuid(customerId),
-                    name: input.name,
-                    grip_style: input.gripStyle
-                })
-                .returning('id')
-                .executeTakeFirstOrThrow();
-            const revision = await tx.insertInto('drill_sheet_revision')
-                .values({
-                    company_id: uuid(c.var.user.companyId),
-                    drill_sheet_id: uuid(sheet.id),
-                    version: 1,
-                    location_id: input.locationID ? uuid(input.locationID) : null,
-                    created_by_user_id: uuid(c.var.user.userId),
-                    updated_by_user_id: uuid(c.var.user.userId),
-                    revision_notes: input.revisionNotes,
-                    spec: json(spec),
-                    spec_schema_version: SPEC_SCHEMA_VERSION,
-                    ...promotedColumns(spec)
-                })
-                .returning('id')
-                .executeTakeFirstOrThrow();
-            await tx.updateTable('drill_sheet')
-                .set({ current_revision_id: uuid(revision.id) })
-                .where('id', '=', uuid(sheet.id))
-                .execute();
-
-            return c.json(await sheetDto(tx, sheet.id), 201);
+            const sheetId = await createSheetWithDraft(tx, c.var.user, customerId, input);
+            return c.json(await sheetDto(tx, sheetId), 201);
         });
     });
 

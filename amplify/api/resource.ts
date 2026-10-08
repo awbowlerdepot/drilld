@@ -1,5 +1,5 @@
 import { fileURLToPath } from 'node:url';
-import { Duration, RemovalPolicy, Stack } from 'aws-cdk-lib';
+import { ArnFormat, Duration, RemovalPolicy, Stack } from 'aws-cdk-lib';
 import { CfnStage, CorsHttpMethod, HttpApi, HttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpUserPoolAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
@@ -22,6 +22,9 @@ const ALLOWED_ORIGINS = [
     'https://main.d3e71a8hqcpj8z.amplifyapp.com',
     'http://localhost:4321'
 ];
+
+/** The Anthropic API key for reading paper sheets: a Secrets Manager secret (JSON { "apiKey": ... }), created by hand. */
+const ANTHROPIC_KEY_SECRET_NAME = 'drilld/anthropic-api-key';
 
 /** The public signup route: a few per second is plenty for a form. */
 const PUBLIC_THROTTLE = { burst: 5, ratePerSecond: 2 };
@@ -83,11 +86,59 @@ export const defineApi = (stack: Stack, options: ApiOptions) => {
             // the runtime has no s3-request-presigner, and it must match client-s3.
             externalModules: [
                 '@aws-sdk/client-cognito-identity-provider',
+                '@aws-sdk/client-lambda',
                 '@aws-sdk/client-rds-data',
                 '@aws-sdk/client-sesv2'
             ]
         }
     });
+
+    // The paper sheet reader (amplify/api/readerHandler.ts): invoked by the API
+    // without waiting, since reading a page takes longer than a request may.
+    const readerLogGroup = new logs.LogGroup(stack, 'PaperReaderLogs', {
+        retention: logs.RetentionDays.ONE_MONTH,
+        removalPolicy: RemovalPolicy.DESTROY
+    });
+    const reader = new NodejsFunction(stack, 'PaperReaderFunction', {
+        entry: fileURLToPath(new URL('./readerHandler.ts', import.meta.url)),
+        runtime: lambda.Runtime.NODEJS_22_X,
+        architecture: lambda.Architecture.ARM_64,
+        memorySize: 1024,
+        timeout: Duration.minutes(3),
+        // A failed read is recorded on the import; retrying is the person's choice.
+        retryAttempts: 0,
+        logGroup: readerLogGroup,
+        environment: {
+            CLUSTER_ARN: options.cluster.clusterArn,
+            DB_SECRET_ARN: options.apiSecret.secretArn,
+            DATABASE_NAME: options.databaseName,
+            FILES_BUCKET: options.filesBucket.bucketName,
+            ANTHROPIC_KEY_SECRET: ANTHROPIC_KEY_SECRET_NAME,
+            PAPER_READER_MODEL: 'claude-opus-5-5'
+        },
+        bundling: {
+            externalModules: ['@aws-sdk/client-rds-data', '@aws-sdk/client-secrets-manager']
+        }
+    });
+    reader.addToRolePolicy(new iam.PolicyStatement({
+        actions: [
+            'rds-data:ExecuteStatement',
+            'rds-data:BatchExecuteStatement',
+            'rds-data:BeginTransaction',
+            'rds-data:CommitTransaction',
+            'rds-data:RollbackTransaction'
+        ],
+        resources: [options.cluster.clusterArn]
+    }));
+    options.apiSecret.grantRead(reader);
+    options.filesBucket.grantRead(reader, 'companies/*');
+    // The Anthropic API key, stored by hand in Secrets Manager (the name gets a random suffix).
+    reader.addToRolePolicy(new iam.PolicyStatement({
+        actions: ['secretsmanager:GetSecretValue'],
+        resources: [stack.formatArn({ service: 'secretsmanager', resource: 'secret', resourceName: `${ANTHROPIC_KEY_SECRET_NAME}-*`, arnFormat: ArnFormat.COLON_RESOURCE_NAME })]
+    }));
+    reader.grantInvoke(fn);
+    fn.addEnvironment('READER_FUNCTION', reader.functionName);
 
     // Data API access with the drilld_api secret only (grantDataApiAccess
     // would also grant the cluster's admin secret, which bypasses row-level security).

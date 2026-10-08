@@ -148,6 +148,14 @@ select test.fails($$insert into customer_attachment (company_id, customer_id, st
     values ('00000000-0000-0000-0000-00000000000a', '30000000-0000-0000-0000-0000000000a1', 'companies/a/y', 'y.exe', 'application/octet-stream', 1, '20000000-0000-0000-0000-0000000000a2')$$,
     '23514', 'only images and PDFs can be attached');
 select test.fails($$update customer_attachment set rotation = 45$$, '23514', 'rotation is a quarter turn');
+
+-- Paper imports (0015)
+insert into paper_import (company_id, storage_key, file_name, content_type, size_bytes, created_by_user_id) values
+    ('00000000-0000-0000-0000-00000000000a', 'companies/a/imports/1', 'binder-1.jpg', 'image/jpeg', 500000, '20000000-0000-0000-0000-0000000000a2');
+select test.ok((select status from paper_import) = 'UPLOADING', 'an import starts as uploading');
+select test.fails($$update paper_import set status = 'DONE'$$, '23514', 'an import''s status must be a known one');
+select test.fails($$update paper_import set span_type = 'tipToTip'$$, '23514', 'the span type must be one the spec has');
+select test.fails($$update paper_import set customer_id = '30000000-0000-0000-0000-0000000000b1'$$, '23503', 'an import cannot be linked to another company''s customer');
 select test.ok((select count(*) from company_ball) = 1, 'company A sees only its record of the shared ball');
 select test.ok((select count(*) from work_order) = 1, 'company A sees only its work orders');
 select test.ok((select count(*) from drill_sheet_revision) = 1, 'company A sees only its drill sheet revisions');
@@ -372,6 +380,7 @@ select set_config('app.company_id', '00000000-0000-0000-0000-00000000000b', fals
 
 select test.ok((select array_agg(first_name) from customer) = array['Bob'], 'company B sees only its customers');
 select test.ok((select count(*) from customer_attachment) = 0, 'company B does not see company A''s attachments');
+select test.ok((select count(*) from paper_import) = 0, 'company B does not see company A''s paper imports');
 select test.ok((select notes from customer where first_name = 'Bob') is null, 'company B''s customer was not modified by company A');
 select test.ok((select count(*) from location) = 1, 'company B does not see company A''s locations');
 select test.ok((select count(*) from layout_template) = 0, 'company B does not see company A''s layout templates');
