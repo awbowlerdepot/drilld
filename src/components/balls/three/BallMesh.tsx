@@ -1,10 +1,12 @@
 import { forwardRef, useEffect, useMemo } from 'react'
-import { MeshPhysicalMaterial, Vector3, type Mesh, type Texture } from 'three'
+import { MeshPhysicalMaterial, Vector3, type Mesh } from 'three'
 
 export const MAX_HOLES = 5
 
+/** The ball's color: the app's blue (blue-700), deep enough for the layout lines to stand out. */
+export const BALL_COLOR = '#1d4ed8'
+
 interface BallMeshProps {
-    texture: Texture
     /** The openings cut in the surface: direction (unit) and angular radius (radians). */
     openings: { direction: [number, number, number]; angle: number }[]
     /** Polished: a soft shine. Otherwise satin, like a sanded cover: soft highlights, no gloss. */
@@ -12,11 +14,11 @@ interface BallMeshProps {
 }
 
 /**
- * The ball: a unit sphere with the coverstock and a clear coat, with the hole
+ * The ball: a unit sphere in one solid color with a clear coat, with the hole
  * openings cut out of the surface by its shader (each fragment within an
  * opening's angle of its direction is discarded), so the holes can be seen into.
  */
-export const BallMesh = forwardRef<Mesh, BallMeshProps>(({ texture, openings, polished }, ref) => {
+export const BallMesh = forwardRef<Mesh, BallMeshProps>(({ openings, polished }, ref) => {
     const uniforms = useMemo(() => ({
         holeDir: { value: Array.from({ length: MAX_HOLES }, () => new Vector3(0, 0, 1)) },
         holeCos: { value: Array.from({ length: MAX_HOLES }, () => 2) }
@@ -24,7 +26,7 @@ export const BallMesh = forwardRef<Mesh, BallMeshProps>(({ texture, openings, po
 
     const material = useMemo(() => {
         const m = new MeshPhysicalMaterial({
-            map: texture,
+            color: BALL_COLOR,
             roughness: polished ? 0.3 : 0.55,
             clearcoat: polished ? 0.5 : 0.2,
             clearcoatRoughness: polished ? 0.2 : 0.55,
@@ -45,7 +47,7 @@ export const BallMesh = forwardRef<Mesh, BallMeshProps>(({ texture, openings, po
                     }`)
         }
         return m
-    }, [texture, polished, uniforms])
+    }, [polished, uniforms])
 
     useEffect(() => {
         uniforms.holeDir.value.forEach((v, i) => {

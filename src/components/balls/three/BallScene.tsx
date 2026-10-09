@@ -1,11 +1,10 @@
-import { useMemo, useRef } from 'react'
+import { useRef } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { Environment, Lightformer, OrbitControls } from '@react-three/drei'
 import type { Mesh } from 'three'
 import { BALL_RADIUS, arcPoints, fromReference, gripPoint, valFoot, valPoints, type SolvedLayout, type Vec } from '../../../../shared/layout/ballLayout'
 import type { PlacedGrip } from '../../../../shared/layout/gripPlacement'
 import { BallMesh, MAX_HOLES } from './BallMesh'
-import { coverstockTexture } from './coverstockTexture'
 import { HoleMesh } from './HoleMesh'
 import { SurfaceLine } from './SurfaceLine'
 import { SurfaceMarker } from './SurfaceMarker'
@@ -14,22 +13,19 @@ export interface BallSceneProps {
     solved: SolvedLayout
     hand: 'RIGHT' | 'LEFT'
     grip: PlacedGrip
-    palette: string[]
-    pearl: boolean
     polished: boolean
 }
 
 const range = (from: number, to: number, step: number) => Array.from({ length: Math.round((to - from) / step) + 1 }, (_, i) => from + i * step)
 
 /**
- * The ball in 3D: its coverstock, the drill sheet's holes, and the layout
+ * The ball in 3D (in the app's blue): the drill sheet's holes, and the layout
  * drawn on the surface (midline and centerline, the VAL, pin to PAP, pin to
  * PSA, the pin buffer), with the pin, PSA and PAP marked. Drag to turn it,
  * scroll or pinch to zoom. A left-hander's layout is mirrored.
  */
-const BallScene = ({ solved, hand, grip, palette, pearl, polished }: BallSceneProps) => {
+const BallScene = ({ solved, hand, grip, polished }: BallSceneProps) => {
     const ball = useRef<Mesh>(null)
-    const texture = useMemo(() => coverstockTexture(palette, pearl), [palette, pearl])
     const flip = hand === 'LEFT' ? -1 : 1
     const m = (v: Vec): Vec => [v[0] * flip, v[1], v[2]]
     const pin = m(solved.pin), psa = m(solved.psa), pap = m(solved.pap)
@@ -49,13 +45,13 @@ const BallScene = ({ solved, hand, grip, palette, pearl, polished }: BallScenePr
                 <Lightformer form="circle" intensity={0.7} position={[-4, 1, 2]} scale={2.5} />
             </Environment>
 
-            <BallMesh ref={ball} texture={texture} openings={openings} polished={polished} />
+            <BallMesh ref={ball} openings={openings} polished={polished} />
             {grip.holes.map(h => <HoleMesh key={h.name} hole={h} />)}
 
             <SurfaceLine points={range(-3, 9, 0.25).map(o => m(gripPoint(o, 0)))} color="#e5e7eb" width={1.25} />
             <SurfaceLine points={range(-4, 4, 0.25).map(u => m(gripPoint(0, u)))} color="#e5e7eb" width={1.25} />
-            <SurfaceLine points={valPoints(solved.pap, 7, 48).map(m)} color="#60a5fa" dashed />
-            <SurfaceLine points={arcPoints(solved.pin, valFoot(solved.pap, solved.pin)).map(m)} color="#93c5fd" width={2} dashed />
+            <SurfaceLine points={valPoints(solved.pap, 7, 48).map(m)} color="#bfdbfe" dashed />
+            <SurfaceLine points={arcPoints(solved.pin, valFoot(solved.pap, solved.pin)).map(m)} color="#bfdbfe" width={2} dashed />
             <SurfaceLine points={arcPoints(solved.pin, solved.pap).map(m)} color="#f8fafc" width={3} />
             <SurfaceLine points={arcPoints(solved.pin, solved.psa).map(m)} color="#fbbf24" width={3} />
 

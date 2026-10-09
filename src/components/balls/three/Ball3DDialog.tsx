@@ -8,7 +8,6 @@ import type { SolvedLayout } from '../../../../shared/layout/ballLayout'
 import { placeGrip } from '../../../../shared/layout/gripPlacement'
 import { drillSheetsApi } from '../../../hooks/useCustomerDrillSheets'
 import type { Customer } from '../../../types'
-import { paletteFromImage, paletteFromName } from '../../../utils/CoverstockColors'
 import { gripFromSheet } from '../../../utils/GripFromSheet'
 
 // Three.js loads only when the 3D view opens.
@@ -28,7 +27,6 @@ const NONE = 'NONE'
 export const Ball3DDialog = ({ ball, solved, hand, owner, onClose }: Ball3DDialogProps) => {
     const [sheets, setSheets] = useState<DrillSheetDto[]>([])
     const [sheetId, setSheetId] = useState<string>(NONE)
-    const [palette, setPalette] = useState<string[]>(() => paletteFromName(ball.color))
 
     useEffect(() => {
         let cancelled = false
@@ -43,15 +41,8 @@ export const Ball3DDialog = ({ ball, solved, hand, owner, onClose }: Ball3DDialo
         return () => { cancelled = true }
     }, [owner])
 
-    useEffect(() => {
-        let cancelled = false
-        if (ball.imageUrl) paletteFromImage(ball.imageUrl).then(p => { if (p && !cancelled) setPalette(p) })
-        return () => { cancelled = true }
-    }, [ball.imageUrl])
-
     const sheet = sheets.find(s => s.id === sheetId) ?? null
     const grip = useMemo(() => placeGrip(gripFromSheet(sheet?.currentRevision?.spec ?? null, hand, owner?.usesThumb ?? true)), [sheet, hand, owner])
-    const pearl = /pearl/i.test(ball.coverstock?.type ?? '') || /pearl/i.test(ball.coverstock?.name ?? '')
     const [polished, setPolished] = useState(false)
 
     return (
@@ -82,7 +73,7 @@ export const Ball3DDialog = ({ ball, solved, hand, owner, onClose }: Ball3DDialo
                 </div>
                 <div className="relative h-[min(62vh,560px)] min-h-72 w-full overflow-hidden rounded-xl bg-gradient-to-b from-gray-100 to-gray-300">
                     <Suspense fallback={<p className="flex h-full items-center justify-center text-sm text-gray-500">Loading the 3D view…</p>}>
-                        <BallScene solved={solved} hand={hand} grip={grip} palette={palette} pearl={pearl} polished={polished} />
+                        <BallScene solved={solved} hand={hand} grip={grip} polished={polished} />
                     </Suspense>
                 </div>
                 <ul className="grid gap-0.5 text-xs text-gray-500">

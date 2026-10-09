@@ -27,7 +27,7 @@ export const SurfaceMarker = ({ at, kind, label, occluder }: SurfaceMarkerProps)
                 {kind === 'pin' && <circleGeometry args={[0.03, 32]} />}
                 {kind === 'psa' && <circleGeometry args={[0.032, 4]} />}
                 {kind === 'pap' && <ringGeometry args={[0.022, 0.036, 40]} />}
-                <meshBasicMaterial color={kind === 'pin' ? '#0f0f14' : kind === 'psa' ? '#f59e0b' : '#2563eb'} />
+                <meshBasicMaterial color={kind === 'pin' ? '#0f0f14' : kind === 'psa' ? '#f59e0b' : '#ffffff'} />
             </mesh>
             <Html position={labelAt} center occlude={[occluder as RefObject<Object3D>]} zIndexRange={[20, 0]}>
                 <span className="pointer-events-none select-none whitespace-nowrap rounded bg-white/90 px-1.5 py-0.5 font-mono text-[11px] font-medium text-gray-800 shadow">{label}</span>

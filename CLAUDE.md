@@ -46,7 +46,7 @@ The agreed backend design (Postgres schema, tenant isolation, ball registry, dri
   - `DrillBits.ts` — the bits a shop has: 1/2–1-1/8 in 64ths, 1-1/4, 1-3/8, 1-1/2, and the interchangeable-hardware collar bits
 - `shared/layout/ballLayout.ts` — ball layout geometry on the sphere: places the pin, PSA and PAP, converts between VLS / pin buffer, Dual Angle and 2LS
 - `shared/layout/gripPlacement.ts` — places a drill sheet's holes on the ball (for drawing only; spans other than center-to-center get the facing edges' radii added, never stored)
-- `src/components/balls/three/` — the ball's 3D view (Three.js via react-three-fiber and drei, loaded only when opened): coverstock, the drill sheet's holes, the layout drawn on the surface
+- `src/components/balls/three/` — the ball's 3D view (Three.js via react-three-fiber and drei, loaded only when opened): the ball in the app's blue, the drill sheet's holes, the layout drawn on the surface
 - `docs/data-model.md` — backend data model design and open questions
 - `db/` — PostgreSQL migrations (plain SQL, dbmate format) and schema tests; see `db/README.md`. `db/seed/grip_catalog.py` generates the grip catalog rows for a migration. The migrations are the source of truth for the schema; never generate migrations from an ORM.
 - `src/services/` — the frontend's API layer:
