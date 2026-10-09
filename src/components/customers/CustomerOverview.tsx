@@ -5,6 +5,7 @@ import { Customer } from '../../types';
 import type { DrillSheetDto } from '../../../shared/api/drillSheets';
 import { format32 } from '../../utils/Fractions';
 import { Button } from '../common/Button';
+import { BallImage } from '../balls/BallImage';
 
 interface CustomerOverviewProps {
     customer: Customer;
@@ -207,7 +208,8 @@ export const CustomerOverview: React.FC<CustomerOverviewProps> = ({
                     {balls.length > 0 ? (
                         <div className="space-y-3">
                             {recentBalls.map((ball) => (
-                                <div key={ball.id} className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                                <div key={ball.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded">
+                                    <BallImage ball={ball.catalogBall} />
                                     <div className="flex-1">
                                         <p className="font-medium text-gray-900">{ball.catalogBall.brandName} {ball.catalogBall.name}</p>
                                         <div className="flex items-center space-x-4 text-sm text-gray-600">

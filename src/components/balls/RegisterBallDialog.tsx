@@ -9,6 +9,7 @@ import { ballsApi } from '../../hooks/useCompanyBalls'
 import type { Customer } from '../../types'
 import { describeConstruction, describeWeightSpecs } from '../../utils/BallFormat'
 import { parseInches } from '../../utils/Fractions'
+import { BallImage } from './BallImage'
 import { CatalogBallPicker } from './CatalogBallPicker'
 import { CustomerSelect } from './CustomerSelect'
 import { ShopBallForm } from './ShopBallForm'
@@ -109,6 +110,7 @@ export const RegisterBallDialog = ({ customer, customers, onRegister, onClose }:
 
                     {ball ? (
                         <div className="flex items-center gap-3 rounded-lg border border-primary bg-blue-50 px-3 py-2 text-sm">
+                            <BallImage ball={ball} />
                             <span className="min-w-0 flex-1">
                                 <span className="block font-medium text-gray-900">{ball.brandName} {ball.name}</span>
                                 <span className="block text-xs text-gray-600">{[ball.color, describeConstruction(ball)].filter(Boolean).join(' · ')}</span>
