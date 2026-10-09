@@ -263,6 +263,10 @@ create table catalog_sync_state (
 
 A `remove` **never deletes** a `catalog_ball` row. It only sets `removed_at`. Physical balls and work orders may still reference the ball, and their history must stay intact. Removed balls are hidden when picking a new ball.
 
+Retired (discontinued) balls stay in the catalog and can still be picked: they keep coming into shops. They're labelled Retired and listed after current balls.
+
+**Balls the catalog doesn't have** (older balls BowlerIQ doesn't publish) are typed in by the shop: `company_ball_model` (company, brand name, optional BowlerIQ `brand_id`, name, color, cover, core), kept once per company by brand + name + color and offered in the same search, marked as the shop's entry. The registry `ball` then has no `catalog_ball_id`, and no `brand_id` unless the brand is one of BowlerIQ's; `company_ball.model_id` says which entry it is. With a BowlerIQ brand the serial still matches the same ball at every shop; without one it can't be matched. When BowlerIQ later publishes the ball and a shop picks it from the catalog for a serial that was typed in, that registry ball is linked to the catalog ball (`drilld_app` may update only `ball.catalog_ball_id`, only while it's null), and every shop then shows the catalog ball. A bulk "link our typed-in balls to the catalog" step is not built.
+
 ### Grip catalog (inserts and thumb hardware)
 
 Finger inserts, thumb inserts, thumb slugs and interchangeable thumb systems come from three manufacturers: VISE, Turbo and JoPo. They're platform data, maintained by us and shared by every company, in the same way as the ball catalog. Each location says what it carries. Sources: VISE's 2026 order form, Turbo's finger insert chart and product pages, and JoPo's order lists.

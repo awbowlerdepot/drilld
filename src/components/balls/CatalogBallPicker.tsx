@@ -15,7 +15,7 @@ interface CatalogBallPickerProps {
 
 const ALL = 'ALL'
 
-/** Find a ball in the BowlerIQ catalog by brand, name or color; each colorway is its own ball. */
+/** Find a ball in the BowlerIQ catalog by brand, name or color (each colorway is its own ball), or one the shop typed in before. */
 export const CatalogBallPicker = ({ selected, onSelect }: CatalogBallPickerProps) => {
     const [query, setQuery] = useState('')
     const [brandId, setBrandId] = useState<string | null>(null)
@@ -51,6 +51,7 @@ export const CatalogBallPicker = ({ selected, onSelect }: CatalogBallPickerProps
                                 <span className="flex flex-wrap items-center gap-1.5 font-medium text-gray-900">
                                     {ball.brandName} {ball.name}
                                     {ball.status === 'retired' && <Badge variant="outline" className="font-normal">Retired</Badge>}
+                                    {ball.source === 'shop' && <Badge variant="secondary" className="font-normal">Your shop's entry</Badge>}
                                 </span>
                                 <span className="block truncate text-xs text-gray-500">{[ball.color, describeConstruction(ball)].filter(Boolean).join(' · ')}</span>
                             </span>

@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { sql, type Selectable } from 'kysely';
 import type { CatalogBallDto, CatalogBrandDto, CatalogStatusDto } from '../../../shared/api/balls';
 import { uuid, withCompany } from '../db/client';
-import type { CatalogBall } from '../db/schema';
+import type { CatalogBall, CompanyBallModel } from '../db/schema';
 import { HttpError } from '../errors';
 import type { ApiEnv } from '../app';
 
@@ -22,6 +22,7 @@ export const catalogBallDto = (row: Selectable<CatalogBall>): CatalogBallDto => 
     const data = (row.data ?? {}) as BowlerIqBall;
     return {
         id: row.id,
+        source: 'catalog',
         brandId: row.brand_id,
         brandName: row.brand_name,
         name: row.name,
@@ -37,7 +38,26 @@ export const catalogBallDto = (row: Selectable<CatalogBall>): CatalogBallDto => 
     };
 };
 
+/** A ball the company typed in because the catalog doesn't have it. */
+export const shopBallModelDto = (row: Selectable<CompanyBallModel>): CatalogBallDto => ({
+    id: row.id,
+    source: 'shop',
+    brandId: row.brand_id,
+    brandName: row.brand_name,
+    name: row.name,
+    color: row.color,
+    status: null,
+    releaseDate: null,
+    imageUrl: null,
+    coverstock: row.coverstock ? { name: row.coverstock, material: null, type: null } : null,
+    core: row.core ? { name: row.core, type: null } : null,
+    finish: null,
+    weights: [],
+    removed: false
+});
+
 const SEARCH_LIMIT = 40;
+const searchWords = (q: string | undefined) => (q ?? '').toLowerCase().split(/\s+/).filter(Boolean).slice(0, 6).map(w => '%' + w.replace(/[%_\\]/g, '') + '%');
 
 export const catalog = new Hono<ApiEnv>()
     /** Brands with published balls. */
@@ -54,10 +74,11 @@ export const catalog = new Hono<ApiEnv>()
 
     /**
      * Search: every word must match the brand, name or color ("storm phaze
-     * purple"). Current balls before retired ones; removed balls never.
+     * purple"). Current balls before retired ones; removed balls never. Then
+     * the balls this company typed in, which the catalog doesn't have.
      */
     .get('/balls', c => withCompany(c.var.db, c.var.user.companyId, async tx => {
-        const words = (c.req.query('q') ?? '').toLowerCase().split(/\s+/).filter(Boolean).slice(0, 6);
+        const words = searchWords(c.req.query('q'));
         const brandId = c.req.query('brandId');
         let query = tx.selectFrom('catalog_ball').selectAll().where('removed_at', 'is', null);
         if (brandId) {
@@ -65,14 +86,20 @@ export const catalog = new Hono<ApiEnv>()
             query = query.where('brand_id', '=', uuid(brandId));
         }
         for (const word of words) {
-            query = query.where(sql<boolean>`lower(brand_name || ' ' || name || ' ' || coalesce(color, '')) like ${'%' + word.replace(/[%_\\]/g, '') + '%'}`);
+            query = query.where(sql<boolean>`lower(brand_name || ' ' || name || ' ' || coalesce(color, '')) like ${word}`);
         }
         const rows = await query
             .orderBy(sql`status = 'current'`, 'desc')
             .orderBy('brand_name').orderBy('name').orderBy('color')
             .limit(SEARCH_LIMIT)
             .execute();
-        return c.json(rows.map(catalogBallDto));
+        let shop = tx.selectFrom('company_ball_model').selectAll();
+        if (brandId) shop = shop.where('brand_id', '=', uuid(brandId));
+        for (const word of words) {
+            shop = shop.where(sql<boolean>`lower(brand_name || ' ' || name || ' ' || coalesce(color, '')) like ${word}`);
+        }
+        const shopRows = await shop.orderBy('brand_name').orderBy('name').orderBy('color').limit(SEARCH_LIMIT).execute();
+        return c.json([...rows.map(catalogBallDto), ...shopRows.map(shopBallModelDto)]);
     }))
 
     .get('/balls/:id', c => withCompany(c.var.db, c.var.user.companyId, async tx => {

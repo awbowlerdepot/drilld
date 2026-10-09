@@ -1,25 +1,30 @@
 import { Hono } from 'hono';
 import { sql } from 'kysely';
+import type { z } from 'zod';
 import {
     ballRegisterSchema,
     ballTransferSchema,
+    serialSchema,
     ballUpdateSchema,
     type BallDetailDto,
     type BallDto,
     type BallHistoryDto,
-    type BallLookupDto
+    type BallLookupDto,
+    type CatalogBallDto
 } from '../../../shared/api/balls';
 import { uuid, withCompany, type Tx } from '../db/client';
 import { HttpError } from '../errors';
 import { loadAccess, requirePermission } from '../permissions';
 import type { ApiEnv } from '../app';
-import { catalogBallDto } from './catalog';
+import { catalogBallDto, shopBallModelDto } from './catalog';
 
 // A company's physical balls. Each is a row in the platform-wide registry
 // (ball: catalog ball, weight, serial) plus the company's own record
 // (company_ball) and its owners over time (ball_ownership). Another company
 // that registers the same serial gets the same registry row, and sees only
-// the anonymous history (ball_service_summary), never who or what.
+// the anonymous history (ball_service_summary), never who or what. A ball the
+// catalog doesn't have is one the company typed in (company_ball_model); its
+// registry row has no catalog ball, and no brand if BowlerIQ doesn't have it.
 
 const idParam = (value: string | undefined) => {
     if (!value || !/^[0-9a-f-]{36}$/i.test(value)) throw new HttpError(404, 'Ball not found');
@@ -36,10 +41,11 @@ const dateOnly = (value: unknown): string | null =>
 const num = (value: unknown) => (value == null ? null : Number(value));
 const dateParam = (value: string | null) => (value === null ? null : sql<string>`cast(${value} as date)`);
 
-/** The company's balls with their catalog ball and current owner. */
+/** The company's balls with their catalog ball (or typed-in model) and current owner. */
 const selectBalls = (tx: Tx) => tx.selectFrom('company_ball as cb')
     .innerJoin('ball as b', 'b.id', 'cb.ball_id')
-    .innerJoin('catalog_ball as cat', 'cat.id', 'b.catalog_ball_id')
+    .leftJoin('catalog_ball as cat', 'cat.id', 'b.catalog_ball_id')
+    .leftJoin('company_ball_model as m', 'm.id', 'cb.model_id')
     .leftJoin('ball_ownership as o', join => join.onRef('o.company_ball_id', '=', 'cb.id').on('o.to_date', 'is', null))
     .leftJoin('customer as cu', 'cu.id', 'o.customer_id')
     .select([
@@ -47,19 +53,29 @@ const selectBalls = (tx: Tx) => tx.selectFrom('company_ball as cb')
         'b.weight_lbs', 'b.serial_number',
         'cat.id as cat_id', 'cat.brand_id as cat_brand_id', 'cat.brand_name as cat_brand_name', 'cat.name as cat_name', 'cat.color as cat_color',
         'cat.status as cat_status', 'cat.data as cat_data', 'cat.content_changed_at as cat_content_changed_at', 'cat.removed_at as cat_removed_at', 'cat.synced_at as cat_synced_at',
+        'm.id as m_id', 'm.company_id as m_company_id', 'm.brand_id as m_brand_id', 'm.brand_name as m_brand_name', 'm.name as m_name', 'm.color as m_color',
+        'm.coverstock as m_coverstock', 'm.core as m_core', 'm.created_at as m_created_at',
         'o.customer_id as owner_id', 'o.from_date as owner_since',
         sql<string | null>`cu.first_name || ' ' || cu.last_name`.as('owner_name')
     ]);
 
 type BallRow = Awaited<ReturnType<ReturnType<typeof selectBalls>['executeTakeFirstOrThrow']>>;
 
+/** The catalog ball when the registry ball has one (it may have been linked since the shop typed it in), else the typed-in model. */
+const modelOf = (row: BallRow): CatalogBallDto => (row.cat_id
+    ? catalogBallDto({
+        id: row.cat_id, brand_id: row.cat_brand_id!, brand_name: row.cat_brand_name!, name: row.cat_name!, color: row.cat_color,
+        status: row.cat_status!, data: row.cat_data, content_changed_at: row.cat_content_changed_at!, removed_at: row.cat_removed_at, synced_at: row.cat_synced_at!
+    })
+    : shopBallModelDto({
+        id: row.m_id!, company_id: row.m_company_id!, brand_id: row.m_brand_id, brand_name: row.m_brand_name!, name: row.m_name!, color: row.m_color,
+        coverstock: row.m_coverstock, core: row.m_core, created_at: row.m_created_at!
+    }));
+
 const toDto = (row: BallRow): BallDto => ({
     id: row.id,
     ballId: row.ball_id,
-    catalogBall: catalogBallDto({
-        id: row.cat_id, brand_id: row.cat_brand_id, brand_name: row.cat_brand_name, name: row.cat_name, color: row.cat_color,
-        status: row.cat_status, data: row.cat_data, content_changed_at: row.cat_content_changed_at, removed_at: row.cat_removed_at, synced_at: row.cat_synced_at
-    }),
+    catalogBall: modelOf(row),
     weightLbs: row.weight_lbs,
     serialNumber: row.serial_number,
     pinDistance: num(row.pin_distance),
@@ -96,6 +112,49 @@ const detail = async (tx: Tx, id: string): Promise<BallDetailDto> => {
 
 const today = sql<string>`current_date`;
 
+interface ResolvedModel {
+    catalogBallId: string | null;
+    shopModelId: string | null;
+    brandId: string | null;
+    name: string;
+    /** The weights it comes in, when known. */
+    weights: number[];
+}
+
+/**
+ * The ball being registered: a catalog ball, the company's typed-in entry, or
+ * a new entry (kept once per company: the same brand, name and color reuse it).
+ */
+const resolveModel = async (tx: Tx, companyId: string, input: z.output<typeof ballRegisterSchema>): Promise<ResolvedModel> => {
+    if (input.catalogBallId) {
+        const cat = await tx.selectFrom('catalog_ball').selectAll().where('id', '=', uuid(input.catalogBallId)).executeTakeFirst();
+        if (!cat) throw new HttpError(404, 'That ball isn\'t in the catalog');
+        return { catalogBallId: cat.id, shopModelId: null, brandId: cat.brand_id, name: cat.name, weights: catalogBallDto(cat).weights.map(w => w.weightLbs) };
+    }
+    if (input.shopModelId) {
+        const m = await tx.selectFrom('company_ball_model').selectAll().where('id', '=', uuid(input.shopModelId)).executeTakeFirst();
+        if (!m) throw new HttpError(404, 'Ball not found');
+        return { catalogBallId: null, shopModelId: m.id, brandId: m.brand_id, name: m.name, weights: [] };
+    }
+    const typed = input.newModel!;
+    let brandName = typed.brandName;
+    if (typed.brandId) {
+        const brand = await tx.selectFrom('catalog_ball').select('brand_name').where('brand_id', '=', uuid(typed.brandId)).limit(1).executeTakeFirst();
+        if (!brand) throw new HttpError(400, 'Unknown brand');
+        brandName = brand.brand_name;
+    }
+    const existing = await tx.selectFrom('company_ball_model').selectAll()
+        .where(sql<boolean>`lower(brand_name) = lower(${brandName})`)
+        .where(sql<boolean>`lower(name) = lower(${typed.name})`)
+        .where(sql<boolean>`lower(coalesce(color, '')) = lower(${typed.color ?? ''})`)
+        .executeTakeFirst();
+    const m = existing ?? await tx.insertInto('company_ball_model').values({
+        company_id: uuid(companyId), brand_id: typed.brandId ? uuid(typed.brandId) : null, brand_name: brandName,
+        name: typed.name, color: typed.color, coverstock: typed.coverstock, core: typed.core
+    }).returningAll().executeTakeFirstOrThrow();
+    return { catalogBallId: null, shopModelId: m.id, brandId: m.brand_id, name: m.name, weights: [] };
+};
+
 export const balls = new Hono<ApiEnv>()
     /** The company's balls; ?customerId= for one bowler's (current owner), ?status= to filter. */
     .get('/', c => withCompany(c.var.db, c.var.user.companyId, async tx => {
@@ -105,7 +164,8 @@ export const balls = new Hono<ApiEnv>()
         if (customerId) query = query.where('o.customer_id', '=', uuid(idParam(customerId)));
         const status = c.req.query('status');
         if (status) query = query.where('cb.status', '=', status);
-        const rows = await query.orderBy('cb.status').orderBy('cat.brand_name').orderBy('cat.name').limit(2000).execute();
+        const rows = await query.orderBy('cb.status')
+            .orderBy(sql`coalesce(cat.brand_name, m.brand_name)`).orderBy(sql`coalesce(cat.name, m.name)`).limit(2000).execute();
         return c.json(rows.map(toDto));
     }))
 
@@ -113,16 +173,18 @@ export const balls = new Hono<ApiEnv>()
     .get('/lookup', c => withCompany(c.var.db, c.var.user.companyId, async tx => {
         requirePermission(await loadAccess(tx, c.var.user), 'read:balls');
         const brandId = idParam(c.req.query('brandId'));
-        const serial = ballRegisterSchema.shape.serialNumber.parse(c.req.query('serial'));
+        const serial = serialSchema.parse(c.req.query('serial'));
         const empty: BallLookupDto = { registered: false, catalogBall: null, weightLbs: null, history: null, companyBallId: null };
         if (!serial) return c.json(empty);
         const ball = await tx.selectFrom('ball').selectAll()
             .where('brand_id', '=', uuid(brandId)).where('serial_number', '=', serial).executeTakeFirst();
         if (!ball) return c.json(empty);
-        const cat = await tx.selectFrom('catalog_ball').selectAll().where('id', '=', uuid(ball.catalog_ball_id)).executeTakeFirstOrThrow();
+        const cat = ball.catalog_ball_id
+            ? await tx.selectFrom('catalog_ball').selectAll().where('id', '=', uuid(ball.catalog_ball_id)).executeTakeFirstOrThrow()
+            : null;
         const mine = await tx.selectFrom('company_ball').select('id').where('ball_id', '=', uuid(ball.id)).executeTakeFirst();
         const body: BallLookupDto = {
-            registered: true, catalogBall: catalogBallDto(cat), weightLbs: ball.weight_lbs,
+            registered: true, catalogBall: cat ? catalogBallDto(cat) : null, weightLbs: ball.weight_lbs,
             history: await historyOf(tx, ball.id), companyBallId: mine?.id ?? null
         };
         return c.json(body);
@@ -136,33 +198,45 @@ export const balls = new Hono<ApiEnv>()
     /**
      * Registers a bowler's ball: the registry row (shared with any shop that has
      * the same brand + serial), this company's record, and the bowler as owner.
+     * The ball is a catalog ball, or one the shop typed in (before, or now).
      */
     .post('/', async c => {
         const input = ballRegisterSchema.parse(await c.req.json());
         return withCompany(c.var.db, c.var.user.companyId, async tx => {
             requirePermission(await loadAccess(tx, c.var.user), 'write:balls');
-            const cat = await tx.selectFrom('catalog_ball').selectAll().where('id', '=', uuid(input.catalogBallId)).executeTakeFirst();
-            if (!cat) throw new HttpError(404, 'That ball isn\'t in the catalog');
-            const weights = catalogBallDto(cat).weights.map(w => w.weightLbs);
-            if (weights.length > 0 && !weights.includes(input.weightLbs)) throw new HttpError(400, `${cat.name} comes in ${weights.join(', ')} lb`);
+            const model = await resolveModel(tx, c.var.user.companyId, input);
+            if (model.weights.length > 0 && !model.weights.includes(input.weightLbs)) throw new HttpError(400, `${model.name} comes in ${model.weights.join(', ')} lb`);
             const customer = await tx.selectFrom('customer').select('id').where('id', '=', uuid(customerParam(input.customerId))).executeTakeFirst();
             if (!customer) throw new HttpError(404, 'Customer not found');
 
             // The same brand + serial is the same physical ball, wherever it was registered.
+            // Without a BowlerIQ brand there's nothing to match it by.
             let ballId: string | null = null;
-            if (input.serialNumber) {
+            if (input.serialNumber && model.brandId) {
                 const existing = await tx.selectFrom('ball').selectAll()
-                    .where('brand_id', '=', uuid(cat.brand_id)).where('serial_number', '=', input.serialNumber).executeTakeFirst();
+                    .where('brand_id', '=', uuid(model.brandId)).where('serial_number', '=', input.serialNumber).executeTakeFirst();
                 if (existing) {
-                    if (existing.catalog_ball_id !== cat.id || existing.weight_lbs !== input.weightLbs) {
+                    const sameModel = existing.catalog_ball_id === model.catalogBallId
+                        // A shop typed it in; it's now picked from the catalog: link it.
+                        || (existing.catalog_ball_id === null && model.catalogBallId !== null)
+                        // Typed in here and elsewhere: each shop's own entry, nothing to compare.
+                        || (existing.catalog_ball_id === null && model.catalogBallId === null);
+                    if (!sameModel || existing.weight_lbs !== input.weightLbs) {
                         throw new HttpError(409, `Serial ${input.serialNumber} is already registered as a different ball or weight. Check the serial.`);
+                    }
+                    if (existing.catalog_ball_id === null && model.catalogBallId) {
+                        await tx.updateTable('ball').set({ catalog_ball_id: uuid(model.catalogBallId) })
+                            .where('id', '=', uuid(existing.id)).where('catalog_ball_id', 'is', null).execute();
                     }
                     ballId = existing.id;
                 }
             }
             if (!ballId) {
                 ballId = (await tx.insertInto('ball').values({
-                    catalog_ball_id: uuid(cat.id), weight_lbs: input.weightLbs, brand_id: uuid(cat.brand_id), serial_number: input.serialNumber
+                    catalog_ball_id: model.catalogBallId ? uuid(model.catalogBallId) : null,
+                    weight_lbs: input.weightLbs,
+                    brand_id: model.brandId ? uuid(model.brandId) : null,
+                    serial_number: input.serialNumber
                 }).returning('id').executeTakeFirstOrThrow()).id;
             }
             const mine = await tx.selectFrom('company_ball').select('id').where('ball_id', '=', uuid(ballId)).executeTakeFirst();
@@ -171,6 +245,7 @@ export const balls = new Hono<ApiEnv>()
             const companyBall = await tx.insertInto('company_ball').values({
                 company_id: uuid(c.var.user.companyId),
                 ball_id: uuid(ballId),
+                model_id: model.shopModelId ? uuid(model.shopModelId) : null,
                 pin_distance: input.pinDistance,
                 top_weight: input.topWeight,
                 purchase_date: dateParam(input.purchaseDate),

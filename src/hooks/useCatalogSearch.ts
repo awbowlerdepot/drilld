@@ -4,17 +4,22 @@ import { ballsApi } from './useCompanyBalls'
 
 let brandsCache: Promise<CatalogBrandDto[]> | null = null
 
-/** Searches the ball catalog as the person types (after a short pause), optionally within one brand. */
-export const useCatalogSearch = (query: string, brandId: string | null) => {
-    const [results, setResults] = useState<CatalogBallDto[]>([])
+/** The catalog's brands (fetched once). */
+export const useCatalogBrands = () => {
     const [brands, setBrands] = useState<CatalogBrandDto[]>([])
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
-
     useEffect(() => {
         brandsCache ??= ballsApi.brands()
         brandsCache.then(setBrands).catch(() => { brandsCache = null })
     }, [])
+    return brands
+}
+
+/** Searches the ball catalog as the person types (after a short pause), optionally within one brand. */
+export const useCatalogSearch = (query: string, brandId: string | null) => {
+    const [results, setResults] = useState<CatalogBallDto[]>([])
+    const brands = useCatalogBrands()
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
         let cancelled = false

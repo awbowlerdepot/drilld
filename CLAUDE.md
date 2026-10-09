@@ -169,6 +169,7 @@ Look for incorrect imports, circular dependencies, and unnecessary complexity.
   - balls and the BowlerIQ catalog (`docs/data-model.md` Ball catalog, Balls):
     - `GET /catalog/balls?q=&brandId=`, `GET /catalog/brands`, `GET /catalog/status`: Drilld's synced copy, refreshed every 30 minutes by the catalog sync Lambda (`api/catalogSyncHandler.ts`; partner key in Secrets Manager `drilld/bowleriq-partner-key`).
     - `GET/POST /balls`, `GET/PATCH /balls/:id`, `POST /balls/:id/transfer`, `GET /balls/lookup?brandId=&serial=`: a company's balls (registry + company record + owners); another shop's history of a serial is anonymous.
+    - A ball the catalog doesn't have is typed in ("Not in the catalog? Type it in") and kept in the company's own list (`company_ball_model`), found by the same search.
     - The Bowling Balls section and the customer's Bowling Balls tab use it; work orders still use the old mock balls.
   - `GET /grip-catalog`: the shared catalog of inserts and thumb hardware (VISE, Turbo, JoPo), one entry per line with its sizes.
   - leads (early access signups from drilld.io):
