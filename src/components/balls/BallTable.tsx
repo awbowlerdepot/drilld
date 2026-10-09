@@ -1,6 +1,7 @@
 import { Badge } from '@/components/ui/badge'
 import type { BallDto } from '../../../shared/api/balls'
 import { formatInches } from '../../utils/BallFormat'
+import { BallImage } from './BallImage'
 
 interface BallTableProps {
     balls: BallDto[]
@@ -27,13 +28,18 @@ export const BallTable = ({ balls, showOwner, onOpen }: BallTableProps) => (
             <tbody>
                 {balls.map(ball => (
                     <tr key={ball.id} onClick={() => onOpen(ball)} className="cursor-pointer border-b border-gray-100 last:border-0 hover:bg-blue-50/40">
-                        <td className="px-3 py-2.5">
+                        <td className="px-3 py-2">
+                            <div className="flex items-center gap-3">
+                            <BallImage ball={ball.catalogBall} size="sm" />
+                            <div className="min-w-0">
                             <button type="button" onClick={event => { event.stopPropagation(); onOpen(ball) }}
                                 className="text-left font-medium text-gray-900 hover:text-primary hover:underline">
                                 {ball.catalogBall.brandName} {ball.catalogBall.name}
                             </button>
                             {STATUS[ball.status] && <Badge variant="outline" className="ml-2 font-normal">{STATUS[ball.status]}</Badge>}
                             <span className="block text-xs text-gray-500">{ball.catalogBall.color}</span>
+                            </div>
+                            </div>
                         </td>
                         <td className="px-3 py-2.5 font-mono">{ball.weightLbs} lb</td>
                         <td className="px-3 py-2.5 font-mono text-gray-700">{ball.serialNumber ?? '—'}</td>

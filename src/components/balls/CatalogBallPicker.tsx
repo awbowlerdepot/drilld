@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import type { CatalogBallDto } from '../../../shared/api/balls'
 import { useCatalogSearch } from '../../hooks/useCatalogSearch'
 import { describeConstruction } from '../../utils/BallFormat'
+import { BallImage } from './BallImage'
 
 interface CatalogBallPickerProps {
     selected: CatalogBallDto | null
@@ -44,9 +45,7 @@ export const CatalogBallPicker = ({ selected, onSelect }: CatalogBallPickerProps
                         <button type="button" aria-pressed={selected?.id === ball.id} onClick={() => onSelect(ball)}
                             className={cn('flex w-full items-center gap-3 rounded-lg border px-2.5 py-2 text-left text-sm transition-colors',
                                 selected?.id === ball.id ? 'border-primary bg-blue-50' : 'border-border bg-white hover:bg-muted')}>
-                            <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-100">
-                                {ball.imageUrl ? <img src={ball.imageUrl} alt="" className="size-full object-cover" loading="lazy" /> : <span className="text-xs text-gray-400">{ball.brandName.slice(0, 2)}</span>}
-                            </span>
+                            <BallImage ball={ball} />
                             <span className="min-w-0 flex-1">
                                 <span className="flex flex-wrap items-center gap-1.5 font-medium text-gray-900">
                                     {ball.brandName} {ball.name}

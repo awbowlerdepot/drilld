@@ -11,6 +11,7 @@ import type { Customer } from '../../types'
 import { describeConstruction, describeWeightSpecs, formatInches } from '../../utils/BallFormat'
 import { parseInches } from '../../utils/Fractions'
 import { CustomerSelect } from './CustomerSelect'
+import { BallImage } from './BallImage'
 
 interface BallDetailDialogProps {
     ballId: string
@@ -88,11 +89,14 @@ export const BallDetailDialog = ({ ballId, customers, canEdit, onChange, onClose
                 </DialogHeader>
                 {ball && cat && (
                     <div className="grid gap-4">
-                        <section className="grid gap-1 text-sm text-gray-700">
+                        <section className="flex items-center gap-4">
+                        <BallImage ball={cat} size="lg" />
+                        <div className="grid min-w-0 flex-1 gap-1 text-sm text-gray-700">
                             {describeConstruction(cat) && <p>{describeConstruction(cat)}</p>}
                             {describeWeightSpecs(cat, ball.weightLbs) && <p className="font-mono text-xs text-gray-600">{ball.weightLbs} lb: {describeWeightSpecs(cat, ball.weightLbs)}</p>}
                             {cat.status === 'retired' && <Badge variant="outline" className="justify-self-start font-normal">Retired by the maker</Badge>}
                             {cat.source === 'shop' && <Badge variant="outline" className="justify-self-start font-normal">Typed in by your shop (not in the BowlerIQ catalog)</Badge>}
+                        </div>
                         </section>
 
                         <section className="grid gap-3 sm:grid-cols-3">
