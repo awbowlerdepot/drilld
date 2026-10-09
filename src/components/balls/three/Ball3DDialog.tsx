@@ -3,12 +3,15 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { cn } from '@/lib/utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { CatalogBallDto } from '../../../../shared/api/balls'
+import { layoutSystems, type LayoutSystem } from '../../../../shared/api/ballLayouts'
 import type { DrillSheetDto } from '../../../../shared/api/drillSheets'
 import type { SolvedLayout } from '../../../../shared/layout/ballLayout'
 import { placeGrip } from '../../../../shared/layout/gripPlacement'
 import { drillSheetsApi } from '../../../hooks/useCustomerDrillSheets'
 import type { Customer } from '../../../types'
+import { LAYOUT_SYSTEM_LABELS } from '../../../utils/BallLayoutFormat'
 import { gripFromSheet } from '../../../utils/GripFromSheet'
+import { SYSTEM_COLORS } from './systemColors'
 
 // Three.js loads only when the 3D view opens.
 const BallScene = lazy(() => import('./BallScene'))
@@ -17,6 +20,8 @@ interface Ball3DDialogProps {
     ball: CatalogBallDto
     solved: SolvedLayout
     hand: 'RIGHT' | 'LEFT'
+    /** The system the layout was entered in: shown first. */
+    system: LayoutSystem
     owner: Customer | null
     onClose: () => void
 }
@@ -24,7 +29,7 @@ interface Ball3DDialogProps {
 const NONE = 'NONE'
 
 /** The ball in 3D with its layout and the bowler's drill sheet holes. */
-export const Ball3DDialog = ({ ball, solved, hand, owner, onClose }: Ball3DDialogProps) => {
+export const Ball3DDialog = ({ ball, solved, hand, system, owner, onClose }: Ball3DDialogProps) => {
     const [sheets, setSheets] = useState<DrillSheetDto[]>([])
     const [sheetId, setSheetId] = useState<string>(NONE)
 
@@ -44,6 +49,8 @@ export const Ball3DDialog = ({ ball, solved, hand, owner, onClose }: Ball3DDialo
     const sheet = sheets.find(s => s.id === sheetId) ?? null
     const grip = useMemo(() => placeGrip(gripFromSheet(sheet?.currentRevision?.spec ?? null, hand, owner?.usesThumb ?? true)), [sheet, hand, owner])
     const [polished, setPolished] = useState(false)
+    const [systems, setSystems] = useState<LayoutSystem[]>([system])
+    const toggle = (s: LayoutSystem) => setSystems(prev => (prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]))
 
     return (
         <Dialog open onOpenChange={open => { if (!open) onClose() }}>
@@ -71,9 +78,20 @@ export const Ball3DDialog = ({ ball, solved, hand, owner, onClose }: Ball3DDialo
                         ))}
                     </div>
                 </div>
+                <div role="group" aria-label="Layout systems on the ball" className="flex flex-wrap items-center gap-1.5 text-sm">
+                    <span className="mr-1 text-gray-600">Show</span>
+                    {layoutSystems.map(s => (
+                        <button key={s} type="button" aria-pressed={systems.includes(s)} onClick={() => toggle(s)}
+                            className={cn('flex items-center gap-1.5 rounded-full border px-3 py-1 transition-colors',
+                                systems.includes(s) ? 'border-gray-900 bg-gray-900 text-white' : 'border-border bg-white text-gray-700 hover:bg-muted')}>
+                            <span aria-hidden="true" className="size-2.5 rounded-full border border-black/20" style={{ background: SYSTEM_COLORS[s] }} />
+                            {LAYOUT_SYSTEM_LABELS[s]}
+                        </button>
+                    ))}
+                </div>
                 <div className="relative h-[min(62vh,560px)] min-h-72 w-full overflow-hidden rounded-xl bg-gradient-to-b from-gray-100 to-gray-300">
                     <Suspense fallback={<p className="flex h-full items-center justify-center text-sm text-gray-500">Loading the 3D view…</p>}>
-                        <BallScene solved={solved} hand={hand} grip={grip} polished={polished} />
+                        <BallScene solved={solved} hand={hand} grip={grip} polished={polished} systems={systems} />
                     </Suspense>
                 </div>
                 <ul className="grid gap-0.5 text-xs text-gray-500">

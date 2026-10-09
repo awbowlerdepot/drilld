@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { BALL_RADIUS, QUARTER_ROUND, arc, fromReference, papPoint, project, solveLayout, valAngleFromBuffer, valFoot } from './ballLayout.ts';
+import { BALL_RADIUS, QUARTER_ROUND, angleArcPoints, arc, circleArcPoints, fromReference, papPoint, project, solveLayout, valAngleFromBuffer, valFoot } from './ballLayout.ts';
 
 const near = (actual: number, expected: number, tolerance: number, label: string) =>
     assert.ok(Math.abs(actual - expected) <= tolerance, `${label}: ${actual.toFixed(4)} vs ${expected} (±${tolerance})`);
@@ -124,4 +124,15 @@ test('Storm\'s 2LS example 5 x 4 x 3½ (PAP 5″ over, 1″ up from the bridge)'
     near(s.pinToCog, 4, 1e-9, 'pin to COG');
     near(s.psaToPap, 3.5, 1e-9, 'PSA to PAP');
     assert.ok(fromReference(s.pin).up > 0, 'pin on the fingers\' side');
+});
+
+test('the drawing arcs: arcs swung from the pin and the PSA cross at the PAP; the VAL is tangent to the buffer circle', () => {
+    const s = solveLayout({ system: 'PIN_BUFFER', pinToPap: 5, psaToPap: 4, pinBuffer: 2 }, pap);
+    const fromPin = circleArcPoints(s.pin, 5, s.pap, 20, 20), fromPsa = circleArcPoints(s.psa, 4, s.pap, 20, 20);
+    for (const p of fromPin) near(arc(p, s.pin), 5, 1e-9, 'pin-to-PAP arc');
+    near(arc(fromPin[10], s.pap), 0, 1e-6, 'pin arc passes the PAP');
+    near(arc(fromPsa[10], s.pap), 0, 1e-6, 'PSA arc passes the PAP');
+    near(arc(s.pin, valFoot(s.pap, s.pin)), 2, 1e-9, 'VAL tangent to the buffer circle');
+    const mark = angleArcPoints(s.pin, s.psa, s.pap, 0.75);
+    near(arc(mark[0], s.pin), 0.75, 1e-9, 'angle mark radius');
 });

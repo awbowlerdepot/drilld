@@ -206,6 +206,23 @@ export const valPoints = (pap: Vec, inches: number, steps = 24): Vec[] => {
     return Array.from({ length: steps + 1 }, (_, i) => move(pap, up, -inches + (2 * inches * i) / steps));
 };
 
+/**
+ * Part of the circle `radius` inches (along the surface) around `center`: the
+ * stretch `halfAngle` degrees either side of the direction toward `near`, as a
+ * compass would draw it on the ball.
+ */
+export const circleArcPoints = (center: Vec, radius: number, near: Vec, halfAngle: number, steps = 32): Vec[] => {
+    const d0 = toward(center, near);
+    return Array.from({ length: steps + 1 }, (_, i) => move(center, turn(d0, center, -halfAngle + (2 * halfAngle * i) / steps), radius));
+};
+
+/** The arc at `vertex`, `radius` inches out, from the direction toward `a` to the direction toward `b` (an angle's mark). */
+export const angleArcPoints = (vertex: Vec, a: Vec, b: Vec, radius: number, steps = 24): Vec[] => {
+    const from = toward(vertex, a);
+    const angle = angleBetween(vertex, from, toward(vertex, b));
+    return Array.from({ length: steps + 1 }, (_, i) => move(vertex, turn(from, vertex, (angle * i) / steps), radius));
+};
+
 /** Azimuthal equidistant projection centered on `center`: distances and angles from it are true. Inches, y up. */
 export const project = (center: Vec, p: Vec) => {
     const up = toward(center, UP);

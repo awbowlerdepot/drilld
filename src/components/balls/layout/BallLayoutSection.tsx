@@ -80,7 +80,7 @@ export const BallLayoutSection = ({ ball, owner, canEdit, onAdd, onUpdate, onDel
                     onClick={() => { if (window.confirm('Delete this layout? It was entered by mistake.')) void onDelete(current.id) }}>Delete this layout</button>
             )}
             {showing3d && current && solved && (
-                <Ball3DDialog ball={ball.catalogBall} solved={solved} hand={current.layout.hand} owner={owner} onClose={() => setShowing3d(false)} />
+                <Ball3DDialog ball={ball.catalogBall} solved={solved} hand={current.layout.hand} system={current.layout.system} owner={owner} onClose={() => setShowing3d(false)} />
             )}
             {editing && (
                 <LayoutDialog psaDistance={ball.psaDistance} symmetric={ball.catalogBall.core?.type === 'symmetric'} owner={owner}
