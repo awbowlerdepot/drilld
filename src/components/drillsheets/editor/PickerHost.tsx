@@ -1,8 +1,8 @@
 import { useState, type ReactNode } from 'react'
 import { BitPickerDialog } from './BitPickerDialog'
 import { GripPickerDialog } from './GripPickerDialog'
-import { LengthPickerDialog } from './LengthPickerDialog'
-import { NumberPickerDialog } from './NumberPickerDialog'
+import { LengthPickerDialog } from '../../pickers/LengthPickerDialog'
+import { NumberPickerDialog } from '../../pickers/NumberPickerDialog'
 import { PickerContext, type PickerRequest } from './pickers'
 
 /** Provides usePicker() to the drill sheet and renders the open picker dialog. */

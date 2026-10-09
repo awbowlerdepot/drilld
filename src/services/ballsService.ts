@@ -21,7 +21,6 @@ export interface BallsApi {
     lookup: (brandId: string, serial: string) => Promise<BallLookupDto>
     register: (input: BallRegister) => Promise<BallDetailDto>
     update: (id: string, input: BallUpdate) => Promise<BallDetailDto>
-    transfer: (id: string, customerId: string) => Promise<BallDetailDto>
     addLayout: (ballId: string, input: BallLayoutWrite) => Promise<BallDetailDto>
     updateLayout: (layoutId: string, input: BallLayoutWrite) => Promise<BallDetailDto>
     deleteLayout: (layoutId: string) => Promise<BallDetailDto>
@@ -41,7 +40,6 @@ export const ballsService: BallsApi = {
     lookup: (brandId, serial) => apiRequest('GET', `/balls/lookup${query({ brandId, serial })}`),
     register: input => apiRequest('POST', '/balls', input),
     update: (id, input) => apiRequest('PATCH', `/balls/${id}`, input),
-    transfer: (id, customerId) => apiRequest('POST', `/balls/${id}/transfer`, { customerId }),
     addLayout: (ballId, input) => apiRequest('POST', `/balls/${ballId}/layouts`, input),
     updateLayout: (layoutId, input) => apiRequest('PATCH', `/ball-layouts/${layoutId}`, input),
     deleteLayout: layoutId => apiRequest('DELETE', `/ball-layouts/${layoutId}`)

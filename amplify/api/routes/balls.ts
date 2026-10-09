@@ -274,7 +274,7 @@ export const balls = new Hono<ApiEnv>()
                 }).returning('id').executeTakeFirstOrThrow()).id;
             }
             const mine = await tx.selectFrom('company_ball').select('id').where('ball_id', '=', uuid(ballId)).executeTakeFirst();
-            if (mine) throw new HttpError(409, 'This ball is already in your records; transfer it to the new owner instead');
+            if (mine) throw new HttpError(409, 'This ball is already in your records');
 
             const companyBall = await tx.insertInto('company_ball').values({
                 company_id: uuid(c.var.user.companyId),

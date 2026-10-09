@@ -31,7 +31,7 @@ export const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({
                                                                           initialDrillSheetId
                                                                       }) => {
     const ballList = useCompanyBalls({ customerId: customer.id });
-    const { customers } = useCustomers();
+    const { customers, updateCustomer } = useCustomers();
 
     const [activeTab, setActiveTab] = useState<'overview' | 'drillsheets' | 'files' | 'balls'>('overview');
     const [includeArchivedSheets, setIncludeArchivedSheets] = useState(false);
@@ -202,7 +202,7 @@ export const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({
                     {activeTab === 'files' && <CustomerFiles customer={customer} files={files} />}
 
                     {activeTab === 'balls' && (
-                        <CustomerBalls customer={customer} customers={customers} balls={ballList} adding={addingBall} onAddingChange={setAddingBall} />
+                        <CustomerBalls customer={customer} customers={customers} onUpdateCustomer={updateCustomer} balls={ballList} adding={addingBall} onAddingChange={setAddingBall} />
                     )}
                 </div>
             </div>

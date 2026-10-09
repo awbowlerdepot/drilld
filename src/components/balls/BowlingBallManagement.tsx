@@ -18,7 +18,7 @@ type Filter = BallStatus | 'ALL'
 /** Every ball the company has on record, with their owners; search, filter by status, add one. */
 export const BowlingBallManagement = ({ searchTerm }: BowlingBallManagementProps) => {
     const balls = useCompanyBalls()
-    const { customers } = useCustomers()
+    const { customers, updateCustomer } = useCustomers()
     const [filter, setFilter] = useState<Filter>('ACTIVE')
     const [openId, setOpenId] = useState<string | null>(null)
     const [adding, setAdding] = useState(false)
@@ -63,7 +63,7 @@ export const BowlingBallManagement = ({ searchTerm }: BowlingBallManagementProps
                 : shown.length === 0 ? <p className="py-8 text-center text-gray-500">{balls.balls.length === 0 ? 'No balls on record yet.' : 'No balls match.'}</p>
                     : <BallTable balls={shown} showOwner onOpen={ball => setOpenId(ball.id)} />}
             {adding && <RegisterBallDialog customer={null} customers={customers} onClose={() => setAdding(false)} onRegister={async input => { await balls.register(input) }} />}
-            {openId && <BallDetailDialog ballId={openId} customers={customers} canEdit onChange={balls.replace} onClose={() => setOpenId(null)} />}
+            {openId && <BallDetailDialog ballId={openId} customers={customers} canEdit onChange={balls.replace} onUpdateCustomer={updateCustomer} onClose={() => setOpenId(null)} />}
         </div>
     )
 }
