@@ -1,4 +1,5 @@
 import { ballRegisterSchema, ballUpdateSchema, type BallDetailDto, type CatalogBallDto, type ShopBallModel } from '../../shared/api/balls'
+import { ballLayoutWriteSchema, type BallLayoutDto } from '../../shared/api/ballLayouts'
 import type { BallsApi } from '../services/ballsService'
 import { mockCustomers } from './mockData'
 
@@ -44,7 +45,10 @@ const addShopModel = (typed: ShopBallModel): CatalogBallDto => {
     return model
 }
 
-const balls = new Map<string, Omit<BallDetailDto, 'catalogBall' | 'history'> & { catalogBallId: string }>()
+const balls = new Map<string, Omit<BallDetailDto, 'catalogBall' | 'history' | 'layout' | 'layouts'> & { catalogBallId: string }>()
+const layouts: BallLayoutDto[] = []
+const layoutsOf = (ballId: string) => layouts.filter(l => l.companyBallId === ballId)
+    .sort((a, b) => b.drilledOn.localeCompare(a.drilledOn) || b.createdAt.localeCompare(a.createdAt))
 const pause = () => new Promise(resolve => setTimeout(resolve, 150))
 const today = () => new Date().toISOString().slice(0, 10)
 const customerName = (id: string) => {
@@ -55,7 +59,8 @@ const detail = (id: string): BallDetailDto => {
     const b = balls.get(id)
     if (!b) throw new Error('Ball not found')
     const { catalogBallId, ...rest } = b
-    return { ...rest, catalogBall: models().find(c => c.id === catalogBallId)!, history: { drillCount: 0, plugCount: 0, lastWorkedMonth: null } }
+    const drillings = layoutsOf(id)
+    return { ...rest, layout: drillings[0] ?? null, layouts: drillings, catalogBall: models().find(c => c.id === catalogBallId)!, history: { drillCount: 0, plugCount: 0, lastWorkedMonth: null } }
 }
 
 export const mockBallsApi: BallsApi = {
@@ -96,7 +101,7 @@ export const mockBallsApi: BallsApi = {
         const id = crypto.randomUUID()
         balls.set(id, {
             id, ballId: crypto.randomUUID(), catalogBallId: modelId, weightLbs: parsed.weightLbs, serialNumber: parsed.serialNumber,
-            pinDistance: parsed.pinDistance, topWeight: parsed.topWeight, status: 'ACTIVE', purchaseDate: parsed.purchaseDate, notes: parsed.notes,
+            pinDistance: parsed.pinDistance, psaDistance: null, topWeight: parsed.topWeight, status: 'ACTIVE', purchaseDate: parsed.purchaseDate, notes: parsed.notes,
             owner: { customerId: parsed.customerId, name: customerName(parsed.customerId), since: today() },
             owners: [{ customerId: parsed.customerId, name: customerName(parsed.customerId), from: today(), to: null }],
             createdAt: now, updatedAt: now
@@ -109,6 +114,26 @@ export const mockBallsApi: BallsApi = {
         const b = balls.get(id)!
         balls.set(id, { ...b, ...Object.fromEntries(Object.entries(parsed).filter(([, v]) => v !== undefined)), updatedAt: new Date().toISOString() })
         return detail(id)
+    },
+    async addLayout(ballId, input) {
+        await pause()
+        const parsed = ballLayoutWriteSchema.parse(input)
+        const now = new Date().toISOString()
+        layouts.push({ id: crypto.randomUUID(), companyBallId: ballId, ...parsed, createdAt: now, updatedAt: now })
+        return detail(ballId)
+    },
+    async updateLayout(layoutId, input) {
+        await pause()
+        const parsed = ballLayoutWriteSchema.parse(input)
+        const i = layouts.findIndex(l => l.id === layoutId)
+        layouts[i] = { ...layouts[i], ...parsed, updatedAt: new Date().toISOString() }
+        return detail(layouts[i].companyBallId)
+    },
+    async deleteLayout(layoutId) {
+        await pause()
+        const i = layouts.findIndex(l => l.id === layoutId)
+        const [removed] = layouts.splice(i, 1)
+        return detail(removed.companyBallId)
     },
     async transfer(id, customerId) {
         await pause()

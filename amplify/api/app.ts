@@ -4,7 +4,7 @@ import { resolveCurrentUser, type CurrentUser, type TokenClaims } from './auth';
 import type { Db } from './db/client';
 import { HttpError, toErrorResponse } from './errors';
 import { attachments, customerAttachments } from './routes/attachments';
-import { balls } from './routes/balls';
+import { ballLayouts, balls } from './routes/balls';
 import { catalog } from './routes/catalog';
 import { customers } from './routes/customers';
 import { customerDrillSheets, drillSheets } from './routes/drillSheets';
@@ -83,6 +83,7 @@ export const createApp = (db: Db) => {
     app.route('/grip-catalog', gripCatalog);
     app.route('/catalog', catalog);
     app.route('/balls', balls);
+    app.route('/ball-layouts', ballLayouts);
     app.route('/locations/:locationId/grip-stock', locationGripStock);
     app.route('/locations/:locationId/equipment', locationEquipment);
     app.route('/locations', locations);

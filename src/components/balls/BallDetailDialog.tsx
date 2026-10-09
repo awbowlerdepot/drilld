@@ -12,6 +12,7 @@ import { describeConstruction, describeWeightSpecs, formatInches } from '../../u
 import { parseInches } from '../../utils/Fractions'
 import { CustomerSelect } from './CustomerSelect'
 import { BallImage } from './BallImage'
+import { BallLayoutSection } from './layout/BallLayoutSection'
 
 interface BallDetailDialogProps {
     ballId: string
@@ -34,6 +35,7 @@ export const BallDetailDialog = ({ ballId, customers, canEdit, onChange, onClose
     const [ball, setBall] = useState<BallDetailDto | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [pin, setPin] = useState('')
+    const [mb, setMb] = useState('')
     const [topWeight, setTopWeight] = useState('')
     const [notes, setNotes] = useState('')
     const [status, setStatus] = useState<BallStatus>('ACTIVE')
@@ -46,6 +48,7 @@ export const BallDetailDialog = ({ ballId, customers, canEdit, onChange, onClose
             if (cancelled) return
             setBall(b)
             setPin(b.pinDistance != null ? String(b.pinDistance) : '')
+            setMb(b.psaDistance != null ? String(b.psaDistance) : '')
             setTopWeight(b.topWeight != null ? String(b.topWeight) : '')
             setNotes(b.notes ?? '')
             setStatus(b.status)
@@ -69,13 +72,24 @@ export const BallDetailDialog = ({ ballId, customers, canEdit, onChange, onClose
         }
     }
 
+    /** A change made in a nested dialog (its errors show there). */
+    const applied = (updated: BallDetailDto) => {
+        setBall(updated)
+        onChange(updated)
+    }
+
     const save = async () => {
         const pinInches = pin.trim() ? parseInches(pin) : null
         if (pin.trim() && pinInches == null) {
             setError('Pin to CG: use inches, like 4 1/2 or 4.5')
             return
         }
-        const updated = await run(() => ballsApi.update(ballId, { pinDistance: pinInches, topWeight: topWeight.trim() ? Number(topWeight) : null, notes, status }))
+        const mbInches = mb.trim() ? parseInches(mb) : null
+        if (mb.trim() && !mbInches) {
+            setError('Pin to MB: use inches, like 6 1/4 or 6.25')
+            return
+        }
+        const updated = await run(() => ballsApi.update(ballId, { pinDistance: pinInches, psaDistance: mbInches, topWeight: topWeight.trim() ? Number(topWeight) : null, notes, status }))
         if (updated) onClose()
     }
 
@@ -99,11 +113,22 @@ export const BallDetailDialog = ({ ballId, customers, canEdit, onChange, onClose
                         </div>
                         </section>
 
-                        <section className="grid gap-3 sm:grid-cols-3">
+                        <BallLayoutSection ball={ball} owner={customers.find(c => c.id === ball.owner?.customerId) ?? null} canEdit={canEdit}
+                            onAdd={async input => applied(await ballsApi.addLayout(ballId, input))}
+                            onUpdate={async (layoutId, input) => applied(await ballsApi.updateLayout(layoutId, input))}
+                            onDelete={async layoutId => { await run(() => ballsApi.deleteLayout(layoutId)) }} />
+
+                        <section className="grid gap-3 sm:grid-cols-4">
                             <Field>
                                 <FieldLabel htmlFor="detail-pin">Pin to CG (in)</FieldLabel>
                                 {canEdit ? <Input id="detail-pin" value={pin} className="font-mono" onChange={event => setPin(event.target.value)} /> : <p className="font-mono text-sm">{formatInches(ball.pinDistance)}</p>}
                             </Field>
+                            {cat.core?.type !== 'symmetric' && (
+                                <Field>
+                                    <FieldLabel htmlFor="detail-mb">Pin to MB (in)</FieldLabel>
+                                    {canEdit ? <Input id="detail-mb" value={mb} placeholder="6 3/4" className="font-mono" onChange={event => setMb(event.target.value)} /> : <p className="font-mono text-sm">{formatInches(ball.psaDistance)}</p>}
+                                </Field>
+                            )}
                             <Field>
                                 <FieldLabel htmlFor="detail-top">Top weight (oz)</FieldLabel>
                                 {canEdit ? <Input id="detail-top" type="number" step="0.25" min={0} value={topWeight} className="font-mono" onChange={event => setTopWeight(event.target.value)} /> : <p className="font-mono text-sm">{ball.topWeight ?? '—'}</p>}

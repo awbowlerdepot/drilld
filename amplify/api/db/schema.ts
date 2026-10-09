@@ -57,6 +57,18 @@ export interface Ball {
   weight_lbs: number;
 }
 
+export interface BallLayout {
+  company_ball_id: string;
+  company_id: string;
+  created_at: Generated<Timestamp>;
+  created_by_user_id: string | null;
+  drilled_on: Timestamp;
+  id: Generated<string>;
+  layout: Json;
+  notes: string | null;
+  updated_at: Generated<Timestamp>;
+}
+
 export interface BallOwnership {
   company_ball_id: string;
   company_id: string;
@@ -106,6 +118,7 @@ export interface CompanyBall {
   model_id: string | null;
   notes: string | null;
   pin_distance: Numeric | null;
+  psa_distance: Numeric | null;
   purchase_date: Timestamp | null;
   purchase_price: Numeric | null;
   specs: Generated<Json>;
@@ -461,6 +474,7 @@ export interface WorkOrderPhoto {
 export interface DB {
   app_user: AppUser;
   ball: Ball;
+  ball_layout: BallLayout;
   ball_ownership: BallOwnership;
   catalog_ball: CatalogBall;
   catalog_sync_state: CatalogSyncState;

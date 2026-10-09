@@ -1,6 +1,7 @@
 import { Badge } from '@/components/ui/badge'
 import type { BallDto } from '../../../shared/api/balls'
 import { formatInches } from '../../utils/BallFormat'
+import { describeLayout } from '../../utils/BallLayoutFormat'
 import { BallImage } from './BallImage'
 
 interface BallTableProps {
@@ -22,6 +23,7 @@ export const BallTable = ({ balls, showOwner, onOpen }: BallTableProps) => (
                     <th scope="col" className="px-3 py-2.5">Weight</th>
                     <th scope="col" className="px-3 py-2.5">Serial</th>
                     <th scope="col" className="px-3 py-2.5">Pin</th>
+                    <th scope="col" className="px-3 py-2.5">Layout</th>
                     {showOwner && <th scope="col" className="px-3 py-2.5">Owner</th>}
                 </tr>
             </thead>
@@ -44,6 +46,7 @@ export const BallTable = ({ balls, showOwner, onOpen }: BallTableProps) => (
                         <td className="px-3 py-2.5 font-mono">{ball.weightLbs} lb</td>
                         <td className="px-3 py-2.5 font-mono text-gray-700">{ball.serialNumber ?? '—'}</td>
                         <td className="px-3 py-2.5 font-mono text-gray-700">{formatInches(ball.pinDistance)}</td>
+                        <td className="whitespace-nowrap px-3 py-2.5 font-mono text-gray-700">{ball.layout ? describeLayout(ball.layout.layout) : '—'}</td>
                         {showOwner && <td className="px-3 py-2.5 text-gray-700">{ball.owner?.name ?? '—'}</td>}
                     </tr>
                 ))}

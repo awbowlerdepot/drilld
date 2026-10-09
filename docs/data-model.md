@@ -26,7 +26,7 @@ Status: agreed design. The PostgreSQL schema is implemented in `db/migrations/`,
 | Pro Fit | A per-revision flag meaning the fit deliberately breaks the norms. It suppresses norm warnings (e.g. flexibility outside 70–135°) and suggested starting pitch. |
 | CLT | Recorded in **degrees**. It's off by default (company setting `drillSheets.enableClt`), since the first company doesn't use it. When enabled, Auto-CLT **suggests** the fingers' lateral pitch from the CLT chart; the lateral pitch stored on each hole is what gets drilled. |
 | Bridge | Measured **edge-to-edge**: the material left between the middle and ring finger holes. |
-| Layouts | Per ball: the exact layout used is stored on the **work order**. Layouts can also be saved for reuse as **layout templates**, either a bowler's go-to or shop standards. A drilling starts from one and is then adjusted. |
+| Layouts | Per ball, **per drilling** (`ball_layout`; the latest is the ball's current layout), in the system the driller used; the other systems are calculated on the sphere. Work orders will point at the drilling's layout. Layouts can also be saved for reuse as **layout templates**, either a bowler's go-to or shop standards. A drilling starts from one and is then adjusted. |
 | Storage of the spec | **Hybrid**: queryable measurements are real columns, and the full nested spec goes in `jsonb` with a schema version. |
 | Platform admins | People who run **Drilld itself**, not a shop. Membership is the Cognito group **`platform-admin`** and needs **TOTP MFA**. It's separate from company and location roles and grants nothing in any company's data. A platform admin is still a normal `app_user` in one company. First use: leads. |
 | Leads | Early access signups from drilld.io are **platform data** (`lead`, no `company_id`). The public form can only insert a new lead; platform admins read and work them (status and notes) in the app's Leads screen. |
@@ -634,7 +634,25 @@ create table work_order (
 );
 ```
 
-**`layout`** (per ball, per drilling):
+### Ball layouts
+
+`db/migrations/0021_ball_layouts.sql`, `shared/api/ballLayouts.ts`, the math in `shared/layout/ballLayout.ts` (tests: `npm test`).
+
+**The model.** Every layout system describes the same points on a sphere: the ball's marks (the pin; the MB of an asymmetric ball, or the mark put 6¾″ from the pin through the CG of a symmetric one), which set how the ball is turned, and the bowler's PAP and grip. Layout tapes measure along the surface, so every distance is an arc on a 27″ ball (radius 4.297″; a quarter of the way round is 6¾″). Converting between systems is spherical trigonometry, exact, not a chart:
+
+- **VAL**: the line through the PAP square to the midline. **Pin buffer** = the pin's distance from it; **VAL angle** = the angle at the PAP between the VAL (up) and the line to the pin. sin(buffer/R) = sin(pin to PAP/R) · sin(VAL angle).
+- **Drilling angle**: at the pin, between the line to the PSA and the line to the PAP. With the pin-to-PSA distance (the ball's measured MB distance, else 6¾″), the PAP–pin–PSA triangle gives PSA to PAP by the spherical law of cosines, and back.
+- **Side**: with the pin facing you and the MB straight below it, a right-hander's PAP is to the right of the pin-MB line (a left-hander's to the left): the layout is mirrored by hand.
+- A layout whose lines can't meet on this ball (PSA to PAP outside |pin to PAP − pin to PSA| … pin to PAP + pin to PSA) is refused, with the range that works.
+- Checked against MoRich's Dual Angle chart (PSA 6¾″ from the pin): its 90° row exactly, the hand-measured rows to about ⅛″ (a few ~¼″). Flat geometry is far off: 60° × 4 × 30° is **4 × 5 × 1¾** VLS on the ball, but 4 × 5⅞ × 2 flat.
+
+**Stored** (`ball_layout.layout`): `{ system: PIN_BUFFER | DUAL_ANGLE | TWO_LS, the numbers as entered (32nds; degrees), pap: { over32, up32 }, hand, psaDistance32, layoutSchemaVersion: 1 }`. 2LS is the pin buffer numbers with the PAP measured from the center of the bridge. The other systems' numbers are never stored. `company_ball.psa_distance` is the pin to MB measured on an asymmetric ball (null = 6¾″).
+
+**API**: `POST /balls/:id/layouts` (a drilling), `PATCH/DELETE /ball-layouts/:id`; `GET /balls` carries each ball's current layout, `GET /balls/:id` every drilling's.
+
+**Not yet:** layout templates on the API (the table exists), work orders pointing at their layout, balance holes and surface (per drilling), and the marking steps on the drill press screen.
+
+**Work order `layout`** (as first designed; superseded by `ball_layout` for the layout itself):
 
 ```
 {
