@@ -1,255 +1,74 @@
-import React, { useState, useMemo } from 'react';
-import { Plus, Filter } from 'lucide-react';
-import { Location } from '../../types';
-import { useLocations } from '../../hooks/useLocations';
-import { useCompanySettings } from '../../hooks/useCompanySettings';
-import { Button } from '../common/Button';
-import { Input } from '../common/Input';
-import { LocationForm } from './LocationForm';
-import { LocationList } from './LocationList';
-import { LocationStats } from './LocationStats';
-import { LocationGripStock } from './grips/LocationGripStock';
+import { useState } from 'react'
+import { Plus } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import type { EmployeeManager } from '../../../shared/api/employees'
+import { useCompanySettings } from '../../hooks/useCompanySettings'
+import { useLocations } from '../../hooks/useLocations'
+import { LocationCard } from './LocationCard'
+import { LocationDetail } from './LocationDetail'
+import { LocationProfileDialog } from './LocationProfileDialog'
 
 interface LocationManagementProps {
-    searchTerm: string;
-    companyID: string;
+    searchTerm: string
+    /** The signed-in user's company access and where they manage. */
+    manager: EmployeeManager
 }
 
-export const LocationManagement: React.FC<LocationManagementProps> = ({
-                                                                          searchTerm,
-                                                                          companyID
-                                                                      }) => {
-    const {
-        locations,
-        loading,
-        addLocation,
-        updateLocation,
-        deleteLocation,
-        getLocationStats
-    } = useLocations();
-    const { settings: companySettings } = useCompanySettings();
+/**
+ * The company's locations (pro shops): open now and today's hours at a
+ * glance; open one for its profile, hours, equipment, grips and settings.
+ * Owners and admins add and deactivate locations; a location's managers
+ * edit it.
+ */
+export const LocationManagement = ({ searchTerm, manager }: LocationManagementProps) => {
+    const { locations, loading, error, addLocation, updateLocation } = useLocations()
+    const { settings: companySettings } = useCompanySettings()
+    const [openId, setOpenId] = useState<string | null>(null)
+    const [adding, setAdding] = useState(false)
+    const isCompanyAdmin = manager.companyRole !== null
+    // Without sign-in (mock data) the manager has no managed ids, but is the owner.
+    const canEdit = (id: string) => isCompanyAdmin || manager.managedLocationIDs.includes(id)
 
-    const [showForm, setShowForm] = useState(false);
-    const [editingLocation, setEditingLocation] = useState<Location | null>(null);
-    const [localSearchTerm, setLocalSearchTerm] = useState('');
-    const [filters, setFilters] = useState({
-        status: '', // active, inactive, all
-        hasEquipment: false
-    });
-    const [showFilters, setShowFilters] = useState(false);
-    const [actionError, setActionError] = useState<string | null>(null);
-    const [gripLocation, setGripLocation] = useState<Location | null>(null);
-
-    const effectiveSearchTerm = searchTerm || localSearchTerm;
-
-    // Filter locations
-    const filteredLocations = useMemo(() => {
-        return locations.filter(location => {
-            // Text search
-            const matchesSearch = !effectiveSearchTerm ||
-                location.name.toLowerCase().includes(effectiveSearchTerm.toLowerCase()) ||
-                location.address?.toLowerCase().includes(effectiveSearchTerm.toLowerCase()) ||
-                location.phone?.toLowerCase().includes(effectiveSearchTerm.toLowerCase());
-
-            // Status filter
-            const matchesStatus = !filters.status ||
-                (filters.status === 'active' && location.active) ||
-                (filters.status === 'inactive' && !location.active);
-
-            // Equipment filter
-            const matchesEquipment = !filters.hasEquipment ||
-                (location.equipmentInfo?.equipment && location.equipmentInfo.equipment.length > 0);
-
-            return matchesSearch && matchesStatus && matchesEquipment;
-        });
-    }, [locations, effectiveSearchTerm, filters]);
-
-    const getLocationStatistics = (locationId: string) => {
-        // Use the hook's built-in stats method
-        return getLocationStats(locationId);
-    };
-
-    const handleSave = async (locationData: Omit<Location, 'id' | 'createdAt' | 'updatedAt'>) => {
-        try {
-            if (editingLocation) {
-                await updateLocation(editingLocation.id, locationData);
-            } else {
-                await addLocation(locationData);
-            }
-            setActionError(null);
-            setShowForm(false);
-            setEditingLocation(null);
-        } catch (error) {
-            setActionError(`Could not save the location: ${(error as Error).message}`);
-        }
-    };
-
-    const handleEdit = (location: Location) => {
-        setEditingLocation(location);
-        setShowForm(true);
-    };
-
-    const handleDelete = async (locationId: string) => {
-        if (window.confirm('Are you sure you want to delete this location? This action cannot be undone.')) {
-            try {
-                await deleteLocation(locationId);
-                setActionError(null);
-            } catch (error) {
-                setActionError((error as Error).message);
-            }
-        }
-    };
-
-    const handleToggleActive = async (locationId: string, active: boolean) => {
-        try {
-            await updateLocation(locationId, { active });
-            setActionError(null);
-        } catch (error) {
-            setActionError(`Could not update the location: ${(error as Error).message}`);
-        }
-    };
-
-    const clearFilters = () => {
-        setFilters({
-            status: '',
-            hasEquipment: false
-        });
-        setLocalSearchTerm('');
-    };
-
-    const hasActiveFilters = filters.status || filters.hasEquipment || localSearchTerm;
-
-    if (loading) {
-        return <div className="flex justify-center py-8">Loading locations...</div>;
+    const open = locations.find(l => l.id === openId)
+    if (open) {
+        return (
+            <LocationDetail location={open} companySettings={companySettings} canEdit={canEdit(open.id)} canActivate={isCompanyAdmin}
+                onUpdate={changes => updateLocation(open.id, changes)} onBack={() => setOpenId(null)} />
+        )
     }
 
-    if (gripLocation) {
-        return <LocationGripStock location={gripLocation} onBack={() => setGripLocation(null)} />;
-    }
+    const term = searchTerm.trim().toLowerCase()
+    const shown = locations
+        .filter(l => !term || [l.name, l.phone, l.address?.line1, l.address?.city].some(v => v?.toLowerCase().includes(term)))
+        .sort((a, b) => Number(b.active) - Number(a.active) || a.name.localeCompare(b.name))
 
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
+        <div className="grid gap-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Location Management</h1>
-                    <p className="text-gray-600">Manage your pro shop locations and equipment</p>
+                    <h1 className="text-2xl font-bold text-gray-900">Locations</h1>
+                    <p className="text-gray-600">Your pro shops: hours, equipment, what each carries, and settings.</p>
                 </div>
-                <Button onClick={() => setShowForm(true)}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Location
-                </Button>
+                {isCompanyAdmin && <Button onClick={() => setAdding(true)}><Plus data-icon="inline-start" /> Add location</Button>}
             </div>
-
-            {actionError && (
-                <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-800">{actionError}</p>
+            {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
+            {loading ? (
+                <p className="py-8 text-center text-gray-500">Loading locations…</p>
+            ) : shown.length === 0 ? (
+                <p className="py-8 text-center text-gray-500">{locations.length === 0 ? 'No locations yet.' : 'No locations match.'}</p>
+            ) : (
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                    {shown.map(l => <LocationCard key={l.id} location={l} onOpen={() => setOpenId(l.id)} />)}
+                </div>
             )}
-
-            {/* Stats */}
-            <LocationStats locations={locations} />
-
-            {/* Search and Filters */}
-            <div className="bg-white rounded-lg border p-6">
-                <div className="flex items-center space-x-4 mb-4">
-                    <div className="flex-1">
-                        <Input
-                            placeholder="Search locations..."
-                            value={localSearchTerm}
-                            onChange={setLocalSearchTerm}
-                            className="w-full"
-                        />
-                    </div>
-                    <Button
-                        variant="secondary"
-                        onClick={() => setShowFilters(!showFilters)}
-                        className={showFilters ? 'bg-blue-50 text-blue-600' : ''}
-                    >
-                        <Filter className="w-4 h-4 mr-2" />
-                        Filters
-                        {hasActiveFilters && (
-                            <span className="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
-                                {Object.values(filters).filter(Boolean).length + (localSearchTerm ? 1 : 0)}
-                            </span>
-                        )}
-                    </Button>
-                </div>
-
-                {showFilters && (
-                    <div className="border-t pt-4">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Status
-                                </label>
-                                <select
-                                    value={filters.status}
-                                    onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="">All Locations</option>
-                                    <option value="active">Active Only</option>
-                                    <option value="inactive">Inactive Only</option>
-                                </select>
-                            </div>
-                            <div className="flex items-center pt-6">
-                                <input
-                                    type="checkbox"
-                                    id="hasEquipment"
-                                    checked={filters.hasEquipment}
-                                    onChange={(e) => setFilters(prev => ({ ...prev, hasEquipment: e.target.checked }))}
-                                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                                />
-                                <label htmlFor="hasEquipment" className="ml-2 text-sm text-gray-900">
-                                    Has Equipment
-                                </label>
-                            </div>
-                            <div className="flex items-end">
-                                {hasActiveFilters && (
-                                    <Button
-                                        variant="secondary"
-                                        onClick={clearFilters}
-                                        className="text-sm"
-                                    >
-                                        Clear All
-                                    </Button>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Results Summary */}
-                {filteredLocations.length !== locations.length && (
-                    <div className="text-sm text-gray-600 mt-4">
-                        Showing {filteredLocations.length} of {locations.length} locations
-                    </div>
-                )}
-            </div>
-
-            {/* Location List */}
-            <LocationList
-                locations={filteredLocations}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onToggleActive={handleToggleActive}
-                onManageGrips={setGripLocation}
-                getLocationStats={getLocationStatistics}
-                companySettings={companySettings}
-            />
-
-            {/* Location Form Modal */}
-            {showForm && (
-                <LocationForm
-                    location={editingLocation || undefined}
-                    onSave={handleSave}
-                    onCancel={() => {
-                        setShowForm(false);
-                        setEditingLocation(null);
+            {adding && (
+                <LocationProfileDialog location={null}
+                    onSave={async profile => {
+                        const created = await addLocation({ companyID: '', active: true, ...profile, timezone: profile.timezone })
+                        setOpenId(created.id)
                     }}
-                    companyID={companyID}
-                    companySettings={companySettings}
-                />
+                    onClose={() => setAdding(false)} />
             )}
         </div>
-    );
-};
+    )
+}

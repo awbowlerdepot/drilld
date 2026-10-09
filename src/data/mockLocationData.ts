@@ -1,12 +1,16 @@
+import { locationHoursSchema } from '../../shared/api/locationHours';
 import { Location } from '../types';
 
-// Location mock data
-export const mockLocations: Location[] = [
+// Location mock data. Hours are written the old way (free text per day) and
+// read through the same upgrade the API uses.
+type MockLocation = Omit<Location, 'hours'> & { hours?: Record<string, string> };
+
+const rawLocations: MockLocation[] = [
     {
         id: '1',
         companyID: 'company1',
         name: 'Main Location - Downtown',
-        address: '123 Bowling Lane, Downtown City, ST 12345',
+        address: { line1: '123 Bowling Lane', city: 'Downtown City', region: 'ST', postalCode: '12345', line2: null, country: 'US' },
         phone: '(555) 123-4567',
         equipmentInfo: {
             equipment: [
@@ -58,7 +62,7 @@ export const mockLocations: Location[] = [
         id: '2',
         companyID: 'company1',
         name: 'Westside Branch',
-        address: '456 Strike Street, Westside, ST 12346',
+        address: { line1: '456 Strike Street', city: 'Westside', region: 'ST', postalCode: '12346', line2: null, country: 'US' },
         phone: '(555) 234-5678',
         equipmentInfo: {
             equipment: [
@@ -108,7 +112,7 @@ export const mockLocations: Location[] = [
         id: '3',
         companyID: 'company1',
         name: 'Mobile Service Unit',
-        address: 'Various tournament locations',
+        address: { line1: 'Various tournament locations', city: '', region: '', postalCode: '', line2: null, country: 'US' },
         phone: '(555) 345-6789',
         equipmentInfo: {
             equipment: [
@@ -153,7 +157,7 @@ export const mockLocations: Location[] = [
         id: '4',
         companyID: 'company1',
         name: 'Eastside Location',
-        address: '789 Spare Avenue, Eastside, ST 12347',
+        address: { line1: '789 Spare Avenue', city: 'Eastside', region: 'ST', postalCode: '12347', line2: null, country: 'US' },
         phone: '(555) 456-7890',
         equipmentInfo: {
             equipment: [
@@ -191,7 +195,7 @@ export const mockLocations: Location[] = [
         id: '5',
         companyID: 'company1',
         name: 'North Valley Pro Shop',
-        address: '321 Pin Lane, North Valley, ST 12348',
+        address: { line1: '321 Pin Lane', city: 'North Valley', region: 'ST', postalCode: '12348', line2: null, country: 'US' },
         phone: '(555) 567-8901',
         equipmentInfo: {
             equipment: [
@@ -233,3 +237,9 @@ export const mockLocations: Location[] = [
         updatedAt: '2024-01-25T11:20:00Z'
     }
 ];
+
+export const mockLocations: Location[] = rawLocations.map(({ hours, ...location }) => ({
+    ...location,
+    timezone: location.timezone ?? 'America/Denver',
+    hours: hours ? locationHoursSchema.parse(hours) : undefined
+}));

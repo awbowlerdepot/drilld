@@ -34,7 +34,7 @@ The agreed backend design (Postgres schema, tenant isolation, ball registry, dri
 - `src/utils/` — pure helpers:
   - `InsertValidation.ts` — finger insert validation
   - `LocationSettings.ts` — company settings plus location overrides
-  - `LocationHours.ts` — today's hours, open/closed
+  - `LocationHours.ts` — open now, today's hours and the weekly summary, in the location's time zone
   - `EmployeeRoles.ts` — roles and derived permissions
   - `Fractions.ts` — formats 32nds ("4-3/8+"), 64ths and readout decimals
   - `DrillReadouts.ts` — pitch centers, thumb and finger oval cuts, and drill press readout signs
@@ -147,6 +147,7 @@ Look for incorrect imports, circular dependencies, and unnecessary complexity.
     - `GET /locations`: list.
     - `POST /locations`: add one; company owners and admins only; the plan limit of 4 active locations returns 409.
     - `PATCH /locations/:id`: edit or deactivate; needs `manage:settings` there. Locations are never deleted.
+    - Address and hours are structured (`shared/api/locationHours.ts`: weekly intervals, special dates, temporarily closed), for syncing to listings. Settings → Locations shows each location's profile, hours, equipment, what it carries and settings.
   - employees:
     - `GET /employees`: list (needs `read:employees`; the hourly rate only for owners and admins).
     - `POST /employees`: add one and email the Cognito invitation.

@@ -295,6 +295,7 @@ export interface Location {
   address: Json | null;
   company_id: string;
   created_at: Generated<Timestamp>;
+  email: string | null;
   equipment: Generated<Json>;
   hours: Json | null;
   id: Generated<string>;
@@ -303,6 +304,7 @@ export interface Location {
   settings_overrides: Generated<Json>;
   timezone: string;
   updated_at: Generated<Timestamp>;
+  website: string | null;
 }
 
 export interface LocationGripStock {

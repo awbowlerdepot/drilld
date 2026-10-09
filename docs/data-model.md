@@ -94,10 +94,12 @@ create table location (
     id                 uuid primary key default gen_random_uuid(),
     company_id         uuid not null references company(id),
     name               text not null,
-    address            jsonb,
+    address            jsonb,                         -- {line1, line2, city, region, postalCode, country}
     phone              text,
+    email              text,
+    website            text,
     timezone           text not null,
-    hours              jsonb,
+    hours              jsonb,                         -- {weekly: {monday: [{open, close}]…}, special: [{date, closed, intervals, note}], temporarilyClosed}
     equipment          jsonb not null default '[]',  -- [{name, model, manufacturer, serialNumber, condition}]
     settings_overrides jsonb not null default '{}',  -- overrides company.settings
     active             boolean not null default true,
@@ -137,6 +139,18 @@ create table location_membership (
 ```
 
 **Location limit.** A trigger on `location` enforces it in the database. Creating or re-activating a location locks the company row (`select ... for update`), counts active locations and rejects the change if the count would exceed `plan.included_locations`.
+
+### Location hours and listings
+
+A location's address and hours are structured the way listing platforms take them (`shared/api/locationHours.ts`), so they can be synced:
+
+- **Weekly hours:** per weekday, up to four `HH:MM` intervals in the location's time zone (a split day, or a lunch break). A close at or before the open time runs past midnight (Fri 09:00–01:00). Overlaps are refused. No intervals = closed.
+- **Special dates:** a date that's closed (a holiday) or has its own intervals, with a note ("Christmas"). They replace the weekly hours that day. The app offers the usual US holidays in one tap.
+- **Temporarily closed:** closed until further notice.
+- "Open now", today's hours and the weekly summary are worked out in the location's time zone (`src/utils/LocationHours.ts`).
+- The old one-line address and free-text hours ("9:00 AM - 9:00 PM") are upgraded when read (migration 0017 only adds `email` and `website`).
+
+**Listing sync (planned):** Google Business Profile (regular and special hours, through Google's Business Profile API, which needs an approved Google Cloud project and each profile's owner connecting it) and Facebook/Instagram page hours (a Meta app; the page admin connects the page). Apple Business Connect's API is for approved partners and Yelp has no public way to update hours, so for those Drilld will show what changed and where to update it, unless a listings service (Yext, Uberall) is used.
 
 ### Customers
 

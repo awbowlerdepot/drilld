@@ -79,7 +79,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ searchTerm, employee
             case 'employees':
                 return <EmployeeManagement searchTerm={searchTerm} manager={employeeManager} />;
             case 'locations':
-                return <LocationManagement searchTerm={searchTerm} companyID="company1" />;
+                return <LocationManagement searchTerm={searchTerm} manager={employeeManager} />;
             case 'company':
                 return <CompanySettingsManagement />;
             case 'notifications':
