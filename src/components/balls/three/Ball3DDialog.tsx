@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { cn } from '@/lib/utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { CatalogBallDto } from '../../../../shared/api/balls'
 import type { DrillSheetDto } from '../../../../shared/api/drillSheets'
@@ -51,7 +52,7 @@ export const Ball3DDialog = ({ ball, solved, hand, owner, onClose }: Ball3DDialo
     const sheet = sheets.find(s => s.id === sheetId) ?? null
     const grip = useMemo(() => placeGrip(gripFromSheet(sheet?.currentRevision?.spec ?? null, hand, owner?.usesThumb ?? true)), [sheet, hand, owner])
     const pearl = /pearl/i.test(ball.coverstock?.type ?? '') || /pearl/i.test(ball.coverstock?.name ?? '')
-    const polished = /polish|compound|shine/i.test(ball.finish ?? '')
+    const [polished, setPolished] = useState(false)
 
     return (
         <Dialog open onOpenChange={open => { if (!open) onClose() }}>
@@ -69,6 +70,15 @@ export const Ball3DDialog = ({ ball, solved, hand, owner, onClose }: Ball3DDialo
                             <SelectItem value={NONE}>None (a standard grip)</SelectItem>
                         </SelectContent>
                     </Select>
+                    <div role="radiogroup" aria-label="Finish" className="ml-auto flex gap-1">
+                        {([['Matte', false], ['Polished', true]] as const).map(([label, value]) => (
+                            <button key={label} type="button" role="radio" aria-checked={polished === value} onClick={() => setPolished(value)}
+                                className={cn('rounded-full border px-3 py-1 text-sm transition-colors',
+                                    polished === value ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-white hover:bg-muted')}>
+                                {label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
                 <div className="relative h-[min(62vh,560px)] min-h-72 w-full overflow-hidden rounded-xl bg-gradient-to-b from-gray-100 to-gray-300">
                     <Suspense fallback={<p className="flex h-full items-center justify-center text-sm text-gray-500">Loading the 3D view…</p>}>

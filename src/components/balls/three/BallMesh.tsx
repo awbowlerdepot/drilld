@@ -7,7 +7,7 @@ interface BallMeshProps {
     texture: Texture
     /** The openings cut in the surface: direction (unit) and angular radius (radians). */
     openings: { direction: [number, number, number]; angle: number }[]
-    /** A polished cover is glossy; sanded ones are duller. */
+    /** Polished: a soft shine. Otherwise matte, like a sanded cover. */
     polished: boolean
 }
 
@@ -25,10 +25,11 @@ export const BallMesh = forwardRef<Mesh, BallMeshProps>(({ texture, openings, po
     const material = useMemo(() => {
         const m = new MeshPhysicalMaterial({
             map: texture,
-            roughness: polished ? 0.18 : 0.5,
-            clearcoat: polished ? 1 : 0.35,
-            clearcoatRoughness: polished ? 0.04 : 0.35,
-            sheen: 0.15
+            roughness: polished ? 0.32 : 0.78,
+            clearcoat: polished ? 0.45 : 0,
+            clearcoatRoughness: polished ? 0.22 : 1,
+            sheen: polished ? 0.1 : 0.35,
+            sheenRoughness: 0.8
         })
         m.onBeforeCompile = shader => {
             shader.uniforms.holeDir = uniforms.holeDir
