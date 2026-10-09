@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import {
-    ballLayoutWriteSchema, papReference, solveBallLayout,
+    ballLayoutWriteSchema, solveBallLayout,
     type BallLayout, type BallLayoutDto, type BallLayoutWrite, type LayoutSystem
 } from '../../../../shared/api/ballLayouts'
 import { LayoutError, QUARTER_ROUND, fromReference } from '../../../../shared/layout/ballLayout'
@@ -17,7 +17,8 @@ import { DetailRow } from '../../pickers/DetailRow'
 import { LengthPickerDialog } from '../../pickers/LengthPickerDialog'
 import { NumberPickerDialog } from '../../pickers/NumberPickerDialog'
 import type { LengthPickerRequest, NumberPickerRequest } from '../../pickers/pickerRequests'
-import { LayoutDiagram } from './LayoutDiagram'
+import { useBallGrip } from '../../../hooks/useBallGrip'
+import { BallView3D } from '../three/BallView3D'
 
 interface LayoutDialogProps {
     /** The ball's pin to MB (inches), when measured. */
@@ -69,6 +70,7 @@ export const LayoutDialog = ({ psaDistance, symmetric, owner, existing, previous
     const [drilledOn, setDrilledOn] = useState(existing?.drilledOn ?? today())
     const [notes, setNotes] = useState(existing?.notes ?? '')
     const [picker, setPicker] = useState<Picker | null>(null)
+    const { grip } = useBallGrip(owner, hand)
     const [saving, setSaving] = useState(false)
     const [formError, setFormError] = useState<string | null>(null)
 
@@ -253,7 +255,7 @@ export const LayoutDialog = ({ psaDistance, symmetric, owner, existing, previous
 
                         <div className="grid content-start">
                             {result.solved
-                                ? <LayoutDiagram solved={result.solved} hand={hand} reference={papReference(system)} className="w-full" />
+                                ? <BallView3D className="aspect-square w-full" solved={result.solved} hand={hand} grip={grip} polished={false} systems={[system]} />
                                 : <div className="flex aspect-square items-center justify-center rounded-full border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500">The layout shows here once the numbers and the PAP are in.</div>}
                         </div>
                     </div>

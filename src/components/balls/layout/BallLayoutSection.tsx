@@ -2,12 +2,13 @@ import { useState } from 'react'
 import { Box, Pencil, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { BallDetailDto } from '../../../../shared/api/balls'
-import { papReference, solveBallLayout, type BallLayoutDto, type BallLayoutWrite } from '../../../../shared/api/ballLayouts'
+import { solveBallLayout, type BallLayoutDto, type BallLayoutWrite } from '../../../../shared/api/ballLayouts'
 import type { Customer } from '../../../types'
 import { LAYOUT_SYSTEM_LABELS, describeLayout, describeNumbers, otherSystems } from '../../../utils/BallLayoutFormat'
+import { useBallGrip } from '../../../hooks/useBallGrip'
 import { Ball3DDialog } from '../three/Ball3DDialog'
+import { BallView3D } from '../three/BallView3D'
 import { LayoutDialog } from './LayoutDialog'
-import { LayoutDiagram } from './LayoutDiagram'
 
 interface BallLayoutSectionProps {
     ball: BallDetailDto
@@ -26,6 +27,7 @@ const day = (date: string) => new Date(`${date}T12:00:00Z`).toLocaleDateString(u
 export const BallLayoutSection = ({ ball, owner, canEdit, onAdd, onUpdate, onDelete, onSaveBowlerPap }: BallLayoutSectionProps) => {
     const [editing, setEditing] = useState<BallLayoutDto | 'new' | null>(null)
     const [showing3d, setShowing3d] = useState(false)
+    const { grip } = useBallGrip(owner, ball.layouts[0]?.layout.hand ?? owner?.dominantHand ?? 'RIGHT')
     const current = ball.layouts[0] ?? null
     const solved = current ? solveBallLayout(current.layout) : null
 
@@ -57,7 +59,10 @@ export const BallLayoutSection = ({ ball, owner, canEdit, onAdd, onUpdate, onDel
                             {canEdit && <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(current)}><Pencil data-icon="inline-start" /> Edit</Button>}
                         </div>
                     </div>
-                    <LayoutDiagram solved={solved} hand={current.layout.hand} reference={papReference(current.layout.system)} className="w-40 justify-self-center" />
+                    <button type="button" aria-label="Open the 3D view" onClick={() => setShowing3d(true)}
+                        className="justify-self-center rounded-xl outline-offset-2 transition hover:ring-2 hover:ring-primary focus-visible:outline-2 focus-visible:outline-primary">
+                        <BallView3D compact className="size-40" solved={solved} hand={current.layout.hand} grip={grip} polished={false} systems={[current.layout.system]} />
+                    </button>
                 </div>
             )}
             {ball.layouts.length > 1 && (

@@ -60,9 +60,6 @@ export const ballLayoutSchema = z.discriminatedUnion('system', [
 
 export type BallLayout = z.infer<typeof ballLayoutSchema>;
 
-/** Where the layout's PAP is measured from: the center of grip, or the center of the bridge (2LS). */
-export const papReference = (system: LayoutSystem) => (system === 'TWO_LS' ? 'BRIDGE_CENTER' : 'GRIP_CENTER');
-
 /** The layout placed on the ball, with its numbers in every system (inches, degrees). */
 export const solveBallLayout = (layout: BallLayout): SolvedLayout => {
     const input: LayoutInput = layout.system === 'DUAL_ANGLE'
