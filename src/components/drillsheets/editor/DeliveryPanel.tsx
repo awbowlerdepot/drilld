@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button'
 import type { Delivery } from '../../../../shared/api/delivery'
 import { format32 } from '../../../utils/Fractions'
-import { DetailRow } from './DetailRow'
+import { DetailRow } from '../../pickers/DetailRow'
 import { usePicker, type NumberPickerRequest } from './pickers'
 import type { SheetEditProps } from './editorTypes'
 

@@ -11,8 +11,12 @@ import {
 } from '../../../../shared/api/ballLayouts'
 import { LayoutError, QUARTER_ROUND, fromReference } from '../../../../shared/layout/ballLayout'
 import type { Customer } from '../../../types'
-import { LAYOUT_SYSTEM_LABELS, describeNumbers, layoutInches, otherSystems } from '../../../utils/BallLayoutFormat'
-import { format32, parseInches } from '../../../utils/Fractions'
+import { LAYOUT_SYSTEM_LABELS, describeNumbers, layoutDegrees, layoutInches, otherSystems } from '../../../utils/BallLayoutFormat'
+import { format32 } from '../../../utils/Fractions'
+import { DetailRow } from '../../pickers/DetailRow'
+import { LengthPickerDialog } from '../../pickers/LengthPickerDialog'
+import { NumberPickerDialog } from '../../pickers/NumberPickerDialog'
+import type { LengthPickerRequest, NumberPickerRequest } from '../../pickers/pickerRequests'
 import { LayoutDiagram } from './LayoutDiagram'
 
 interface LayoutDialogProps {
@@ -26,60 +30,66 @@ interface LayoutDialogProps {
     /** The ball's latest layout: a new drilling starts from its system and PAP. */
     previous: BallLayoutDto | null
     onSave: (input: BallLayoutWrite) => Promise<void>
+    /** Saves a PAP entered here to the bowler's profile (when it had none). */
+    onSaveBowlerPap?: (pap: { over32: number; up32: number }) => Promise<void>
     onClose: () => void
 }
 
 const today = () => new Date().toLocaleDateString('en-CA')
-const text32 = (value: number | null | undefined) => (value == null ? '' : format32(value).replace('−', ''))
-const to32 = (text: string) => { const inches = parseInches(text); return inches == null ? null : Math.round(inches * 32) }
-const toDegrees = (text: string) => (text.trim() && Number.isFinite(Number(text)) ? Math.round(Number(text) * 2) / 2 : null)
+const SYMMETRIC_PSA_32 = QUARTER_ROUND * 32
+
+type Picker = LengthPickerRequest | NumberPickerRequest
 
 /**
- * Enter one drilling's layout in the system the driller works in. The other
- * systems' numbers, where the pin and PSA sit from the grip, and the diagram
- * follow as it's typed; a layout that can't exist on this ball says why.
+ * Enter one drilling's layout in the system the driller works in, tapping
+ * each measurement like on the drill sheet. The other systems' numbers, where
+ * the pin and PSA sit from the grip, and the diagram follow; a layout that
+ * can't exist on this ball says why.
  */
-export const LayoutDialog = ({ psaDistance, symmetric, owner, existing, previous, onSave, onClose }: LayoutDialogProps) => {
+export const LayoutDialog = ({ psaDistance, symmetric, owner, existing, previous, onSave, onSaveBowlerPap, onClose }: LayoutDialogProps) => {
     const start = existing?.layout ?? previous?.layout ?? null
+    const was = existing?.layout
     const [system, setSystem] = useState<LayoutSystem>(start?.system ?? 'PIN_BUFFER')
-    const [pinToPap, setPinToPap] = useState(text32(existing?.layout.pinToPap32))
-    const [psaToPap, setPsaToPap] = useState(existing && existing.layout.system !== 'DUAL_ANGLE' ? text32(existing.layout.psaToPap32) : '')
-    const [pinBuffer, setPinBuffer] = useState(existing?.layout.system === 'PIN_BUFFER' ? text32(existing.layout.pinBuffer32) : '')
-    const [pinToCog, setPinToCog] = useState(existing?.layout.system === 'TWO_LS' ? text32(existing.layout.pinToCog32) : '')
-    const [drillingAngle, setDrillingAngle] = useState(existing?.layout.system === 'DUAL_ANGLE' ? String(existing.layout.drillingAngle) : '')
-    const [valAngle, setValAngle] = useState(existing?.layout.system === 'DUAL_ANGLE' ? String(existing.layout.valAngle) : '')
-    const startPap = start?.pap ?? (owner?.delivery?.papOver32 != null ? { over32: owner.delivery.papOver32, up32: owner.delivery.papUp32 ?? 0 } : null)
-    const [papOver, setPapOver] = useState(text32(startPap?.over32))
-    const [papUp, setPapUp] = useState(text32(startPap ? Math.abs(startPap.up32) : null))
-    const [papDown, setPapDown] = useState((startPap?.up32 ?? 0) < 0)
-    const [psaDistanceText, setPsaDistanceText] = useState(text32(existing?.layout.psaDistance32 ?? (symmetric ? null : psaDistance != null ? Math.round(psaDistance * 32) : null)))
-    const [hand, setHand] = useState<'RIGHT' | 'LEFT'>(existing?.layout.hand ?? owner?.dominantHand ?? 'RIGHT')
+    const [pinToPap32, setPinToPap32] = useState<number | null>(was?.pinToPap32 ?? null)
+    const [psaToPap32, setPsaToPap32] = useState<number | null>(was && was.system !== 'DUAL_ANGLE' ? was.psaToPap32 : null)
+    const [pinBuffer32, setPinBuffer32] = useState<number | null>(was?.system === 'PIN_BUFFER' ? was.pinBuffer32 : null)
+    const [pinToCog32, setPinToCog32] = useState<number | null>(was?.system === 'TWO_LS' ? was.pinToCog32 : null)
+    const [drillingAngle, setDrillingAngle] = useState<number | null>(was?.system === 'DUAL_ANGLE' ? was.drillingAngle : null)
+    const [valAngle, setValAngle] = useState<number | null>(was?.system === 'DUAL_ANGLE' ? was.valAngle : null)
+    // The PAP is the bowler's: a new layout takes it from their profile. A drilling being corrected keeps the PAP it was drilled to.
+    const profilePap = owner?.delivery?.papOver32 != null ? { over32: owner.delivery.papOver32, up32: owner.delivery.papUp32 ?? 0 } : null
+    const startPap = was?.pap ?? profilePap ?? previous?.layout.pap ?? null
+    const [papOver32, setPapOver32] = useState<number | null>(startPap?.over32 ?? null)
+    const [papUp32, setPapUp32] = useState<number | null>(startPap?.up32 ?? null)
+    const [papEditing, setPapEditing] = useState(!startPap || (!!was && (!profilePap || was.pap.over32 !== profilePap.over32 || was.pap.up32 !== profilePap.up32)))
+    const [savePapToProfile, setSavePapToProfile] = useState(!profilePap && !!owner && !!onSaveBowlerPap)
+    const usingProfilePap = !!profilePap && papOver32 === profilePap.over32 && (papUp32 ?? 0) === profilePap.up32
+    const [psaDistance32, setPsaDistance32] = useState<number | null>(was?.psaDistance32 ?? (psaDistance != null ? Math.round(psaDistance * 32) : null))
+    const [hand, setHand] = useState<'RIGHT' | 'LEFT'>(was?.hand ?? owner?.dominantHand ?? 'RIGHT')
     const [drilledOn, setDrilledOn] = useState(existing?.drilledOn ?? today())
     const [notes, setNotes] = useState(existing?.notes ?? '')
+    const [picker, setPicker] = useState<Picker | null>(null)
     const [saving, setSaving] = useState(false)
     const [formError, setFormError] = useState<string | null>(null)
 
     const dual = system === 'DUAL_ANGLE'
+    const mb32 = symmetric ? SYMMETRIC_PSA_32 : psaDistance32 ?? SYMMETRIC_PSA_32
 
-    // The layout as typed so far, and where it puts everything (or why it can't be).
+    // The layout as entered so far, and where it puts everything (or why it can't be).
     const result = useMemo((): { layout: BallLayout | null; solved: ReturnType<typeof solveBallLayout> | null; error: string | null } => {
-        const over32 = to32(papOver), up32 = papUp.trim() ? to32(papUp) : 0, pin32 = to32(pinToPap)
-        const psaDist32 = symmetric || !psaDistanceText.trim() ? QUARTER_ROUND * 32 : to32(psaDistanceText)
-        if (over32 == null || up32 == null || pin32 == null || psaDist32 == null) return { layout: null, solved: null, error: null }
-        const common = { pinToPap32: pin32, pap: { over32, up32: papDown ? -up32 : up32 }, hand, psaDistance32: psaDist32, layoutSchemaVersion: 1 as const }
+        const none = { layout: null, solved: null, error: null }
+        if (papOver32 == null || pinToPap32 == null) return none
+        const common = { pinToPap32, pap: { over32: papOver32, up32: papUp32 ?? 0 }, hand, psaDistance32: mb32, layoutSchemaVersion: 1 as const }
         let layout: BallLayout
         if (dual) {
-            const da = toDegrees(drillingAngle), va = toDegrees(valAngle)
-            if (da == null || va == null) return { layout: null, solved: null, error: null }
-            layout = { system: 'DUAL_ANGLE', ...common, drillingAngle: da, valAngle: va }
+            if (drillingAngle == null || valAngle == null) return none
+            layout = { system: 'DUAL_ANGLE', ...common, drillingAngle, valAngle }
         } else if (system === 'TWO_LS') {
-            const c32 = to32(pinToCog), p32 = to32(psaToPap)
-            if (c32 == null || p32 == null) return { layout: null, solved: null, error: null }
-            layout = { system, ...common, pinToCog32: c32, psaToPap32: p32 }
+            if (pinToCog32 == null || psaToPap32 == null) return none
+            layout = { system, ...common, pinToCog32, psaToPap32 }
         } else {
-            const p32 = to32(psaToPap), b32 = to32(pinBuffer)
-            if (p32 == null || b32 == null) return { layout: null, solved: null, error: null }
-            layout = { system, ...common, psaToPap32: p32, pinBuffer32: b32 }
+            if (psaToPap32 == null || pinBuffer32 == null) return none
+            layout = { system, ...common, psaToPap32, pinBuffer32 }
         }
         try {
             return { layout, solved: solveBallLayout(layout), error: null }
@@ -87,17 +97,18 @@ export const LayoutDialog = ({ psaDistance, symmetric, owner, existing, previous
             if (err instanceof LayoutError) return { layout, solved: null, error: err.message }
             throw err
         }
-    }, [system, dual, pinToPap, psaToPap, pinBuffer, pinToCog, drillingAngle, valAngle, papOver, papUp, papDown, psaDistanceText, symmetric, hand])
+    }, [system, dual, pinToPap32, psaToPap32, pinBuffer32, pinToCog32, drillingAngle, valAngle, papOver32, papUp32, mb32, hand])
 
     const save = async (event: React.FormEvent) => {
         event.preventDefault()
-        if (!result.layout) { setFormError('Fill in the layout and the PAP'); return }
+        if (!result.layout) { setFormError('Enter the layout and the PAP'); return }
         const input: BallLayoutWrite = { drilledOn, layout: result.layout, notes }
         const parsed = ballLayoutWriteSchema.safeParse(input)
         if (!parsed.success) { setFormError(parsed.error.issues[0]?.message ?? 'Check the layout'); return }
         setSaving(true)
         setFormError(null)
         try {
+            if (savePapToProfile && !profilePap && onSaveBowlerPap) await onSaveBowlerPap(result.layout.pap)
             await onSave(input)
             onClose()
         } catch (err) {
@@ -114,14 +125,18 @@ export const LayoutDialog = ({ psaDistance, symmetric, owner, existing, previous
         return `${vertical}, ${across}`
     }
 
-    const numberInput = (id: string, label: string, value: string, set: (v: string) => void, placeholder: string, unit: 'in' | '°') => (
-        <Field>
-            <FieldLabel htmlFor={id}>{label}</FieldLabel>
-            <Input id={id} value={value} placeholder={placeholder} inputMode="decimal" autoComplete="off" className="font-mono" aria-describedby={`${id}-unit`}
-                onChange={event => set(event.target.value)} />
-            <span id={`${id}-unit`} className="sr-only">{unit === 'in' ? 'inches' : 'degrees'}</span>
-        </Field>
+    /** A tappable length in 32nds. */
+    const length = (label: string, value: number | null, set: (v: number | null) => void, wholes: number[], description?: string) => (
+        <DetailRow stacked readOnly={false} label={label} value={value != null ? `${format32(value)}″` : null}
+            onClick={() => setPicker({ kind: 'length32', title: label, description, wholes, value, onSet: set })} />
     )
+    /** A tappable angle in degrees. */
+    const angle = (label: string, value: number | null, set: (v: number | null) => void, max: number) => (
+        <DetailRow stacked readOnly={false} label={label} value={value != null ? layoutDegrees(value) : null}
+            onClick={() => setPicker({ kind: 'number', title: label, unit: 'Degrees', min: 0, max, step: 0.5, value, onSet: set })} />
+    )
+    const upText = (up32: number) => (up32 === 0 ? 'level' : `${format32(Math.abs(up32))}″ ${up32 > 0 ? 'up' : 'down'}`)
+    const upLabel = papUp32 == null ? null : papUp32 === 0 ? '0' : upText(papUp32)
 
     return (
         <Dialog open onOpenChange={open => { if (!open) onClose() }}>
@@ -144,38 +159,60 @@ export const LayoutDialog = ({ psaDistance, symmetric, owner, existing, previous
 
                     <div className="grid gap-4 md:grid-cols-[1fr_minmax(0,300px)]">
                         <div className="grid content-start gap-4">
-                            <div className="grid grid-cols-3 gap-3">
+                            <div className="grid grid-cols-3 gap-2">
                                 {dual ? <>
-                                    {numberInput('layout-da', 'Drilling angle °', drillingAngle, setDrillingAngle, '60', '°')}
-                                    {numberInput('layout-pin', 'Pin to PAP', pinToPap, setPinToPap, '4', 'in')}
-                                    {numberInput('layout-val', 'VAL angle °', valAngle, setValAngle, '30', '°')}
+                                    {angle('Drilling angle', drillingAngle, setDrillingAngle, 180)}
+                                    {length('Pin to PAP', pinToPap32, setPinToPap32, [0, 1, 2, 3, 4, 5, 6])}
+                                    {angle('VAL angle', valAngle, setValAngle, 90)}
                                 </> : system === 'TWO_LS' ? <>
-                                    {numberInput('layout-pin', 'Pin to PAP', pinToPap, setPinToPap, '5', 'in')}
-                                    {numberInput('layout-cog', 'Pin to COG', pinToCog, setPinToCog, '4', 'in')}
-                                    {numberInput('layout-psa', 'PSA to PAP', psaToPap, setPsaToPap, '3 1/2', 'in')}
+                                    {length('Pin to PAP', pinToPap32, setPinToPap32, [0, 1, 2, 3, 4, 5, 6])}
+                                    {length('Pin to COG', pinToCog32, setPinToCog32, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], 'Pin to the center of grip (the center of the bridge)')}
+                                    {length('PSA to PAP', psaToPap32, setPsaToPap32, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9])}
                                 </> : <>
-                                    {numberInput('layout-pin', 'Pin to PAP', pinToPap, setPinToPap, '5', 'in')}
-                                    {numberInput('layout-psa', 'PSA to PAP', psaToPap, setPsaToPap, '4', 'in')}
-                                    {numberInput('layout-buffer', 'Pin buffer', pinBuffer, setPinBuffer, '2', 'in')}
+                                    {length('Pin to PAP', pinToPap32, setPinToPap32, [0, 1, 2, 3, 4, 5, 6])}
+                                    {length('PSA to PAP', psaToPap32, setPsaToPap32, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9])}
+                                    {length('Pin buffer', pinBuffer32, setPinBuffer32, [0, 1, 2, 3, 4, 5, 6], 'The pin\'s distance from the VAL')}
                                 </>}
                             </div>
 
-                            <div className="grid grid-cols-[1fr_1fr_auto] items-end gap-3">
-                                {numberInput('layout-pap-over', system === 'TWO_LS' ? 'PAP over (from bridge)' : 'PAP over', papOver, setPapOver, '5 3/8', 'in')}
-                                {numberInput('layout-pap-up', 'PAP up/down', papUp, setPapUp, '1/2', 'in')}
-                                <Select value={papDown ? 'DOWN' : 'UP'} onValueChange={v => setPapDown(v === 'DOWN')}>
-                                    <SelectTrigger aria-label="PAP up or down" className="w-24"><SelectValue /></SelectTrigger>
-                                    <SelectContent><SelectItem value="UP">up</SelectItem><SelectItem value="DOWN">down</SelectItem></SelectContent>
-                                </Select>
+                            {papEditing ? (
+                                <div className="grid gap-2">
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {length(system === 'TWO_LS' ? 'PAP over (bridge)' : 'PAP over', papOver32, setPapOver32, [3, 4, 5, 6, 7],
+                                            system === 'TWO_LS' ? 'Inches from the center of the bridge' : 'Inches from the center line')}
+                                        <DetailRow stacked readOnly={false} label="PAP up/down" value={upLabel}
+                                            onClick={() => setPicker({ kind: 'length32', title: 'PAP: up or down', directions: ['Down', 'Up'], wholes: [0, 1, 2], value: papUp32, onSet: setPapUp32 })} />
+                                    </div>
+                                    {!profilePap && owner && onSaveBowlerPap ? (
+                                        <label className="flex items-center gap-2 text-sm text-gray-700">
+                                            <input type="checkbox" checked={savePapToProfile} onChange={event => setSavePapToProfile(event.target.checked)} className="size-4 accent-blue-600" />
+                                            Save it to {owner.firstName}'s profile (it isn't there yet)
+                                        </label>
+                                    ) : profilePap && !usingProfilePap ? (
+                                        <p className="text-xs text-gray-500">
+                                            Different from {owner?.firstName}'s profile ({format32(profilePap.over32)}″ over, {upText(profilePap.up32)}) for this ball only.{' '}
+                                            <button type="button" className="text-primary hover:underline" onClick={() => { setPapOver32(profilePap.over32); setPapUp32(profilePap.up32); setPapEditing(false) }}>Use the profile's</button>
+                                        </p>
+                                    ) : null}
+                                </div>
+                            ) : (
+                                <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border px-3 py-2 text-sm">
+                                    <span>
+                                        <span className="text-gray-500">PAP</span>{' '}
+                                        <span className="font-mono font-semibold text-primary">{papOver32 != null ? `${format32(papOver32)}″ over, ${upText(papUp32 ?? 0)}` : '—'}</span>
+                                        <span className="block text-xs text-gray-500">{usingProfilePap ? `From ${owner?.firstName}'s profile` : 'As drilled'}</span>
+                                    </span>
+                                    <Button type="button" variant="ghost" size="sm" onClick={() => setPapEditing(true)}>Use a different PAP for this ball</Button>
+                                </div>
+                            )}
+
+                            <div className="grid grid-cols-3 gap-2">
+                                {symmetric
+                                    ? <DetailRow stacked readOnly label="Pin to PSA" value="6-3/4″" onClick={() => undefined} />
+                                    : length('Pin to MB', psaDistance32, setPsaDistance32, [4, 5, 6, 7], 'Measured on this ball; not set uses 6¾″')}
                             </div>
 
-                            <div className="grid grid-cols-3 gap-3">
-                                <Field>
-                                    <FieldLabel htmlFor="layout-mb">Pin to {symmetric ? 'PSA' : 'MB'}</FieldLabel>
-                                    {symmetric
-                                        ? <p className="py-1.5 font-mono text-sm">6-3/4</p>
-                                        : <Input id="layout-mb" value={psaDistanceText} placeholder="6 3/4" className="font-mono" onChange={event => setPsaDistanceText(event.target.value)} />}
-                                </Field>
+                            <div className="grid grid-cols-2 gap-3">
                                 <Field>
                                     <FieldLabel>Hand</FieldLabel>
                                     <Select value={hand} onValueChange={v => setHand(v as 'RIGHT' | 'LEFT')}>
@@ -189,7 +226,7 @@ export const LayoutDialog = ({ psaDistance, symmetric, owner, existing, previous
                                 </Field>
                             </div>
                             <FieldDescription>
-                                {symmetric ? 'Symmetric ball: the PSA mark is 6¾″ from the pin, through the CG.' : 'Measure the pin to the MB on this ball; blank uses 6¾″.'}
+                                {symmetric ? 'Symmetric ball: the PSA mark is 6¾″ from the pin, through the CG.' : 'Pin to MB as measured on this ball; not set uses 6¾″.'}
                                 {' '}{system === 'TWO_LS' ? '2LS: the center of grip is the center of the bridge; the PAP and pin to COG are measured from it.' : 'The PAP is measured from the center of the grip.'}
                             </FieldDescription>
 
@@ -228,6 +265,8 @@ export const LayoutDialog = ({ psaDistance, symmetric, owner, existing, previous
                     </DialogFooter>
                 </form>
             </DialogContent>
+            {picker?.kind === 'length32' && <LengthPickerDialog request={picker} onClose={() => setPicker(null)} />}
+            {picker?.kind === 'number' && <NumberPickerDialog request={picker} onClose={() => setPicker(null)} />}
         </Dialog>
     )
 }

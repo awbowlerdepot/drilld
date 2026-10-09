@@ -409,7 +409,7 @@ create unique index ball_ownership_current_uq
     on ball_ownership (company_ball_id) where to_date is null;
 ```
 
-**API (built):** `GET /balls` (`?customerId=` for one bowler's current balls), `GET /balls/:id` (owners over time, and the anonymous history from `ball_service_summary`), `GET /balls/lookup?brandId=&serial=` (before registering: is the serial registered somewhere, its anonymous history, and whether it's already in this company's records), `POST /balls` (register), `PATCH /balls/:id` (pin distance, top weight, status, purchase date, notes; the ball itself is fixed once registered), `POST /balls/:id/transfer` (ownership ends today, the new owner's starts). Needs `read:balls` / `write:balls`. Work orders still use the older mock balls until they're on the API.
+**API (built):** `GET /balls` (`?customerId=` for one bowler's current balls), `GET /balls/:id` (owners over time, and the anonymous history from `ball_service_summary`), `GET /balls/lookup?brandId=&serial=` (before registering: is the serial registered somewhere, its anonymous history, and whether it's already in this company's records), `POST /balls` (register), `PATCH /balls/:id` (pin distance, top weight, status, purchase date, notes; the ball itself is fixed once registered), `POST /balls/:id/transfer` (ownership ends today, the new owner's starts; API only: a ball changing hands within one shop is rare, so the screen doesn't offer it). Needs `read:balls` / `write:balls`. Work orders still use the older mock balls until they're on the API.
 
 **Registering a ball** goes through one backend path:
 

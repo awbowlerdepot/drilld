@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
-import { format32, join32, sixteenthLabel, split32 } from '../../../utils/Fractions'
-import type { LengthPickerRequest } from './pickers'
+import { format32, join32, sixteenthLabel, split32 } from '../../utils/Fractions'
+import type { LengthPickerRequest } from './pickerRequests'
 
 interface LengthPickerDialogProps {
     request: LengthPickerRequest

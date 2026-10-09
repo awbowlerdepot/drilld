@@ -5,7 +5,7 @@ import { format32 } from '../../../utils/Fractions'
 import { HoleCircle } from './HoleCircle'
 import { applyInsert, applyThumbHardware, describeInsert, describeThumbHardware } from './insertEdits'
 import { ScaledCanvas } from './ScaledCanvas'
-import { ValueBox } from './ValueBox'
+import { ValueBox } from '../../pickers/ValueBox'
 import { usePicker } from './pickers'
 import { SPAN_TYPES, defaultSpanType, fingerName, fingersBySide, spanKey, spanTypeRecorded, type Finger, type SheetEditProps, type SpanType } from './editorTypes'
 

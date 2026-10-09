@@ -10,6 +10,8 @@ import { RegisterBallDialog } from './RegisterBallDialog'
 interface CustomerBallsProps {
     customer: Customer
     customers: Customer[]
+    /** Updates a customer (a PAP entered for a layout goes to the bowler's profile). */
+    onUpdateCustomer?: (id: string, updates: Partial<Customer>) => Promise<void>
     balls: ReturnType<typeof useCompanyBalls>
     /** Open the add dialog straight away (from the overview's "Add ball"). */
     adding: boolean
@@ -17,7 +19,7 @@ interface CustomerBallsProps {
 }
 
 /** A bowler's balls (the ones they own now): add one from the catalog, open one for its specs and history. */
-export const CustomerBalls = ({ customer, customers, balls, adding, onAddingChange }: CustomerBallsProps) => {
+export const CustomerBalls = ({ customer, customers, onUpdateCustomer, balls, adding, onAddingChange }: CustomerBallsProps) => {
     const [openId, setOpenId] = useState<string | null>(null)
     return (
         <div className="grid gap-3">
@@ -33,7 +35,7 @@ export const CustomerBalls = ({ customer, customers, balls, adding, onAddingChan
                 <RegisterBallDialog customer={customer} customers={customers} onClose={() => onAddingChange(false)}
                     onRegister={async input => { await balls.register(input) }} />
             )}
-            {openId && <BallDetailDialog ballId={openId} customers={customers} canEdit onChange={balls.replace} onClose={() => setOpenId(null)} />}
+            {openId && <BallDetailDialog ballId={openId} customers={customers} canEdit onChange={balls.replace} onUpdateCustomer={onUpdateCustomer} onClose={() => setOpenId(null)} />}
         </div>
     )
 }

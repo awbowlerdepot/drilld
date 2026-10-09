@@ -10,7 +10,6 @@ import { ballsApi } from '../../hooks/useCompanyBalls'
 import type { Customer } from '../../types'
 import { describeConstruction, describeWeightSpecs, formatInches } from '../../utils/BallFormat'
 import { parseInches } from '../../utils/Fractions'
-import { CustomerSelect } from './CustomerSelect'
 import { BallImage } from './BallImage'
 import { BallLayoutSection } from './layout/BallLayoutSection'
 
@@ -19,6 +18,8 @@ interface BallDetailDialogProps {
     customers: Customer[]
     canEdit: boolean
     onChange: (ball: BallDto) => void
+    /** Updates a customer (a PAP entered for a layout goes to the bowler's profile). */
+    onUpdateCustomer?: (id: string, updates: Partial<Customer>) => Promise<void>
     onClose: () => void
 }
 
@@ -27,11 +28,10 @@ const STATUSES: { value: BallStatus; label: string }[] = [
     { value: 'RETIRED', label: 'Retired' },
     { value: 'DAMAGED', label: 'Damaged' }
 ]
-const day = (date: string) => new Date(`${date}T12:00:00Z`).toLocaleDateString(undefined, { dateStyle: 'medium', timeZone: 'UTC' })
 const month = (date: string) => new Date(`${date}T12:00:00Z`).toLocaleDateString(undefined, { month: 'short', year: 'numeric', timeZone: 'UTC' })
 
-/** One ball: what it is (catalog specs at its weight), the shop's measurements, its owners, and its anonymous history. */
-export const BallDetailDialog = ({ ballId, customers, canEdit, onChange, onClose }: BallDetailDialogProps) => {
+/** One ball: what it is (catalog specs at its weight), its layout, the shop's measurements, and its anonymous history. */
+export const BallDetailDialog = ({ ballId, customers, canEdit, onChange, onUpdateCustomer, onClose }: BallDetailDialogProps) => {
     const [ball, setBall] = useState<BallDetailDto | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [pin, setPin] = useState('')
@@ -39,7 +39,6 @@ export const BallDetailDialog = ({ ballId, customers, canEdit, onChange, onClose
     const [topWeight, setTopWeight] = useState('')
     const [notes, setNotes] = useState('')
     const [status, setStatus] = useState<BallStatus>('ACTIVE')
-    const [transferTo, setTransferTo] = useState<string | null>(null)
     const [saving, setSaving] = useState(false)
 
     useEffect(() => {
@@ -78,6 +77,8 @@ export const BallDetailDialog = ({ ballId, customers, canEdit, onChange, onClose
         onChange(updated)
     }
 
+    const owner = customers.find(c => c.id === ball?.owner?.customerId) ?? null
+
     const save = async () => {
         const pinInches = pin.trim() ? parseInches(pin) : null
         if (pin.trim() && pinInches == null) {
@@ -113,7 +114,10 @@ export const BallDetailDialog = ({ ballId, customers, canEdit, onChange, onClose
                         </div>
                         </section>
 
-                        <BallLayoutSection ball={ball} owner={customers.find(c => c.id === ball.owner?.customerId) ?? null} canEdit={canEdit}
+                        <BallLayoutSection ball={ball} owner={owner} canEdit={canEdit}
+                            onSaveBowlerPap={owner && onUpdateCustomer
+                                ? pap => onUpdateCustomer(owner.id, { delivery: { ...owner.delivery, papOver32: pap.over32, papUp32: pap.up32 } })
+                                : undefined}
                             onAdd={async input => applied(await ballsApi.addLayout(ballId, input))}
                             onUpdate={async (layoutId, input) => applied(await ballsApi.updateLayout(layoutId, input))}
                             onDelete={async layoutId => { await run(() => ballsApi.deleteLayout(layoutId)) }} />
@@ -145,27 +149,6 @@ export const BallDetailDialog = ({ ballId, customers, canEdit, onChange, onClose
                             <FieldLabel htmlFor="detail-notes">Notes</FieldLabel>
                             {canEdit ? <Input id="detail-notes" value={notes} onChange={event => setNotes(event.target.value)} /> : <p className="text-sm">{ball.notes || '—'}</p>}
                         </Field>
-
-                        <section className="grid gap-1.5">
-                            <h3 className="text-sm font-semibold">Owners</h3>
-                            <ul className="grid gap-0.5 text-sm">
-                                {ball.owners.map(o => (
-                                    <li key={`${o.customerId}-${o.from}`} className="text-gray-700">
-                                        {o.name} <span className="text-gray-500">· {day(o.from)}{o.to ? ` – ${day(o.to)}` : ' – now'}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                            {canEdit && (
-                                <div className="flex flex-wrap items-end gap-2">
-                                    <Field className="min-w-56 flex-1">
-                                        <FieldLabel htmlFor="detail-transfer">Transfer to</FieldLabel>
-                                        <CustomerSelect id="detail-transfer" customers={customers} value={transferTo} onChange={setTransferTo} exclude={ball.owner?.customerId} />
-                                    </Field>
-                                    <Button type="button" variant="outline" disabled={!transferTo || saving}
-                                        onClick={() => void run(() => ballsApi.transfer(ballId, transferTo!)).then(() => setTransferTo(null))}>Transfer</Button>
-                                </div>
-                            )}
-                        </section>
 
                         <section className="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">
                             {ball.history.drillCount + ball.history.plugCount === 0

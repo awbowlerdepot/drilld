@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Field, FieldError, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import type { NumberPickerRequest } from './pickers'
+import type { NumberPickerRequest } from './pickerRequests'
 
 interface NumberPickerDialogProps {
     request: NumberPickerRequest

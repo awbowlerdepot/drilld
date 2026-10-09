@@ -25,6 +25,7 @@ The agreed backend design (Postgres schema, tenant isolation, ball registry, dri
   - `HoleLayout` is the spatial sheet.
   - Hole cards, fit, delivery and notes panels sit below it.
   - Every value opens a picker through `usePicker()` (`PickerHost`): lengths in 32nds with "+", bits in 64ths, plain numbers.
+- `src/components/pickers/` — the shared measurement pickers (lengths in 32nds with "+", plain numbers) and tappable value tiles, used by the drill sheet editor and the ball layout dialog
   - The editor works on a local copy of the spec, and Save sends the whole spec.
 - `src/components/drillsheets/press/` — the drill press view (canvas design F): dark tablet screen, one hole at a time, each step with its bit and signed readout. Opened from the editor, using the saved revision. Progress is kept on screen only, until work orders record it.
 - `src/components/ui/` — **shadcn/ui** components (Radix based, "nova" style), owned and editable here; add more with `npx shadcn@latest add <name>`. `src/lib/utils.ts` re-exports `cn`.
@@ -170,7 +171,7 @@ Look for incorrect imports, circular dependencies, and unnecessary complexity.
     - The Maintenance section (main sidebar, due-count badge) and Settings → Locations → Equipment.
   - balls and the BowlerIQ catalog (`docs/data-model.md` Ball catalog, Balls):
     - `GET /catalog/balls?q=&brandId=`, `GET /catalog/brands`, `GET /catalog/status`: Drilld's synced copy, refreshed every 30 minutes by the catalog sync Lambda (`api/catalogSyncHandler.ts`; partner key in Secrets Manager `drilld/bowleriq-partner-key`).
-    - `GET/POST /balls`, `GET/PATCH /balls/:id`, `POST /balls/:id/transfer`, `GET /balls/lookup?brandId=&serial=`: a company's balls (registry + company record + owners); another shop's history of a serial is anonymous.
+    - `GET/POST /balls`, `GET/PATCH /balls/:id`, `POST /balls/:id/transfer` (API only), `GET /balls/lookup?brandId=&serial=`: a company's balls (registry + company record + owners); another shop's history of a serial is anonymous.
     - layouts per drilling: `POST /balls/:id/layouts`, `PATCH/DELETE /ball-layouts/:id`. Entered as VLS / pin buffer, Dual Angle or 2LS (pin to PAP × pin to COG × PSA to PAP, from the bridge); the other systems, the pin and PSA from the grip, and the diagram are calculated on the sphere (`shared/layout/ballLayout.ts`, `docs/data-model.md` Ball layouts).
     - A ball the catalog doesn't have is typed in ("Not in the catalog? Type it in") and kept in the company's own list (`company_ball_model`), found by the same search.
     - The Bowling Balls section and the customer's Bowling Balls tab use it; work orders still use the old mock balls.

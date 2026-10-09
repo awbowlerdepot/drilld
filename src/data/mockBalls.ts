@@ -134,16 +134,6 @@ export const mockBallsApi: BallsApi = {
         const i = layouts.findIndex(l => l.id === layoutId)
         const [removed] = layouts.splice(i, 1)
         return detail(removed.companyBallId)
-    },
-    async transfer(id, customerId) {
-        await pause()
-        const b = balls.get(id)!
-        const owners = b.owners.map(o => (o.to === null ? { ...o, to: today() } : o))
-        balls.set(id, {
-            ...b, owner: { customerId, name: customerName(customerId), since: today() },
-            owners: [{ customerId, name: customerName(customerId), from: today(), to: null }, ...owners]
-        })
-        return detail(id)
     }
 }
 

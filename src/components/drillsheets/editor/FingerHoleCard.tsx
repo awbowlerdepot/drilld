@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { fingerOvalCuts, pitchCenter, type PressReadout, type ScreenSide } from '../../../utils/DrillReadouts'
 import { format32, format64 } from '../../../utils/Fractions'
-import { DetailRow } from './DetailRow'
+import { DetailRow } from '../../pickers/DetailRow'
 import { applyInsert, describeInsert } from './insertEdits'
 import { OvalReadoutTable } from './OvalReadoutTable'
 import { usePicker } from './pickers'

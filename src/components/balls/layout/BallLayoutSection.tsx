@@ -15,12 +15,14 @@ interface BallLayoutSectionProps {
     onAdd: (input: BallLayoutWrite) => Promise<void>
     onUpdate: (layoutId: string, input: BallLayoutWrite) => Promise<void>
     onDelete: (layoutId: string) => Promise<void>
+    /** Saves a PAP entered for a layout to the bowler's profile. */
+    onSaveBowlerPap?: (pap: { over32: number; up32: number }) => Promise<void>
 }
 
 const day = (date: string) => new Date(`${date}T12:00:00Z`).toLocaleDateString(undefined, { dateStyle: 'medium', timeZone: 'UTC' })
 
 /** The ball's layout: the current drilling's (with the other systems' numbers and the diagram), and earlier drillings. */
-export const BallLayoutSection = ({ ball, owner, canEdit, onAdd, onUpdate, onDelete }: BallLayoutSectionProps) => {
+export const BallLayoutSection = ({ ball, owner, canEdit, onAdd, onUpdate, onDelete, onSaveBowlerPap }: BallLayoutSectionProps) => {
     const [editing, setEditing] = useState<BallLayoutDto | 'new' | null>(null)
     const current = ball.layouts[0] ?? null
     const solved = current ? solveBallLayout(current.layout) : null
@@ -78,7 +80,7 @@ export const BallLayoutSection = ({ ball, owner, canEdit, onAdd, onUpdate, onDel
             )}
             {editing && (
                 <LayoutDialog psaDistance={ball.psaDistance} symmetric={ball.catalogBall.core?.type === 'symmetric'} owner={owner}
-                    existing={editing === 'new' ? null : editing} previous={current}
+                    existing={editing === 'new' ? null : editing} previous={current} onSaveBowlerPap={onSaveBowlerPap}
                     onSave={input => (editing === 'new' ? onAdd(input) : onUpdate(editing.id, input))}
                     onClose={() => setEditing(null)} />
             )}
