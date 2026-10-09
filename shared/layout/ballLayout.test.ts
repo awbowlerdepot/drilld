@@ -102,3 +102,26 @@ test('60° x 4″ x 30° Dual Angle is 4 x 5 x 1¾ in VLS (MB 6¾″ from the pi
     near(s.psaToPap, 4.977, 0.001, 'PSA to PAP');
     near(s.pinBuffer, 1.773, 0.001, 'pin buffer');
 });
+
+test('2LS (pin to PAP x pin to COG x PSA to PAP, PAP from the bridge) places the pin where the two arcs cross', () => {
+    const twoHander = { papOver: 5, papUp: 1 };
+    const vls = solveLayout({ system: 'PIN_BUFFER', pinToPap: 5, psaToPap: 3.5, pinBuffer: 2 }, twoHander);
+    const twoLs = solveLayout({ system: 'TWO_LS', pinToPap: 5, pinToCog: vls.pinToCog, psaToPap: 3.5 }, twoHander);
+    near(arc(twoLs.pin, vls.pin), 0, 1e-9, 'same pin');
+    near(arc(twoLs.psa, vls.psa), 0, 1e-9, 'same PSA');
+    near(twoLs.pinBuffer, 2, 1e-9, 'its pin buffer');
+    near(twoLs.pinToCog, vls.pinToCog, 1e-9, 'pin to COG');
+});
+
+test('2LS: arcs that don\'t cross are refused (the Lightning Arc rule)', () => {
+    // PAP 5″ over and 1″ up is 5.05″ from the bridge on the ball (5.10″ flat); a pin 2″ from the PAP is at least 3.05″ from the bridge.
+    assert.throws(() => solveLayout({ system: 'TWO_LS', pinToPap: 2, pinToCog: 1, psaToPap: 5 }, { papOver: 5, papUp: 1 }), /3\.050″ to 7\.050″ from the center of grip/);
+});
+
+test('Storm\'s 2LS example 5 x 4 x 3½ (PAP 5″ over, 1″ up from the bridge)', () => {
+    const s = solveLayout({ system: 'TWO_LS', pinToPap: 5, pinToCog: 4, psaToPap: 3.5 }, { papOver: 5, papUp: 1 });
+    near(s.pinToPap, 5, 1e-9, 'pin to PAP');
+    near(s.pinToCog, 4, 1e-9, 'pin to COG');
+    near(s.psaToPap, 3.5, 1e-9, 'PSA to PAP');
+    assert.ok(fromReference(s.pin).up > 0, 'pin on the fingers\' side');
+});

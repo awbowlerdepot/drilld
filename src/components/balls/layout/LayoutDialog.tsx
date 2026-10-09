@@ -11,7 +11,7 @@ import {
 } from '../../../../shared/api/ballLayouts'
 import { LayoutError, QUARTER_ROUND, fromReference } from '../../../../shared/layout/ballLayout'
 import type { Customer } from '../../../types'
-import { LAYOUT_SYSTEM_LABELS, describeNumbers, layoutInches } from '../../../utils/BallLayoutFormat'
+import { LAYOUT_SYSTEM_LABELS, describeNumbers, layoutInches, otherSystems } from '../../../utils/BallLayoutFormat'
 import { format32, parseInches } from '../../../utils/Fractions'
 import { LayoutDiagram } from './LayoutDiagram'
 
@@ -44,7 +44,8 @@ export const LayoutDialog = ({ psaDistance, symmetric, owner, existing, previous
     const [system, setSystem] = useState<LayoutSystem>(start?.system ?? 'PIN_BUFFER')
     const [pinToPap, setPinToPap] = useState(text32(existing?.layout.pinToPap32))
     const [psaToPap, setPsaToPap] = useState(existing && existing.layout.system !== 'DUAL_ANGLE' ? text32(existing.layout.psaToPap32) : '')
-    const [pinBuffer, setPinBuffer] = useState(existing && existing.layout.system !== 'DUAL_ANGLE' ? text32(existing.layout.pinBuffer32) : '')
+    const [pinBuffer, setPinBuffer] = useState(existing?.layout.system === 'PIN_BUFFER' ? text32(existing.layout.pinBuffer32) : '')
+    const [pinToCog, setPinToCog] = useState(existing?.layout.system === 'TWO_LS' ? text32(existing.layout.pinToCog32) : '')
     const [drillingAngle, setDrillingAngle] = useState(existing?.layout.system === 'DUAL_ANGLE' ? String(existing.layout.drillingAngle) : '')
     const [valAngle, setValAngle] = useState(existing?.layout.system === 'DUAL_ANGLE' ? String(existing.layout.valAngle) : '')
     const startPap = start?.pap ?? (owner?.delivery?.papOver32 != null ? { over32: owner.delivery.papOver32, up32: owner.delivery.papUp32 ?? 0 } : null)
@@ -71,6 +72,10 @@ export const LayoutDialog = ({ psaDistance, symmetric, owner, existing, previous
             const da = toDegrees(drillingAngle), va = toDegrees(valAngle)
             if (da == null || va == null) return { layout: null, solved: null, error: null }
             layout = { system: 'DUAL_ANGLE', ...common, drillingAngle: da, valAngle: va }
+        } else if (system === 'TWO_LS') {
+            const c32 = to32(pinToCog), p32 = to32(psaToPap)
+            if (c32 == null || p32 == null) return { layout: null, solved: null, error: null }
+            layout = { system, ...common, pinToCog32: c32, psaToPap32: p32 }
         } else {
             const p32 = to32(psaToPap), b32 = to32(pinBuffer)
             if (p32 == null || b32 == null) return { layout: null, solved: null, error: null }
@@ -82,7 +87,7 @@ export const LayoutDialog = ({ psaDistance, symmetric, owner, existing, previous
             if (err instanceof LayoutError) return { layout, solved: null, error: err.message }
             throw err
         }
-    }, [system, dual, pinToPap, psaToPap, pinBuffer, drillingAngle, valAngle, papOver, papUp, papDown, psaDistanceText, symmetric, hand])
+    }, [system, dual, pinToPap, psaToPap, pinBuffer, pinToCog, drillingAngle, valAngle, papOver, papUp, papDown, psaDistanceText, symmetric, hand])
 
     const save = async (event: React.FormEvent) => {
         event.preventDefault()
@@ -144,6 +149,10 @@ export const LayoutDialog = ({ psaDistance, symmetric, owner, existing, previous
                                     {numberInput('layout-da', 'Drilling angle °', drillingAngle, setDrillingAngle, '60', '°')}
                                     {numberInput('layout-pin', 'Pin to PAP', pinToPap, setPinToPap, '4', 'in')}
                                     {numberInput('layout-val', 'VAL angle °', valAngle, setValAngle, '30', '°')}
+                                </> : system === 'TWO_LS' ? <>
+                                    {numberInput('layout-pin', 'Pin to PAP', pinToPap, setPinToPap, '5', 'in')}
+                                    {numberInput('layout-cog', 'Pin to COG', pinToCog, setPinToCog, '4', 'in')}
+                                    {numberInput('layout-psa', 'PSA to PAP', psaToPap, setPsaToPap, '3 1/2', 'in')}
                                 </> : <>
                                     {numberInput('layout-pin', 'Pin to PAP', pinToPap, setPinToPap, '5', 'in')}
                                     {numberInput('layout-psa', 'PSA to PAP', psaToPap, setPsaToPap, '4', 'in')}
@@ -181,17 +190,18 @@ export const LayoutDialog = ({ psaDistance, symmetric, owner, existing, previous
                             </div>
                             <FieldDescription>
                                 {symmetric ? 'Symmetric ball: the PSA mark is 6¾″ from the pin, through the CG.' : 'Measure the pin to the MB on this ball; blank uses 6¾″.'}
-                                {' '}{system === 'TWO_LS' ? 'The PAP is measured from the center of the bridge.' : 'The PAP is measured from the center of the grip.'}
+                                {' '}{system === 'TWO_LS' ? '2LS: the center of grip is the center of the bridge; the PAP and pin to COG are measured from it.' : 'The PAP is measured from the center of the grip.'}
                             </FieldDescription>
 
                             {result.error && <p role="alert" className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">This layout can't exist on this ball: {result.error}.</p>}
 
                             {result.solved && (
                                 <section aria-label="In every system" className="grid gap-1.5 rounded-lg bg-gray-50 px-3 py-2.5 text-sm">
-                                    <p><span className="text-gray-500">VLS / pin buffer{system === 'TWO_LS' ? ' (2LS)' : ''}:</span> <span className="font-mono">{describeNumbers('PIN_BUFFER', result.solved)}</span></p>
-                                    <p><span className="text-gray-500">Dual Angle:</span> <span className="font-mono">{describeNumbers('DUAL_ANGLE', result.solved)}</span></p>
+                                    {otherSystems(system).map(other => (
+                                        <p key={other}><span className="text-gray-500">{LAYOUT_SYSTEM_LABELS[other]}:</span> <span className="font-mono">{describeNumbers(other, result.solved!)}</span></p>
+                                    ))}
                                     <p className="font-mono text-xs text-gray-500">
-                                        {result.solved.pinToPap.toFixed(3)} x {result.solved.psaToPap.toFixed(3)} x {result.solved.pinBuffer.toFixed(3)} · {result.solved.drillingAngle.toFixed(1)}° / {result.solved.valAngle.toFixed(1)}°
+                                        pin to PAP {result.solved.pinToPap.toFixed(3)} · PSA to PAP {result.solved.psaToPap.toFixed(3)} · buffer {result.solved.pinBuffer.toFixed(3)} · pin to {system === 'TWO_LS' ? 'COG' : 'grip center'} {result.solved.pinToCog.toFixed(3)} · {result.solved.drillingAngle.toFixed(1)}° / {result.solved.valAngle.toFixed(1)}°
                                     </p>
                                     <p><span className="text-gray-500">Pin:</span> {fromGrip(result.solved.pin)}</p>
                                     <p><span className="text-gray-500">PSA:</span> {fromGrip(result.solved.psa)}</p>

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import type { BallDetailDto } from '../../../../shared/api/balls'
 import { papReference, solveBallLayout, type BallLayoutDto, type BallLayoutWrite } from '../../../../shared/api/ballLayouts'
 import type { Customer } from '../../../types'
-import { LAYOUT_SYSTEM_LABELS, describeLayout, describeNumbers } from '../../../utils/BallLayoutFormat'
+import { LAYOUT_SYSTEM_LABELS, describeLayout, describeNumbers, otherSystems } from '../../../utils/BallLayoutFormat'
 import { LayoutDialog } from './LayoutDialog'
 import { LayoutDiagram } from './LayoutDiagram'
 
@@ -24,7 +24,6 @@ export const BallLayoutSection = ({ ball, owner, canEdit, onAdd, onUpdate, onDel
     const [editing, setEditing] = useState<BallLayoutDto | 'new' | null>(null)
     const current = ball.layouts[0] ?? null
     const solved = current ? solveBallLayout(current.layout) : null
-    const other = current?.layout.system === 'DUAL_ANGLE' ? 'PIN_BUFFER' : 'DUAL_ANGLE'
 
     return (
         <section className="grid gap-2">
@@ -45,7 +44,9 @@ export const BallLayoutSection = ({ ball, owner, canEdit, onAdd, onUpdate, onDel
                             <span className="font-mono text-base font-medium text-gray-900">{describeLayout(current.layout)}</span>
                             <span className="ml-2 text-gray-500">{LAYOUT_SYSTEM_LABELS[current.layout.system]}</span>
                         </p>
-                        <p className="text-gray-600">= <span className="font-mono">{describeNumbers(other, solved)}</span> {other === 'DUAL_ANGLE' ? 'Dual Angle' : 'VLS'}</p>
+                        {otherSystems(current.layout.system).map(other => (
+                            <p key={other} className="text-gray-600">= <span className="font-mono">{describeNumbers(other, solved)}</span> {LAYOUT_SYSTEM_LABELS[other]}</p>
+                        ))}
                         <p className="text-xs text-gray-500">Drilled {day(current.drilledOn)}{current.notes ? ` · ${current.notes}` : ''}</p>
                         {canEdit && (
                             <div className="flex gap-1">
