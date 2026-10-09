@@ -112,17 +112,27 @@ export const todaysHours = (location: { hours?: LocationHours | null; timezone?:
     return `${formatIntervals(intervals)}${special?.note ? ` (${special.note})` : ''}`
 }
 
-/** Days with the same hours grouped: "Mon–Thu 9 AM – 9 PM · Fri–Sat 9 AM – 10 PM · Sun Closed". */
-export const weeklySummary = (hours: LocationHours) => {
-    const groups: { from: Weekday; to: Weekday; text: string }[] = []
+/** Runs of days with the same hours: [{ days: 'Mon–Thu', weekdays: [...], intervals }]. */
+export const weeklyGroups = (hours: LocationHours) => {
+    const groups: { from: Weekday; to: Weekday; weekdays: Weekday[]; intervals: HoursInterval[]; text: string }[] = []
     for (const day of WEEKDAYS) {
         const text = formatIntervals(hours.weekly[day])
         const last = groups[groups.length - 1]
-        if (last && last.text === text) last.to = day
-        else groups.push({ from: day, to: day, text })
+        if (last && last.text === text) {
+            last.to = day
+            last.weekdays.push(day)
+        } else groups.push({ from: day, to: day, weekdays: [day], intervals: hours.weekly[day], text })
     }
-    return groups.map(g => `${WEEKDAY_LABELS[g.from].short}${g.from === g.to ? '' : `–${WEEKDAY_LABELS[g.to].short}`} ${g.text}`).join(' · ')
+    return groups.map(g => ({
+        days: `${WEEKDAY_LABELS[g.from].short}${g.from === g.to ? '' : `–${WEEKDAY_LABELS[g.to].short}`}`,
+        weekdays: g.weekdays,
+        intervals: g.intervals
+    }))
 }
+
+/** Days with the same hours grouped: "Mon–Thu 9 AM – 9 PM · Fri–Sat 9 AM – 10 PM · Sun Closed". */
+export const weeklySummary = (hours: LocationHours) =>
+    weeklyGroups(hours).map(g => `${g.days} ${formatIntervals(g.intervals)}`).join(' · ')
 
 /** Empty hours: closed every day. */
 export const emptyHours = (): LocationHours => ({

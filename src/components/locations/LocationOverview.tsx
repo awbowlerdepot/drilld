@@ -1,11 +1,13 @@
 import { Globe, Mail, MapPin, Phone } from 'lucide-react'
 import type { Location } from '../../types'
 import { formatAddress, isCompleteAddress } from '../../utils/LocationAddress'
-import { formatIntervals, hoursOn, localNow, weeklySummary } from '../../utils/LocationHours'
+import { formatIntervals, hoursOn, localNow } from '../../utils/LocationHours'
+import { WeeklyHoursTable } from './hours/WeeklyHoursTable'
 
 /** The location at a glance: contact details, hours, and what listings still need. */
 export const LocationOverview = ({ location }: { location: Location }) => {
-    const today = localNow(location.timezone || 'America/Denver').date
+    const here = localNow(location.timezone || 'America/Denver')
+    const today = here.date
     const upcoming = (location.hours?.special ?? []).filter(s => s.date >= today).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 4)
     const missing = [
         !isCompleteAddress(location.address) && 'a full address',
@@ -32,16 +34,26 @@ export const LocationOverview = ({ location }: { location: Location }) => {
                 {location.hours ? (
                     <>
                         {location.hours.temporarilyClosed && <p className="text-sm font-medium text-amber-900">Temporarily closed</p>}
-                        <p className="text-sm text-gray-700">{weeklySummary(location.hours)}</p>
+                        <WeeklyHoursTable hours={location.hours} today={here.weekday} />
                         {upcoming.length > 0 && (
-                            <ul className="grid gap-0.5 text-sm text-gray-600">
-                                {upcoming.map(s => (
-                                    <li key={s.date}>
-                                        {new Date(`${s.date}T12:00:00Z`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' })}
-                                        {s.note ? ` (${s.note})` : ''}: {formatIntervals(hoursOn(location.hours!, s.date).intervals)}
-                                    </li>
-                                ))}
-                            </ul>
+                            <>
+                                <h3 className="mt-2 text-sm font-semibold text-gray-700">Holidays and special dates</h3>
+                                <table className="w-full max-w-sm text-sm">
+                                    <tbody>
+                                        {upcoming.map(s => (
+                                            <tr key={s.date} className="border-b border-gray-100 align-top last:border-0">
+                                                <th scope="row" className="py-1.5 pr-4 text-left font-medium text-gray-700">
+                                                    {new Date(`${s.date}T12:00:00Z`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })}
+                                                    {s.note && <span className="block text-xs font-normal text-gray-500">{s.note}</span>}
+                                                </th>
+                                                <td className="py-1.5 text-right tabular-nums text-gray-800">
+                                                    {s.closed ? <span className="text-gray-500">Closed</span> : formatIntervals(hoursOn(location.hours!, s.date).intervals)}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </>
                         )}
                     </>
                 ) : <p className="text-sm text-gray-400">Not set</p>}

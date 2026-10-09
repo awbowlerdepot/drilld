@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { locationHoursSchema } from '../../../../shared/api/locationHours'
 import type { Location } from '../../../types'
-import { WEEKDAYS, WEEKDAY_LABELS, emptyHours, localNow, weeklySummary, type LocationHours, type Weekday } from '../../../utils/LocationHours'
+import { WEEKDAYS, WEEKDAY_LABELS, emptyHours, localNow, type LocationHours, type Weekday } from '../../../utils/LocationHours'
 import { DayHoursRow } from './DayHoursRow'
 import { SpecialHoursEditor } from './SpecialHoursEditor'
 
@@ -69,7 +69,6 @@ export const LocationHoursTab = ({ location, canEdit, onSave }: LocationHoursTab
                 {hours.temporarilyClosed && (
                     <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">Listings will show the shop as temporarily closed until you turn this off.</p>
                 )}
-                <p className="text-sm text-gray-500">{weeklySummary(hours)}</p>
                 <fieldset disabled={!canEdit} className="rounded-lg border border-border px-3">
                     {WEEKDAYS.map(day => (
                         <DayHoursRow key={day} label={WEEKDAY_LABELS[day].long} intervals={hours.weekly[day]} onChange={intervals => setDay(day, intervals)}
