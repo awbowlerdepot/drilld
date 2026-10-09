@@ -156,6 +156,23 @@ select test.ok((select status from paper_import) = 'UPLOADING', 'an import start
 select test.fails($$update paper_import set status = 'DONE'$$, '23514', 'an import''s status must be a known one');
 select test.fails($$update paper_import set span_type = 'tipToTip'$$, '23514', 'the span type must be one the spec has');
 select test.fails($$update paper_import set customer_id = '30000000-0000-0000-0000-0000000000b1'$$, '23503', 'an import cannot be linked to another company''s customer');
+
+-- Equipment and maintenance (0018)
+insert into equipment (id, company_id, location_id, kind, name) values
+    ('e0000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-0000000000a1', 'DRILL_PRESS', 'Main press');
+insert into maintenance_task (company_id, equipment_id, template_code, title, interval_days, next_due_on) values
+    ('00000000-0000-0000-0000-00000000000a', 'e0000000-0000-0000-0000-0000000000a1', 'MD-02', 'Way & column wipe-down', 1, current_date);
+select test.fails($$insert into maintenance_task (company_id, equipment_id, template_code, title, interval_days)
+    values ('00000000-0000-0000-0000-00000000000a', 'e0000000-0000-0000-0000-0000000000a1', 'MD-02', 'Again', 7)$$,
+    '23505', 'a machine has each standard task once');
+select test.fails($$insert into maintenance_task (company_id, equipment_id, title) values
+    ('00000000-0000-0000-0000-00000000000a', 'e0000000-0000-0000-0000-0000000000a1', 'No interval')$$, '23514', 'a task needs an interval');
+select test.fails($$insert into equipment (company_id, location_id, kind, name) values
+    ('00000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-0000000000b1', 'OTHER', 'x')$$, '23503', 'equipment cannot be put at another company''s location');
+insert into maintenance_log (company_id, equipment_id, kind, issue_type, title) values
+    ('00000000-0000-0000-0000-00000000000a', 'e0000000-0000-0000-0000-0000000000a1', 'ISSUE', 'JAM', 'Machine jammed');
+select test.fails($$insert into maintenance_log (company_id, equipment_id, kind, title) values
+    ('00000000-0000-0000-0000-00000000000a', 'e0000000-0000-0000-0000-0000000000a1', 'ISSUE', 'Something')$$, '23514', 'a problem report says what kind');
 select test.ok((select count(*) from company_ball) = 1, 'company A sees only its record of the shared ball');
 select test.ok((select count(*) from work_order) = 1, 'company A sees only its work orders');
 select test.ok((select count(*) from drill_sheet_revision) = 1, 'company A sees only its drill sheet revisions');
@@ -381,6 +398,7 @@ select set_config('app.company_id', '00000000-0000-0000-0000-00000000000b', fals
 select test.ok((select array_agg(first_name) from customer) = array['Bob'], 'company B sees only its customers');
 select test.ok((select count(*) from customer_attachment) = 0, 'company B does not see company A''s attachments');
 select test.ok((select count(*) from paper_import) = 0, 'company B does not see company A''s paper imports');
+select test.ok((select count(*) from equipment) + (select count(*) from maintenance_task) + (select count(*) from maintenance_log) = 0, 'company B does not see company A''s equipment or maintenance');
 select test.ok((select notes from customer where first_name = 'Bob') is null, 'company B''s customer was not modified by company A');
 select test.ok((select count(*) from location) = 1, 'company B does not see company A''s locations');
 select test.ok((select count(*) from layout_template) = 0, 'company B does not see company A''s layout templates');

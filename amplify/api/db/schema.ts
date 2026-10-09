@@ -221,6 +221,25 @@ export interface DrillSheetRevision {
   version: number;
 }
 
+export interface Equipment {
+  company_id: string;
+  created_at: Generated<Timestamp>;
+  created_by_user_id: string | null;
+  details: Generated<Json>;
+  id: Generated<string>;
+  kind: string;
+  location_id: string;
+  manufacturer: string | null;
+  model: string | null;
+  name: string;
+  notes: string | null;
+  purchased_on: Timestamp | null;
+  serial_number: string | null;
+  status: Generated<string>;
+  updated_at: Generated<Timestamp>;
+  volume: Generated<string>;
+}
+
 export interface GripLine {
   active: Generated<boolean>;
   colors: Generated<string[]>;
@@ -296,7 +315,6 @@ export interface Location {
   company_id: string;
   created_at: Generated<Timestamp>;
   email: string | null;
-  equipment: Generated<Json>;
   hours: Json | null;
   id: Generated<string>;
   name: string;
@@ -320,6 +338,38 @@ export interface LocationMembership {
   location_id: string;
   role: string;
   user_id: string;
+}
+
+export interface MaintenanceLog {
+  checklist: Generated<Json>;
+  company_id: string;
+  done_at: Generated<Timestamp>;
+  done_by_user_id: string | null;
+  equipment_id: string;
+  id: Generated<string>;
+  issue_type: string | null;
+  kind: string;
+  notes: string | null;
+  task_id: string | null;
+  title: string;
+}
+
+export interface MaintenanceTask {
+  active: Generated<boolean>;
+  checklist: Generated<Json>;
+  company_id: string;
+  created_at: Generated<Timestamp>;
+  equipment_id: string;
+  guidance: string | null;
+  id: Generated<string>;
+  interval_balls: number | null;
+  interval_days: number | null;
+  last_done_at: Timestamp | null;
+  next_due_on: Timestamp | null;
+  template_code: string | null;
+  title: string;
+  updated_at: Generated<Timestamp>;
+  video_url: string | null;
 }
 
 export interface PaperImport {
@@ -407,6 +457,7 @@ export interface DB {
   customer_attachment: CustomerAttachment;
   drill_sheet: DrillSheet;
   drill_sheet_revision: DrillSheetRevision;
+  equipment: Equipment;
   grip_line: GripLine;
   grip_size: GripSize;
   layout_template: LayoutTemplate;
@@ -415,6 +466,8 @@ export interface DB {
   location: Location;
   location_grip_stock: LocationGripStock;
   location_membership: LocationMembership;
+  maintenance_log: MaintenanceLog;
+  maintenance_task: MaintenanceTask;
   paper_import: PaperImport;
   plan: Plan;
   work_order: WorkOrder;

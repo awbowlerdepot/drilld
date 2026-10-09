@@ -13,7 +13,6 @@ const toLocation = (dto: LocationDto): Location => ({
     website: dto.website ?? undefined,
     timezone: dto.timezone,
     hours: dto.hours ?? undefined,
-    equipmentInfo: { equipment: dto.equipment },
     settingsOverrides: dto.settingsOverrides as LocationSettingsOverrides,
     active: dto.active,
     createdAt: dto.createdAt,
@@ -32,7 +31,6 @@ const toRequest = (location: Partial<LocationFields>): LocationUpdate => {
     if ('website' in location) request.website = location.website || null
     if ('timezone' in location) request.timezone = location.timezone
     if ('hours' in location) request.hours = location.hours ?? null
-    if ('equipmentInfo' in location) request.equipment = location.equipmentInfo?.equipment ?? []
     if ('settingsOverrides' in location) request.settingsOverrides = (location.settingsOverrides ?? {}) as Record<string, unknown>
     if ('active' in location) request.active = location.active
     return request

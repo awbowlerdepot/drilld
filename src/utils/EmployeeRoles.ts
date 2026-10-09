@@ -85,3 +85,14 @@ export const toEmployeeManager = (me: MeDto | null, signedIn: boolean): Employee
             .filter(membership => DEFAULT_PERMISSIONS_BY_ROLE[membership.role].includes('write:employees'))
             .map(membership => membership.locationID)
     } : NO_ACCESS;
+
+/**
+ * Whether the signed-in user has a permission at a location (company owners
+ * and admins everywhere). Without sign-in (mock data), everything is allowed.
+ */
+export const canAtLocation = (me: MeDto | null, signedIn: boolean, permission: string, locationID: string): boolean => {
+    if (!signedIn) return true;
+    if (!me) return false;
+    if (me.user.companyRole) return true;
+    return me.memberships.some(m => m.locationID === locationID && DEFAULT_PERMISSIONS_BY_ROLE[m.role].includes(permission));
+};

@@ -1,6 +1,7 @@
 import React from 'react';
 import {
     BarChart3,
+    ClipboardCheck,
     Inbox,
     LogOut,
     LucideIcon,
@@ -31,11 +32,14 @@ interface SidebarProps {
     onToggleCollapsed: () => void;
     /** Platform admins (Drilld staff) also get Leads, with the admin items. */
     showLeads?: boolean;
+    /** Counts shown on sections, e.g. maintenance due at the current location. */
+    badges?: Partial<Record<AppSection, number>>;
 }
 
 const NAV_ITEMS: { id: AppSection; label: string; icon: LucideIcon }[] = [
     { id: 'customers', label: 'Customers', icon: Users },
     { id: 'workorders', label: 'Work Orders', icon: Wrench },
+    { id: 'maintenance', label: 'Maintenance', icon: ClipboardCheck },
     { id: 'balls', label: 'Bowling Balls', icon: Target },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 }
 ];
@@ -55,7 +59,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                                     onClose,
                                                     collapsed,
                                                     onToggleCollapsed,
-                                                    showLeads = false
+                                                    showLeads = false,
+                                                    badges = {}
                                                 }) => {
     const activeLocations = locations.filter(location => location.active);
     const currentLocation = activeLocations.find(location => location.id === currentLocationID);
@@ -141,8 +146,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             className={itemClasses(activeSection === id)}
                             title={tooltip(text)}
                         >
-                            <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+                            <span className="relative shrink-0">
+                                <Icon className="h-5 w-5" aria-hidden="true" />
+                                {!!badges[id] && collapsed && <span className="absolute -right-1 -top-1 hidden size-2.5 rounded-full bg-red-500 md:block" aria-hidden="true" />}
+                            </span>
                             <span className={label}>{text}</span>
+                            {!!badges[id] && (
+                                <span className={`ml-auto rounded-full bg-red-100 px-1.5 text-xs font-semibold text-red-800 ${collapsed ? 'md:sr-only' : ''}`}>
+                                    {badges[id]}<span className="sr-only"> due</span>
+                                </span>
+                            )}
                         </button>
                     ))}
                 </nav>
