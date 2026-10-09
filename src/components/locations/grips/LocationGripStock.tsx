@@ -10,7 +10,8 @@ import { GripLineRow } from './GripLineRow'
 
 interface LocationGripStockProps {
     location: Location
-    onBack: () => void
+    /** Shown as a back link when the screen stands alone. */
+    onBack?: () => void
 }
 
 const MANUFACTURERS: { key: GripManufacturer; label: string }[] = [
@@ -47,13 +48,15 @@ export const LocationGripStock = ({ location, onBack }: LocationGripStockProps) 
 
     return (
         <div className="space-y-5">
-            <Button variant="ghost" size="sm" onClick={onBack}>
-                <ArrowLeft data-icon="inline-start" /> Locations
-            </Button>
+            {onBack && (
+                <Button variant="ghost" size="sm" onClick={onBack}>
+                    <ArrowLeft data-icon="inline-start" /> Locations
+                </Button>
+            )}
 
             <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">What we carry</h1>
+                    <h2 className="text-xl font-bold text-gray-900">What we carry</h2>
                     <p className="text-gray-600">
                         {location.name} · {stock.selected.size} {stock.selected.size === 1 ? 'size' : 'sizes'} in {linesCarried} {linesCarried === 1 ? 'line' : 'lines'}.
                         Drill sheets at this location offer these first.

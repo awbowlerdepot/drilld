@@ -9,6 +9,8 @@ const toLocation = (dto: LocationDto): Location => ({
     name: dto.name,
     address: dto.address ?? undefined,
     phone: dto.phone ?? undefined,
+    email: dto.email ?? undefined,
+    website: dto.website ?? undefined,
     timezone: dto.timezone,
     hours: dto.hours ?? undefined,
     equipmentInfo: { equipment: dto.equipment },
@@ -24,8 +26,10 @@ type LocationFields = Omit<Location, 'id' | 'companyID' | 'createdAt' | 'updated
 const toRequest = (location: Partial<LocationFields>): LocationUpdate => {
     const request: LocationUpdate = {}
     if ('name' in location) request.name = location.name
-    if ('address' in location) request.address = location.address || null
+    if ('address' in location) request.address = location.address ?? null
     if ('phone' in location) request.phone = location.phone || null
+    if ('email' in location) request.email = location.email || null
+    if ('website' in location) request.website = location.website || null
     if ('timezone' in location) request.timezone = location.timezone
     if ('hours' in location) request.hours = location.hours ?? null
     if ('equipmentInfo' in location) request.equipment = location.equipmentInfo?.equipment ?? []

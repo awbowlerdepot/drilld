@@ -20,6 +20,7 @@ export * from './navigation';
 import type { Employee } from './employee';
 import type { Delivery } from '../../shared/api/delivery';
 import type { LocationSettingsOverrides } from './settings';
+import type { LocationAddress, LocationHours } from '../../shared/api/locationHours';
 
 // ==========================================
 // CUSTOMER TYPES
@@ -115,12 +116,15 @@ export interface Location {
     id: string;
     companyID: string;
     name: string;
-    address?: string;
+    address?: LocationAddress;
     phone?: string;
+    email?: string;
+    website?: string;
     /** IANA time zone, e.g. America/Denver. */
     timezone?: string;
     equipmentInfo?: LocationEquipmentInfo;
-    hours?: Record<string, string>;
+    /** Weekly hours, special dates and temporary closure (shared/api/locationHours.ts). */
+    hours?: LocationHours;
     settingsOverrides?: LocationSettingsOverrides;
     active: boolean;
     createdAt: string;

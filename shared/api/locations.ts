@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { locationAddressSchema, locationHoursSchema, type LocationAddress, type LocationHours } from './locationHours';
 
 /**
  * Locations API contract (physical pro shops). Field names follow the
@@ -24,14 +25,21 @@ const isTimeZone = (value: string) => {
     }
 };
 
+const websiteSchema = z.string().trim().max(300).nullish().transform(value => value || null)
+    .refine(value => !value || /^https?:\/\/[^\s.]+\.[^\s]+$/i.test(value), 'Enter a web address starting with https://');
+const emailSchema = z.string().trim().max(254).nullish().transform(value => value || null)
+    .refine(value => !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value), 'Enter a valid email');
+
 /** Body of POST /locations. */
 export const locationCreateSchema = z.object({
     name: z.string().trim().min(1, 'Name is required').max(100),
-    address: optionalText(300),
+    address: locationAddressSchema.nullish().transform(value => value ?? null),
     phone: optionalText(40),
+    email: emailSchema,
+    website: websiteSchema,
     timezone: z.string().refine(isTimeZone, 'Pick a time zone'),
-    /** Opening hours by lower-case day name, e.g. { monday: '9:00 AM - 9:00 PM' }. */
-    hours: z.record(z.string().max(60)).nullish().transform(value => value ?? null),
+    /** Weekly hours, special dates and temporary closure (shared/api/locationHours.ts). */
+    hours: locationHoursSchema.nullish().transform(value => value ?? null),
     equipment: z.array(equipmentItemSchema).max(50).default([]),
     /** Overrides of company settings (validated by the frontend's LocationSettingsOverrides shape). */
     settingsOverrides: z.record(z.unknown()).default({}),
@@ -41,10 +49,12 @@ export const locationCreateSchema = z.object({
 /** Body of PATCH /locations/:id: any subset of the create fields. */
 export const locationUpdateSchema = z.object({
     name: z.string().trim().min(1, 'Name is required').max(100),
-    address: optionalText(300),
+    address: locationAddressSchema.nullable(),
     phone: optionalText(40),
+    email: emailSchema,
+    website: websiteSchema,
     timezone: z.string().refine(isTimeZone, 'Pick a time zone'),
-    hours: z.record(z.string().max(60)).nullable(),
+    hours: locationHoursSchema.nullable(),
     equipment: z.array(equipmentItemSchema).max(50),
     settingsOverrides: z.record(z.unknown()),
     active: z.boolean()
@@ -59,10 +69,12 @@ export interface LocationDto {
     id: string;
     companyID: string;
     name: string;
-    address: string | null;
+    address: LocationAddress | null;
     phone: string | null;
+    email: string | null;
+    website: string | null;
     timezone: string;
-    hours: Record<string, string> | null;
+    hours: LocationHours | null;
     equipment: EquipmentItemDto[];
     settingsOverrides: Record<string, unknown>;
     active: boolean;

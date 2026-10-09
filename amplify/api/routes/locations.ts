@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import type { Selectable } from 'kysely';
+import { locationAddressSchema, locationHoursSchema } from '../../../shared/api/locationHours';
 import {
     locationCreateSchema,
     locationUpdateSchema,
@@ -15,11 +16,13 @@ const toDto = (row: Selectable<Location>): LocationDto => ({
     id: row.id,
     companyID: row.company_id,
     name: row.name,
-    // The address is stored as JSON; for now it's a single line of text.
-    address: typeof row.address === 'string' ? row.address : null,
+    // Stored as JSON; the old one-line address and free-text hours are upgraded as they're read.
+    address: row.address == null ? null : locationAddressSchema.safeParse(row.address).data ?? null,
     phone: row.phone,
+    email: row.email,
+    website: row.website,
     timezone: row.timezone,
-    hours: (row.hours as Record<string, string> | null) ?? null,
+    hours: row.hours == null ? null : locationHoursSchema.safeParse(row.hours).data ?? null,
     equipment: (row.equipment as LocationDto['equipment']) ?? [],
     settingsOverrides: (row.settings_overrides as Record<string, unknown>) ?? {},
     active: row.active,
@@ -60,6 +63,8 @@ export const locations = new Hono<ApiEnv>()
                         name: input.name,
                         address: input.address === null ? null : json(input.address),
                         phone: input.phone,
+                        email: input.email,
+                        website: input.website,
                         timezone: input.timezone,
                         hours: input.hours === null ? null : json(input.hours),
                         equipment: json(input.equipment),
@@ -83,6 +88,8 @@ export const locations = new Hono<ApiEnv>()
             ...(input.name !== undefined && { name: input.name }),
             ...(input.address !== undefined && { address: input.address === null ? null : json(input.address) }),
             ...(input.phone !== undefined && { phone: input.phone }),
+            ...(input.email !== undefined && { email: input.email }),
+            ...(input.website !== undefined && { website: input.website }),
             ...(input.timezone !== undefined && { timezone: input.timezone }),
             ...(input.hours !== undefined && { hours: input.hours === null ? null : json(input.hours) }),
             ...(input.equipment !== undefined && { equipment: json(input.equipment) }),
