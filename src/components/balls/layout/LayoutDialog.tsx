@@ -166,8 +166,8 @@ export const LayoutDialog = ({ psaDistance, symmetric, owner, existing, previous
                                     {angle('VAL angle', valAngle, setValAngle, 90)}
                                 </> : system === 'TWO_LS' ? <>
                                     {length('Pin to PAP', pinToPap32, setPinToPap32, [0, 1, 2, 3, 4, 5, 6])}
-                                    {length('Pin to COG', pinToCog32, setPinToCog32, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], 'Pin to the center of grip (the center of the bridge)')}
                                     {length('PSA to PAP', psaToPap32, setPsaToPap32, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9])}
+                                    {length('Pin to COG', pinToCog32, setPinToCog32, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], 'Pin to the center of grip (the center of the bridge)')}
                                 </> : <>
                                     {length('Pin to PAP', pinToPap32, setPinToPap32, [0, 1, 2, 3, 4, 5, 6])}
                                     {length('PSA to PAP', psaToPap32, setPsaToPap32, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9])}

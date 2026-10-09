@@ -9,7 +9,7 @@ import type { SolvedLayout } from '../../../../shared/layout/ballLayout'
 import { placeGrip } from '../../../../shared/layout/gripPlacement'
 import { drillSheetsApi } from '../../../hooks/useCustomerDrillSheets'
 import type { Customer } from '../../../types'
-import { LAYOUT_SYSTEM_LABELS, systemsFor } from '../../../utils/BallLayoutFormat'
+import { LAYOUT_SYSTEM_LABELS, describeNumbers, systemsFor } from '../../../utils/BallLayoutFormat'
 import { gripFromSheet } from '../../../utils/GripFromSheet'
 import { SYSTEM_COLORS } from './systemColors'
 
@@ -89,6 +89,15 @@ export const Ball3DDialog = ({ ball, solved, hand, system, owner, onClose }: Bal
                         </button>
                     ))}
                 </div>
+                <dl aria-label="The layout in each system" className="grid gap-x-6 gap-y-1 text-sm sm:grid-flow-col sm:auto-cols-max">
+                    {systemsFor(owner?.usesThumb ?? true, system).map(s => (
+                        <div key={s} className="flex items-center gap-2">
+                            <span aria-hidden="true" className="size-2.5 rounded-full border border-black/20" style={{ background: SYSTEM_COLORS[s] }} />
+                            <dt className="text-gray-600">{LAYOUT_SYSTEM_LABELS[s]}</dt>
+                            <dd className="font-mono font-semibold text-gray-900">{describeNumbers(s, solved)}</dd>
+                        </div>
+                    ))}
+                </dl>
                 <div className="relative h-[min(62vh,560px)] min-h-72 w-full overflow-hidden rounded-xl bg-gradient-to-b from-gray-100 to-gray-300">
                     <Suspense fallback={<p className="flex h-full items-center justify-center text-sm text-gray-500">Loading the 3D view…</p>}>
                         <BallScene solved={solved} hand={hand} grip={grip} polished={polished} systems={systems} />

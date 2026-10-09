@@ -9,7 +9,7 @@ import { LayoutError, QUARTER_ROUND, solveLayout, type LayoutInput, type SolvedL
  *
  * - PIN_BUFFER: Storm's pin buffer / VLS numbers, pin to PAP × PSA to PAP × pin buffer ("5 x 4 x 2").
  * - DUAL_ANGLE: MoRich's Dual Angle, drilling angle × pin to PAP × VAL angle ("50° x 5 x 30°").
- * - TWO_LS: Storm's 2LS for two-handed bowlers, pin to PAP × pin to COG × PSA to PAP ("5 x 4 x 3-1/2"); the
+ * - TWO_LS: Storm's 2LS for two-handed bowlers, pin to PAP × PSA to PAP × pin to COG ("5 x 3-1/2 x 4"); the
  *   center of grip is the center of the bridge, and the PAP is measured from it.
  */
 
