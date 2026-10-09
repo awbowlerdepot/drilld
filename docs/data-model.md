@@ -259,7 +259,13 @@ create table catalog_sync_state (
 );
 ```
 
+**Built:** the sync job is its own Lambda (`amplify/api/catalogSyncHandler.ts`), run every 30 minutes by an EventBridge rule, one run at a time. It connects as `drilld_catalog_sync_job` (writes only the catalog), reads the partner key from Secrets Manager (`drilld/bowleriq-partner-key`, JSON `{ "apiKey" }`, created by hand), pages the change feed 100 at a time, and saves the cursor after each page; a run that runs low on time stops and the next one continues. The API searches the copy (`GET /catalog/balls?q=&brandId=`: every word must match brand, name or color), lists brands, and reports the last sync (`GET /catalog/status`).
+
 A `remove` **never deletes** a `catalog_ball` row. It only sets `removed_at`. Physical balls and work orders may still reference the ball, and their history must stay intact. Removed balls are hidden when picking a new ball.
+
+Retired (discontinued) balls stay in the catalog and can still be picked: they keep coming into shops. They're labelled Retired and listed after current balls.
+
+**Balls the catalog doesn't have** (older balls BowlerIQ doesn't publish) are typed in by the shop: `company_ball_model` (company, brand name, optional BowlerIQ `brand_id`, name, color, cover, core), kept once per company by brand + name + color and offered in the same search, marked as the shop's entry. The registry `ball` then has no `catalog_ball_id`, and no `brand_id` unless the brand is one of BowlerIQ's; `company_ball.model_id` says which entry it is. With a BowlerIQ brand the serial still matches the same ball at every shop; without one it can't be matched. When BowlerIQ later publishes the ball and a shop picks it from the catalog for a serial that was typed in, that registry ball is linked to the catalog ball (`drilld_app` may update only `ball.catalog_ball_id`, only while it's null), and every shop then shows the catalog ball. A bulk "link our typed-in balls to the catalog" step is not built.
 
 ### Grip catalog (inserts and thumb hardware)
 
@@ -402,6 +408,8 @@ create table ball_ownership (
 create unique index ball_ownership_current_uq
     on ball_ownership (company_ball_id) where to_date is null;
 ```
+
+**API (built):** `GET /balls` (`?customerId=` for one bowler's current balls), `GET /balls/:id` (owners over time, and the anonymous history from `ball_service_summary`), `GET /balls/lookup?brandId=&serial=` (before registering: is the serial registered somewhere, its anonymous history, and whether it's already in this company's records), `POST /balls` (register), `PATCH /balls/:id` (pin distance, top weight, status, purchase date, notes; the ball itself is fixed once registered), `POST /balls/:id/transfer` (ownership ends today, the new owner's starts). Needs `read:balls` / `write:balls`. Work orders still use the older mock balls until they're on the API.
 
 **Registering a ball** goes through one backend path:
 

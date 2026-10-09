@@ -4,6 +4,8 @@ import { CfnStage, CorsHttpMethod, HttpApi, HttpMethod } from 'aws-cdk-lib/aws-a
 import { HttpUserPoolAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import type { IUserPool, IUserPoolClient } from 'aws-cdk-lib/aws-cognito';
+import * as events from 'aws-cdk-lib/aws-events';
+import * as targets from 'aws-cdk-lib/aws-events-targets';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
@@ -26,6 +28,9 @@ const ALLOWED_ORIGINS = [
 /** The Anthropic API key for reading paper sheets: a Secrets Manager secret (JSON { "apiKey": ... }), created by hand. */
 const ANTHROPIC_KEY_SECRET_NAME = 'drilld/anthropic-api-key';
 
+/** The BowlerIQ partner key: a Secrets Manager secret (JSON { "apiKey": ... }), created by hand. Server-side only. */
+const BOWLERIQ_KEY_SECRET_NAME = 'drilld/bowleriq-partner-key';
+
 /** The public signup route: a few per second is plenty for a form. */
 const PUBLIC_THROTTLE = { burst: 5, ratePerSecond: 2 };
 
@@ -35,6 +40,8 @@ interface ApiOptions {
     cluster: IDatabaseCluster;
     /** The drilld_api login (member of drilld_app). Never the admin secret. */
     apiSecret: ISecret;
+    /** The catalog sync job's login (member of drilld_catalog_sync): writes only the ball catalog. */
+    catalogSyncSecret: ISecret;
     databaseName: string;
     /** Customer attachments; the API signs upload and view URLs under companies/. */
     filesBucket: IBucket;
@@ -138,6 +145,51 @@ export const defineApi = (stack: Stack, options: ApiOptions) => {
         resources: [stack.formatArn({ service: 'secretsmanager', resource: 'secret', resourceName: `${ANTHROPIC_KEY_SECRET_NAME}-*`, arnFormat: ArnFormat.COLON_RESOURCE_NAME })]
     }));
     reader.grantInvoke(fn);
+
+    // The BowlerIQ ball catalog sync (amplify/api/catalogSyncHandler.ts), every 30 minutes.
+    const catalogSyncLogs = new logs.LogGroup(stack, 'CatalogSyncLogs', {
+        retention: logs.RetentionDays.ONE_MONTH,
+        removalPolicy: RemovalPolicy.DESTROY
+    });
+    const catalogSync = new NodejsFunction(stack, 'CatalogSyncFunction', {
+        entry: fileURLToPath(new URL('./catalogSyncHandler.ts', import.meta.url)),
+        runtime: lambda.Runtime.NODEJS_22_X,
+        architecture: lambda.Architecture.ARM_64,
+        memorySize: 512,
+        timeout: Duration.minutes(10),
+        logGroup: catalogSyncLogs,
+        // One run at a time: two overlapping runs would read the same cursor.
+        reservedConcurrentExecutions: 1,
+        retryAttempts: 0,
+        environment: {
+            CLUSTER_ARN: options.cluster.clusterArn,
+            DB_SECRET_ARN: options.catalogSyncSecret.secretArn,
+            DATABASE_NAME: options.databaseName,
+            BOWLERIQ_KEY_SECRET: BOWLERIQ_KEY_SECRET_NAME
+        },
+        bundling: {
+            externalModules: ['@aws-sdk/client-rds-data', '@aws-sdk/client-secrets-manager']
+        }
+    });
+    catalogSync.addToRolePolicy(new iam.PolicyStatement({
+        actions: [
+            'rds-data:ExecuteStatement',
+            'rds-data:BatchExecuteStatement',
+            'rds-data:BeginTransaction',
+            'rds-data:CommitTransaction',
+            'rds-data:RollbackTransaction'
+        ],
+        resources: [options.cluster.clusterArn]
+    }));
+    options.catalogSyncSecret.grantRead(catalogSync);
+    catalogSync.addToRolePolicy(new iam.PolicyStatement({
+        actions: ['secretsmanager:GetSecretValue'],
+        resources: [stack.formatArn({ service: 'secretsmanager', resource: 'secret', resourceName: `${BOWLERIQ_KEY_SECRET_NAME}-*`, arnFormat: ArnFormat.COLON_RESOURCE_NAME })]
+    }));
+    new events.Rule(stack, 'CatalogSyncSchedule', {
+        schedule: events.Schedule.rate(Duration.minutes(30)),
+        targets: [new targets.LambdaFunction(catalogSync, { retryAttempts: 0 })]
+    });
     fn.addEnvironment('READER_FUNCTION', reader.functionName);
 
     // Data API access with the drilld_api secret only (grantDataApiAccess

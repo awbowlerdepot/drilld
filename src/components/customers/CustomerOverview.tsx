@@ -1,6 +1,7 @@
 import React from 'react';
 import { FileText, Target, Calendar, TrendingUp, Plus, ArrowRight } from 'lucide-react';
-import { Customer, BowlingBall } from '../../types';
+import type { BallDto } from '../../../shared/api/balls';
+import { Customer } from '../../types';
 import type { DrillSheetDto } from '../../../shared/api/drillSheets';
 import { format32 } from '../../utils/Fractions';
 import { Button } from '../common/Button';
@@ -8,7 +9,7 @@ import { Button } from '../common/Button';
 interface CustomerOverviewProps {
     customer: Customer;
     drillSheets: DrillSheetDto[];
-    balls: BowlingBall[];
+    balls: BallDto[];
     onViewDrillSheets: () => void;
     onViewBalls: () => void;
     onCreateDrillSheet: () => void;
@@ -25,18 +26,12 @@ export const CustomerOverview: React.FC<CustomerOverviewProps> = ({
                                                                       onAddBall
                                                                   }) => {
     const activeBalls = balls.filter(b => b.status === 'ACTIVE').length;
-    const totalValue = balls.reduce((sum, ball) => sum + (ball.purchasePrice || 0), 0);
+    const lastAdded = [...balls].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
     const recentDrillSheet = [...drillSheets]
         .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0];
     const recentSpec = recentDrillSheet?.currentRevision?.spec;
     const recentStatus = recentDrillSheet?.currentRevision?.approvedAt ? 'Approved' : 'Draft';
-    const recentBalls = balls
-        .sort((a, b) => {
-            const aDate = a.purchaseDate ? new Date(a.purchaseDate).getTime() : 0;
-            const bDate = b.purchaseDate ? new Date(b.purchaseDate).getTime() : 0;
-            return bDate - aDate;
-        })
-        .slice(0, 3);
+    const recentBalls = [...balls].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 3);
 
     const stats = [
         {
@@ -63,8 +58,8 @@ export const CustomerOverview: React.FC<CustomerOverviewProps> = ({
             bgColor: 'bg-purple-50'
         },
         {
-            name: 'Total Value',
-            value: totalValue > 0 ? `$${totalValue.toFixed(0)}` : '$0',
+            name: 'Last ball added',
+            value: lastAdded ? new Date(lastAdded.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '—',
             icon: Calendar,
             color: 'text-orange-600',
             bgColor: 'bg-orange-50'
@@ -214,9 +209,9 @@ export const CustomerOverview: React.FC<CustomerOverviewProps> = ({
                             {recentBalls.map((ball) => (
                                 <div key={ball.id} className="flex justify-between items-center p-3 bg-gray-50 rounded">
                                     <div className="flex-1">
-                                        <p className="font-medium text-gray-900">{ball.manufacturer} {ball.model}</p>
+                                        <p className="font-medium text-gray-900">{ball.catalogBall.brandName} {ball.catalogBall.name}</p>
                                         <div className="flex items-center space-x-4 text-sm text-gray-600">
-                                            <span>{ball.weight} lbs</span>
+                                            <span>{ball.weightLbs} lbs</span>
                                             <span className={`px-2 py-1 text-xs rounded ${
                                                 ball.status === 'ACTIVE'
                                                     ? 'bg-green-100 text-green-700'
@@ -228,11 +223,6 @@ export const CustomerOverview: React.FC<CustomerOverviewProps> = ({
                       </span>
                                         </div>
                                     </div>
-                                    {ball.purchasePrice && (
-                                        <span className="text-sm font-medium text-gray-900">
-                      ${ball.purchasePrice}
-                    </span>
-                                    )}
                                 </div>
                             ))}
                         </div>
@@ -284,7 +274,7 @@ export const CustomerOverview: React.FC<CustomerOverviewProps> = ({
                             <div className="flex-1">
                                 <p className="text-sm font-medium text-gray-900">Latest ball added</p>
                                 <p className="text-sm text-gray-500">
-                                    {recentBalls[0].manufacturer} {recentBalls[0].model} - {recentBalls[0].purchaseDate ? new Date(recentBalls[0].purchaseDate).toLocaleDateString() : 'Date unknown'}
+                                    {lastAdded.catalogBall.brandName} {lastAdded.catalogBall.name} · {new Date(lastAdded.createdAt).toLocaleDateString()}
                                 </p>
                             </div>
                         </div>

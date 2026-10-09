@@ -49,8 +49,8 @@ export interface AppUser {
 }
 
 export interface Ball {
-  brand_id: string;
-  catalog_ball_id: string;
+  brand_id: string | null;
+  catalog_ball_id: string | null;
   created_at: Generated<Timestamp>;
   id: Generated<string>;
   serial_number: string | null;
@@ -103,6 +103,7 @@ export interface CompanyBall {
   company_id: string;
   created_at: Generated<Timestamp>;
   id: Generated<string>;
+  model_id: string | null;
   notes: string | null;
   pin_distance: Numeric | null;
   purchase_date: Timestamp | null;
@@ -111,6 +112,18 @@ export interface CompanyBall {
   status: Generated<string>;
   top_weight: Numeric | null;
   updated_at: Generated<Timestamp>;
+}
+
+export interface CompanyBallModel {
+  brand_id: string | null;
+  brand_name: string;
+  color: string | null;
+  company_id: string;
+  core: string | null;
+  coverstock: string | null;
+  created_at: Generated<Timestamp>;
+  id: Generated<string>;
+  name: string;
 }
 
 export interface Customer {
@@ -453,6 +466,7 @@ export interface DB {
   catalog_sync_state: CatalogSyncState;
   company: Company;
   company_ball: CompanyBall;
+  company_ball_model: CompanyBallModel;
   customer: Customer;
   customer_attachment: CustomerAttachment;
   drill_sheet: DrillSheet;

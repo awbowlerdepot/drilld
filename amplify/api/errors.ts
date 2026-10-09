@@ -26,6 +26,11 @@ export const toErrorResponse = (error: unknown): { status: number; body: ApiErro
         };
     }
 
+    // A request body that isn't JSON (c.req.json() throws a SyntaxError).
+    if (error instanceof SyntaxError) {
+        return { status: 400, body: { error: 'The request body isn\'t valid JSON' } };
+    }
+
     const sqlState = /SQLState: (\w{5})/.exec(error instanceof Error ? error.message : '')?.[1];
     switch (sqlState) {
         case '23505': return { status: 409, body: { error: 'That already exists' } };
