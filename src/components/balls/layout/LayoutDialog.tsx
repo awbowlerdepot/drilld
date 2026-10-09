@@ -6,12 +6,12 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import {
-    ballLayoutWriteSchema, layoutSystems, papReference, solveBallLayout,
+    ballLayoutWriteSchema, papReference, solveBallLayout,
     type BallLayout, type BallLayoutDto, type BallLayoutWrite, type LayoutSystem
 } from '../../../../shared/api/ballLayouts'
 import { LayoutError, QUARTER_ROUND, fromReference } from '../../../../shared/layout/ballLayout'
 import type { Customer } from '../../../types'
-import { LAYOUT_SYSTEM_LABELS, describeNumbers, layoutDegrees, layoutInches, otherSystems } from '../../../utils/BallLayoutFormat'
+import { LAYOUT_SYSTEM_LABELS, describeNumbers, layoutDegrees, layoutInches, otherSystems, systemsFor } from '../../../utils/BallLayoutFormat'
 import { format32 } from '../../../utils/Fractions'
 import { DetailRow } from '../../pickers/DetailRow'
 import { LengthPickerDialog } from '../../pickers/LengthPickerDialog'
@@ -148,7 +148,7 @@ export const LayoutDialog = ({ psaDistance, symmetric, owner, existing, previous
                     </DialogHeader>
 
                     <div role="radiogroup" aria-label="Layout system" className="flex flex-wrap gap-1.5">
-                        {layoutSystems.map(s => (
+                        {systemsFor(owner?.usesThumb ?? true, was?.system).map(s => (
                             <button key={s} type="button" role="radio" aria-checked={system === s} onClick={() => setSystem(s)}
                                 className={cn('rounded-full border px-3 py-1 text-sm transition-colors',
                                     system === s ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-white hover:bg-muted')}>
@@ -234,7 +234,7 @@ export const LayoutDialog = ({ psaDistance, symmetric, owner, existing, previous
 
                             {result.solved && (
                                 <section aria-label="In every system" className="grid gap-1.5 rounded-lg bg-gray-50 px-3 py-2.5 text-sm">
-                                    {otherSystems(system).map(other => (
+                                    {otherSystems(system, owner?.usesThumb ?? true).map(other => (
                                         <p key={other}><span className="text-gray-500">{LAYOUT_SYSTEM_LABELS[other]}:</span> <span className="font-mono">{describeNumbers(other, result.solved!)}</span></p>
                                     ))}
                                     <p className="font-mono text-xs text-gray-500">

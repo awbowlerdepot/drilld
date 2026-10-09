@@ -3,13 +3,13 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { cn } from '@/lib/utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { CatalogBallDto } from '../../../../shared/api/balls'
-import { layoutSystems, type LayoutSystem } from '../../../../shared/api/ballLayouts'
+import type { LayoutSystem } from '../../../../shared/api/ballLayouts'
 import type { DrillSheetDto } from '../../../../shared/api/drillSheets'
 import type { SolvedLayout } from '../../../../shared/layout/ballLayout'
 import { placeGrip } from '../../../../shared/layout/gripPlacement'
 import { drillSheetsApi } from '../../../hooks/useCustomerDrillSheets'
 import type { Customer } from '../../../types'
-import { LAYOUT_SYSTEM_LABELS } from '../../../utils/BallLayoutFormat'
+import { LAYOUT_SYSTEM_LABELS, systemsFor } from '../../../utils/BallLayoutFormat'
 import { gripFromSheet } from '../../../utils/GripFromSheet'
 import { SYSTEM_COLORS } from './systemColors'
 
@@ -80,7 +80,7 @@ export const Ball3DDialog = ({ ball, solved, hand, system, owner, onClose }: Bal
                 </div>
                 <div role="group" aria-label="Layout systems on the ball" className="flex flex-wrap items-center gap-1.5 text-sm">
                     <span className="mr-1 text-gray-600">Show</span>
-                    {layoutSystems.map(s => (
+                    {systemsFor(owner?.usesThumb ?? true, system).map(s => (
                         <button key={s} type="button" aria-pressed={systems.includes(s)} onClick={() => toggle(s)}
                             className={cn('flex items-center gap-1.5 rounded-full border px-3 py-1 transition-colors',
                                 systems.includes(s) ? 'border-gray-900 bg-gray-900 text-white' : 'border-border bg-white text-gray-700 hover:bg-muted')}>

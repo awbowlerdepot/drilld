@@ -48,7 +48,7 @@ export const BallLayoutSection = ({ ball, owner, canEdit, onAdd, onUpdate, onDel
                             <span className="font-mono text-base font-medium text-gray-900">{describeLayout(current.layout)}</span>
                             <span className="ml-2 text-gray-500">{LAYOUT_SYSTEM_LABELS[current.layout.system]}</span>
                         </p>
-                        {otherSystems(current.layout.system).map(other => (
+                        {otherSystems(current.layout.system, owner?.usesThumb ?? true).map(other => (
                             <p key={other} className="text-gray-600">= <span className="font-mono">{describeNumbers(other, solved)}</span> {LAYOUT_SYSTEM_LABELS[other]}</p>
                         ))}
                         <p className="text-xs text-gray-500">Drilled {day(current.drilledOn)}{current.notes ? ` · ${current.notes}` : ''}</p>

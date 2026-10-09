@@ -32,9 +32,13 @@ export const describeNumbers = (system: LayoutSystem, n: LayoutNumbers) => {
 }
 
 /**
- * The other systems a layout can be read in. 2LS measures from the center of
- * the bridge (two-handers), so it's offered only for a 2LS layout's own numbers;
- * a 2LS layout reads in VLS and Dual Angle too.
+ * The layout systems for a bowler. 2LS measures from the center of the bridge,
+ * so it applies only to bowlers who don't use their thumb; they get all three.
+ * (A layout already in 2LS keeps it.)
  */
-export const otherSystems = (system: LayoutSystem): LayoutSystem[] =>
-    system === 'DUAL_ANGLE' ? ['PIN_BUFFER'] : system === 'PIN_BUFFER' ? ['DUAL_ANGLE'] : ['PIN_BUFFER', 'DUAL_ANGLE']
+export const systemsFor = (usesThumb: boolean, current?: LayoutSystem): LayoutSystem[] =>
+    usesThumb && current !== 'TWO_LS' ? ['PIN_BUFFER', 'DUAL_ANGLE'] : ['PIN_BUFFER', 'DUAL_ANGLE', 'TWO_LS']
+
+/** The other systems a layout can be read in, for this bowler. */
+export const otherSystems = (system: LayoutSystem, usesThumb: boolean): LayoutSystem[] =>
+    systemsFor(usesThumb, system).filter(s => s !== system)
