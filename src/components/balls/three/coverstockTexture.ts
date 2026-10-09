@@ -1,12 +1,5 @@
 import { CanvasTexture, RepeatWrapping, SRGBColorSpace } from 'three'
 
-/** A hex color lighter (factor > 1) or darker. */
-const shade = (hex: string, factor: number) => {
-    const n = parseInt(hex.slice(1), 16)
-    const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(v => Math.max(0, Math.min(255, Math.round(v * factor))))
-    return `#${c.map(v => v.toString(16).padStart(2, '0')).join('')}`
-}
-
 /** A small seeded random generator, so a ball draws the same each time. */
 const random = (seed: number) => () => {
     seed = (seed * 16807) % 2147483647
@@ -15,8 +8,8 @@ const random = (seed: number) => () => {
 
 /**
  * A coverstock texture (equirectangular, wraps the sphere): the first color as
- * the base, swirls of the others over it, blurred like a reactive cover; a
- * pearl cover gets a fine sparkle.
+ * the base, solid when it's the only one, otherwise the others flowing through
+ * it in wide, soft bands; a pearl cover gets a fine sparkle.
  */
 export const coverstockTexture = (palette: string[], pearl: boolean, seed = 7) => {
     const width = 1024, height = 512
@@ -29,16 +22,17 @@ export const coverstockTexture = (palette: string[], pearl: boolean, seed = 7) =
     const rand = random(seed)
     w.fillStyle = palette[0]
     w.fillRect(0, 0, width * 3, height)
-    // One color: swirl lighter and darker shades of it.
-    const swirlColors = palette.length > 1 ? palette.slice(1) : [shade(palette[0], 1.45), shade(palette[0], 0.6)]
-    w.filter = 'blur(10px)'
+    // One color is a solid cover. More colors flow through each other in a few
+    // wide, soft bands rather than many small strokes.
+    const swirlColors = palette.slice(1)
+    w.filter = 'blur(28px)'
     w.lineCap = 'round'
-    for (let i = 0; i < 70; i++) {
+    for (let i = 0; i < (swirlColors.length ? 18 : 0); i++) {
         const x = rand() * width, y = rand() * height
         const c = [(rand() - 0.5) * 400, (rand() - 0.5) * 300, (rand() - 0.5) * 400, (rand() - 0.5) * 300, (rand() - 0.5) * 500, (rand() - 0.5) * 200]
         w.strokeStyle = swirlColors[i % swirlColors.length]
-        w.globalAlpha = 0.35 + rand() * 0.45
-        w.lineWidth = 8 + rand() * 40
+        w.globalAlpha = 0.55 + rand() * 0.3
+        w.lineWidth = 60 + rand() * 90
         for (const copy of [0, 1, 2]) {
             const ox = x + copy * width
             w.beginPath()
