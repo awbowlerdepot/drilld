@@ -15,7 +15,8 @@ const range = (from: number, to: number, step: number) => Array.from({ length: M
 
 /**
  * The layout as seen on the ball, fingers up: the grip's midline and
- * centerline, the PAP and its VAL, the pin and the PSA, the pin buffer.
+ * centerline, the PAP and its VAL, the pin and the PSA, the pin buffer (and
+ * for 2LS, the pin to COG at the center of the bridge).
  * Projected around the point between the grip and the PAP, so distances from
  * there are true; mirrored for a left-hander.
  */
@@ -33,6 +34,7 @@ export const LayoutDiagram = ({ solved, hand, reference, className }: LayoutDiag
     const ref = xy(gripPoint(0, 0)), pap = xy(solved.pap), pin = xy(solved.pin), psa = xy(solved.psa)
     const foot = valFoot(solved.pap, solved.pin)
     const size = EXTENT * PX
+    const twoLs = reference === 'BRIDGE_CENTER'
     const fingers = xy(gripPoint(0, 2.6)), thumb = xy(gripPoint(0, -2.6))
     const label = (at: { x: number; y: number }, text: string, dx = 6, dy = -6, anchor: 'start' | 'end' = 'start') =>
         <text x={at.x + flip * dx} y={at.y + dy} textAnchor={flip < 0 ? (anchor === 'start' ? 'end' : 'start') : anchor} className="fill-gray-700 font-mono text-[10px]">{text}</text>
@@ -49,14 +51,16 @@ export const LayoutDiagram = ({ solved, hand, reference, className }: LayoutDiag
                 <path d={path(valPoints(solved.pap, 7))} className="stroke-blue-400" strokeWidth={1.25} strokeDasharray="5 4" />
                 <path d={path(arcPoints(solved.psa, solved.pap))} className="stroke-amber-400" strokeWidth={1} strokeDasharray="2 3" />
                 <path d={path(arcPoints(solved.pin, foot))} className="stroke-blue-600" strokeWidth={1.5} strokeDasharray="2 2.5" />
+                {twoLs && <path d={path(arcPoints(solved.pin, gripPoint(0, 0)))} className="stroke-violet-500" strokeWidth={1.25} />}
                 <path d={path(arcPoints(solved.pin, solved.pap))} className="stroke-gray-900" strokeWidth={1.5} />
                 <path d={path(arcPoints(solved.pin, solved.psa))} className="stroke-amber-600" strokeWidth={1.5} />
             </g>
 
             <text x={fingers.x} y={fingers.y} textAnchor="middle" className="fill-gray-400 text-[10px]">fingers</text>
-            <text x={thumb.x} y={thumb.y + 10} textAnchor="middle" className="fill-gray-400 text-[10px]">thumb</text>
+            {!twoLs && <text x={thumb.x} y={thumb.y + 10} textAnchor="middle" className="fill-gray-400 text-[10px]">thumb</text>}
             <path d={`M${ref.x - 5},${ref.y}h10M${ref.x},${ref.y - 5}v10`} className="stroke-gray-500" strokeWidth={1.25} />
-            {label(ref, reference === 'BRIDGE_CENTER' ? 'bridge' : 'grip', 6, 14)}
+            {label(ref, twoLs ? 'COG (bridge)' : 'grip', 6, 14)}
+            {twoLs && label(mid(solved.pin, gripPoint(0, 0)), layoutInches(solved.pinToCog), -6, 0, 'end')}
 
             <circle cx={pap.x} cy={pap.y} r={6} className="fill-white stroke-blue-600" strokeWidth={1.5} />
             <circle cx={pap.x} cy={pap.y} r={1.75} className="fill-blue-600" />

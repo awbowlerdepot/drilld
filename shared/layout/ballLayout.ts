@@ -24,6 +24,10 @@
  *   the line to the PAP. Seen from the ball's marks (pin facing you, MB
  *   straight below it), a right-hander's PAP is to the right of the pin-MB line.
  * - PSA to PAP: the distance from the PSA to the PAP.
+ * - Pin to COG: the distance from the pin to the center of grip (Storm's 2LS,
+ *   for two-handers: the center of grip is the center of the bridge, and the
+ *   PAP is measured from it). 2LS places the pin where the arc from the PAP
+ *   crosses the arc from the COG (the Lightning Arc), on the fingers' side.
  */
 
 export const BALL_CIRCUMFERENCE = 27;
@@ -75,6 +79,8 @@ const valDirections = (pap: Vec) => {
 /** The layout numbers, in every system. Inches and degrees. */
 export interface LayoutNumbers {
     pinToPap: number;
+    /** Pin to the reference point (the center of grip; the center of the bridge for 2LS). */
+    pinToCog: number;
     psaToPap: number;
     pinBuffer: number;
     drillingAngle: number;
@@ -91,7 +97,8 @@ export interface SolvedLayout extends LayoutNumbers {
 
 export type LayoutInput =
     | { system: 'DUAL_ANGLE'; drillingAngle: number; pinToPap: number; valAngle: number }
-    | { system: 'PIN_BUFFER'; pinToPap: number; psaToPap: number; pinBuffer: number };
+    | { system: 'PIN_BUFFER'; pinToPap: number; psaToPap: number; pinBuffer: number }
+    | { system: 'TWO_LS'; pinToPap: number; pinToCog: number; psaToPap: number };
 
 export interface LayoutContext {
     /** The PAP from the grip reference point, inches. */
@@ -120,17 +127,42 @@ export const drillingAngleFromSides = (pinToPap: number, pinToPsa: number, psaTo
     return deg(Math.acos(clamp1(cos)));
 };
 
+/**
+ * The pin `pinToPap` from the PAP and `pinToCog` from the reference point: where
+ * the two arcs cross, on the fingers' side of the line from the reference to the PAP.
+ */
+const pinFromArcs = (pap: Vec, pinToPap: number, pinToCog: number): Vec => {
+    const k = dot(pap, REFERENCE);
+    const cd = Math.cos(pinToPap / R), cg = Math.cos(pinToCog / R);
+    const a = (cd - k * cg) / (1 - k * k), b = (cg - k * cd) / (1 - k * k);
+    const normal = cross(pap, REFERENCE);
+    const c2 = (1 - a * a - b * b - 2 * a * b * k) / dot(normal, normal);
+    if (!(c2 >= -1e-12)) {
+        const papToCog = arc(pap, REFERENCE);
+        throw new LayoutError(`With the PAP ${papToCog.toFixed(3)}″ from the center of grip and the pin ${pinToPap.toFixed(3)}″ from the PAP, the pin can be ${Math.abs(papToCog - pinToPap).toFixed(3)}″ to ${(papToCog + pinToPap).toFixed(3)}″ from the center of grip`);
+    }
+    const base = add(scale(pap, a), scale(REFERENCE, b));
+    const offset = scale(normal, Math.sqrt(Math.max(0, c2)));
+    const one = add(base, offset), other = add(base, scale(offset, -1));
+    return one[1] >= other[1] ? one : other;
+};
+
 /** Places the pin, PSA and PAP for a layout, and works out its numbers in every system. */
 export const solveLayout = (input: LayoutInput, context: LayoutContext): SolvedLayout => {
     const pinToPsa = context.pinToPsa ?? QUARTER_ROUND;
     const { pinToPap } = input;
     if (pinToPap <= 0 || pinToPap > QUARTER_ROUND) throw new LayoutError('Pin to PAP must be more than 0 and at most 6¾″');
-    const valAngle = input.system === 'DUAL_ANGLE' ? input.valAngle : valAngleFromBuffer(pinToPap, input.pinBuffer);
     const drillingAngle = input.system === 'DUAL_ANGLE' ? input.drillingAngle : drillingAngleFromSides(pinToPap, pinToPsa, input.psaToPap);
 
     const pap = papPoint(context.papOver, context.papUp);
-    const val = valDirections(pap);
-    const pin = move(pap, add(scale(val.up, Math.cos(rad(valAngle))), scale(val.grip, Math.sin(rad(valAngle)))), pinToPap);
+    let pin: Vec;
+    if (input.system === 'TWO_LS') {
+        pin = pinFromArcs(pap, pinToPap, input.pinToCog);
+    } else {
+        const valAngle = input.system === 'DUAL_ANGLE' ? input.valAngle : valAngleFromBuffer(pinToPap, input.pinBuffer);
+        const val = valDirections(pap);
+        pin = move(pap, add(scale(val.up, Math.cos(rad(valAngle))), scale(val.grip, Math.sin(rad(valAngle)))), pinToPap);
+    }
     // From the pin, the PAP is the drilling angle counterclockwise from the PSA (seen from outside): the PSA is that far clockwise.
     const psa = move(pin, turn(toward(pin, pap), pin, -drillingAngle), pinToPsa);
     return { ...measureLayout(pap, pin, psa), pap, pin, psa, pinToPsa };
@@ -143,6 +175,7 @@ export const measureLayout = (pap: Vec, pin: Vec, psa: Vec): LayoutNumbers => {
     const toPin = toward(pap, pin);
     return {
         pinToPap: arc(pin, pap),
+        pinToCog: arc(pin, REFERENCE),
         psaToPap: arc(psa, pap),
         pinBuffer: R * Math.asin(Math.abs(clamp1(dot(pin, valNormal)))),
         valAngle: deg(Math.atan2(dot(toPin, val.grip), dot(toPin, val.up))),

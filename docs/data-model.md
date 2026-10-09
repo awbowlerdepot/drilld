@@ -642,11 +642,12 @@ create table work_order (
 
 - **VAL**: the line through the PAP square to the midline. **Pin buffer** = the pin's distance from it; **VAL angle** = the angle at the PAP between the VAL (up) and the line to the pin. sin(buffer/R) = sin(pin to PAP/R) · sin(VAL angle).
 - **Drilling angle**: at the pin, between the line to the PSA and the line to the PAP. With the pin-to-PSA distance (the ball's measured MB distance, else 6¾″), the PAP–pin–PSA triangle gives PSA to PAP by the spherical law of cosines, and back.
+- **2LS** (Storm, two-handers): pin to PAP × **pin to COG** × PSA to PAP. The center of grip is the center of the bridge, and the PAP is measured from it. The pin is where the arc from the PAP crosses the arc from the COG (Storm's Lightning Arc), on the fingers' side; if they don't cross, the layout can't exist. It's a different system from VLS (whose third number is the pin buffer), but the same points, so a 2LS layout also reads in VLS and Dual Angle: 5 × 4 × 3½ with the PAP 5″ over and 1″ up is VLS 5 × 3½ × 2½, Dual Angle 41½° × 5 × 37½°.
 - **Side**: with the pin facing you and the MB straight below it, a right-hander's PAP is to the right of the pin-MB line (a left-hander's to the left): the layout is mirrored by hand.
 - A layout whose lines can't meet on this ball (PSA to PAP outside |pin to PAP − pin to PSA| … pin to PAP + pin to PSA) is refused, with the range that works.
 - Checked against MoRich's Dual Angle chart (PSA 6¾″ from the pin): its 90° row exactly, the hand-measured rows to about ⅛″ (a few ~¼″). Flat geometry is far off: 60° × 4 × 30° is **4 × 5 × 1¾** VLS on the ball, but 4 × 5⅞ × 2 flat.
 
-**Stored** (`ball_layout.layout`): `{ system: PIN_BUFFER | DUAL_ANGLE | TWO_LS, the numbers as entered (32nds; degrees), pap: { over32, up32 }, hand, psaDistance32, layoutSchemaVersion: 1 }`. 2LS is the pin buffer numbers with the PAP measured from the center of the bridge. The other systems' numbers are never stored. `company_ball.psa_distance` is the pin to MB measured on an asymmetric ball (null = 6¾″).
+**Stored** (`ball_layout.layout`): `{ system: PIN_BUFFER | DUAL_ANGLE | TWO_LS, the numbers as entered (32nds; degrees: pinToPap32 with psaToPap32 + pinBuffer32, drillingAngle + valAngle, or pinToCog32 + psaToPap32), pap: { over32, up32 }, hand, psaDistance32, layoutSchemaVersion: 1 }`. The other systems' numbers are never stored. `company_ball.psa_distance` is the pin to MB measured on an asymmetric ball (null = 6¾″).
 
 **API**: `POST /balls/:id/layouts` (a drilling), `PATCH/DELETE /ball-layouts/:id`; `GET /balls` carries each ball's current layout, `GET /balls/:id` every drilling's.
 

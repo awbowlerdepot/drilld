@@ -9,7 +9,8 @@ import { LayoutError, QUARTER_ROUND, solveLayout, type LayoutInput, type SolvedL
  *
  * - PIN_BUFFER: Storm's pin buffer / VLS numbers, pin to PAP × PSA to PAP × pin buffer ("5 x 4 x 2").
  * - DUAL_ANGLE: MoRich's Dual Angle, drilling angle × pin to PAP × VAL angle ("50° x 5 x 30°").
- * - TWO_LS: Storm's 2LS for two-handed bowlers: the pin buffer numbers, with the PAP measured from the center of the bridge.
+ * - TWO_LS: Storm's 2LS for two-handed bowlers, pin to PAP × pin to COG × PSA to PAP ("5 x 4 x 3-1/2"); the
+ *   center of grip is the center of the bridge, and the PAP is measured from it.
  */
 
 export const layoutSystems = ['PIN_BUFFER', 'DUAL_ANGLE', 'TWO_LS'] as const;
@@ -42,7 +43,7 @@ const pinBufferNumbers = {
 
 export const ballLayoutSchema = z.discriminatedUnion('system', [
     z.object({ system: z.literal('PIN_BUFFER'), ...common, ...pinBufferNumbers }).strict(),
-    z.object({ system: z.literal('TWO_LS'), ...common, ...pinBufferNumbers }).strict(),
+    z.object({ system: z.literal('TWO_LS'), ...common, pinToCog32: inches32(432), psaToPap32: inches32(432) }).strict(),
     z.object({
         system: z.literal('DUAL_ANGLE'), ...common,
         drillingAngle: z.number().min(0).max(180).multipleOf(0.5),
@@ -53,7 +54,7 @@ export const ballLayoutSchema = z.discriminatedUnion('system', [
         solveBallLayout(layout);
     } catch (err) {
         if (!(err instanceof LayoutError)) throw err;
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: err.message, path: [layout.system === 'DUAL_ANGLE' ? 'drillingAngle' : 'psaToPap32'] });
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: err.message, path: [layout.system === 'DUAL_ANGLE' ? 'drillingAngle' : layout.system === 'TWO_LS' ? 'pinToCog32' : 'psaToPap32'] });
     }
 });
 
@@ -66,7 +67,9 @@ export const papReference = (system: LayoutSystem) => (system === 'TWO_LS' ? 'BR
 export const solveBallLayout = (layout: BallLayout): SolvedLayout => {
     const input: LayoutInput = layout.system === 'DUAL_ANGLE'
         ? { system: 'DUAL_ANGLE', drillingAngle: layout.drillingAngle, pinToPap: layout.pinToPap32 / 32, valAngle: layout.valAngle }
-        : { system: 'PIN_BUFFER', pinToPap: layout.pinToPap32 / 32, psaToPap: layout.psaToPap32 / 32, pinBuffer: layout.pinBuffer32 / 32 };
+        : layout.system === 'TWO_LS'
+            ? { system: 'TWO_LS', pinToPap: layout.pinToPap32 / 32, pinToCog: layout.pinToCog32 / 32, psaToPap: layout.psaToPap32 / 32 }
+            : { system: 'PIN_BUFFER', pinToPap: layout.pinToPap32 / 32, psaToPap: layout.psaToPap32 / 32, pinBuffer: layout.pinBuffer32 / 32 };
     return solveLayout(input, { papOver: layout.pap.over32 / 32, papUp: layout.pap.up32 / 32, pinToPsa: layout.psaDistance32 / 32 });
 };
 
