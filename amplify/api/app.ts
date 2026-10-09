@@ -7,6 +7,7 @@ import { attachments, customerAttachments } from './routes/attachments';
 import { customers } from './routes/customers';
 import { customerDrillSheets, drillSheets } from './routes/drillSheets';
 import { employees } from './routes/employees';
+import { equipment, locationEquipment, maintenanceTasks } from './routes/equipment';
 import { gripCatalog, locationGripStock } from './routes/grips';
 import { leads, publicLeads } from './routes/leads';
 import { locations } from './routes/locations';
@@ -79,7 +80,10 @@ export const createApp = (db: Db) => {
     app.route('/employees', employees);
     app.route('/grip-catalog', gripCatalog);
     app.route('/locations/:locationId/grip-stock', locationGripStock);
+    app.route('/locations/:locationId/equipment', locationEquipment);
     app.route('/locations', locations);
+    app.route('/equipment', equipment);
+    app.route('/maintenance-tasks', maintenanceTasks);
     app.route('/leads', leads);
 
     return app;

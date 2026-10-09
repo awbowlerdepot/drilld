@@ -4,9 +4,9 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { CompanySettings, Location } from '../../types'
+import { LocationEquipment } from '../equipment/LocationEquipment'
 import { LocationGripStock } from './grips/LocationGripStock'
 import { LocationHoursTab } from './hours/LocationHoursTab'
-import { LocationEquipmentList } from './LocationEquipmentList'
 import { LocationOpenBadge } from './LocationOpenBadge'
 import { LocationOverview } from './LocationOverview'
 import { LocationProfileDialog } from './LocationProfileDialog'
@@ -86,7 +86,7 @@ export const LocationDetail = ({ location, companySettings, canEdit, canActivate
             <div className="rounded-xl border border-border bg-white p-4 sm:p-5">
                 {tab === 'overview' && <LocationOverview location={location} />}
                 {tab === 'hours' && <LocationHoursTab location={location} canEdit={canEdit} onSave={hours => onUpdate({ hours })} />}
-                {tab === 'equipment' && <LocationEquipmentList location={location} />}
+                {tab === 'equipment' && <LocationEquipment locationId={location.id} canManage={canEdit} canDo={canEdit} />}
                 {tab === 'stock' && <LocationGripStock location={location} />}
                 {tab === 'settings' && (
                     <LocationSettingsTab location={location} companySettings={companySettings} canEdit={canEdit}

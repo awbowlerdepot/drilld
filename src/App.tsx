@@ -6,10 +6,12 @@ import { BowlingBallManagement } from './components/balls/BowlingBallManagement'
 import { WorkOrderManagement } from './components/workorders/WorkOrderManagement'
 import { SettingsPage } from './components/settings/SettingsPage'
 import { LeadsPage } from './components/leads/LeadsPage'
+import { MaintenancePage } from './components/equipment/MaintenancePage'
+import { useLocationEquipment } from './hooks/useLocationEquipment'
 import { useLocations } from './hooks/useLocations'
 import { useMe } from './hooks/useMe'
 import { useSidebarCollapsed } from './hooks/useSidebarCollapsed'
-import { toEmployeeManager } from './utils/EmployeeRoles'
+import { canAtLocation, toEmployeeManager } from './utils/EmployeeRoles'
 import { AppSection, SignedInUser } from './types'
 
 interface AppProps {
@@ -20,6 +22,7 @@ interface AppProps {
 const SECTION_TITLES: Record<AppSection, string> = {
     customers: 'Customers',
     workorders: 'Work Orders',
+    maintenance: 'Maintenance',
     balls: 'Bowling Balls',
     analytics: 'Analytics',
     settings: 'Settings',
@@ -39,9 +42,14 @@ function App({ user }: AppProps) {
     // Until the user picks one, the first active location is current.
     // Not yet used to filter data: sections still show every location.
     const currentLocationID = selectedLocationID || locations.find(location => location.active)?.id || ''
+    const currentLocation = locations.find(location => location.id === currentLocationID)
+    // The current location's equipment: the sidebar shows how much maintenance is due.
+    const equipment = useLocationEquipment(currentLocationID || undefined)
 
     const handleNavigate = (section: AppSection) => {
         setActiveSection(section)
+        // Maintenance may have changed elsewhere (Settings → Locations): refresh the count.
+        equipment.reload()
         setSidebarOpen(false)
     }
 
@@ -53,6 +61,12 @@ function App({ user }: AppProps) {
                 return <BowlingBallManagement searchTerm={searchTerm} />
             case 'workorders':
                 return <WorkOrderManagement searchTerm={searchTerm} />
+            case 'maintenance':
+                return currentLocation
+                    ? <MaintenancePage locationId={currentLocation.id} locationName={currentLocation.name} list={equipment}
+                        canManage={canAtLocation(me, !!user, 'manage:settings', currentLocation.id)}
+                        canDo={canAtLocation(me, !!user, 'write:workorders', currentLocation.id)} />
+                    : <p className="py-12 text-center text-gray-500">Pick a location in the sidebar.</p>
             case 'analytics':
                 return <div className="text-center py-12">Analytics Dashboard - Coming soon...</div>
             case 'settings':
@@ -78,6 +92,7 @@ function App({ user }: AppProps) {
                 collapsed={sidebarCollapsed}
                 onToggleCollapsed={toggleSidebarCollapsed}
                 showLeads={platformAdmin !== null}
+                badges={{ maintenance: equipment.due }}
             />
             <div className="min-w-0 flex-1">
                 <TopBar

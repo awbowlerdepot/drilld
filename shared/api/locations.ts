@@ -8,14 +8,6 @@ import { locationAddressSchema, locationHoursSchema, type LocationAddress, type 
 
 const optionalText = (max: number) => z.string().trim().max(max).nullish().transform(value => value || null);
 
-export const equipmentItemSchema = z.object({
-    name: z.string().trim().min(1).max(100),
-    model: z.string().trim().max(100),
-    manufacturer: z.string().trim().max(100).optional(),
-    serialNumber: z.string().trim().max(100).optional(),
-    condition: z.enum(['excellent', 'good', 'fair', 'needs_repair'])
-}).strict();
-
 const isTimeZone = (value: string) => {
     try {
         new Intl.DateTimeFormat('en-US', { timeZone: value });
@@ -40,7 +32,6 @@ export const locationCreateSchema = z.object({
     timezone: z.string().refine(isTimeZone, 'Pick a time zone'),
     /** Weekly hours, special dates and temporary closure (shared/api/locationHours.ts). */
     hours: locationHoursSchema.nullish().transform(value => value ?? null),
-    equipment: z.array(equipmentItemSchema).max(50).default([]),
     /** Overrides of company settings (validated by the frontend's LocationSettingsOverrides shape). */
     settingsOverrides: z.record(z.unknown()).default({}),
     active: z.boolean().default(true)
@@ -55,14 +46,12 @@ export const locationUpdateSchema = z.object({
     website: websiteSchema,
     timezone: z.string().refine(isTimeZone, 'Pick a time zone'),
     hours: locationHoursSchema.nullable(),
-    equipment: z.array(equipmentItemSchema).max(50),
     settingsOverrides: z.record(z.unknown()),
     active: z.boolean()
 }).partial();
 
 export type LocationCreate = z.input<typeof locationCreateSchema>;
 export type LocationUpdate = z.input<typeof locationUpdateSchema>;
-export type EquipmentItemDto = z.infer<typeof equipmentItemSchema>;
 
 /** A location as returned by the API. */
 export interface LocationDto {
@@ -75,7 +64,6 @@ export interface LocationDto {
     website: string | null;
     timezone: string;
     hours: LocationHours | null;
-    equipment: EquipmentItemDto[];
     settingsOverrides: Record<string, unknown>;
     active: boolean;
     createdAt: string;

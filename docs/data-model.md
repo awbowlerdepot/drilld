@@ -100,7 +100,6 @@ create table location (
     website            text,
     timezone           text not null,
     hours              jsonb,                         -- {weekly: {monday: [{open, close}]…}, special: [{date, closed, intervals, note}], temporarilyClosed}
-    equipment          jsonb not null default '[]',  -- [{name, model, manufacturer, serialNumber, condition}]
     settings_overrides jsonb not null default '{}',  -- overrides company.settings
     active             boolean not null default true,
     created_at         timestamptz not null default now(),
@@ -151,6 +150,16 @@ A location's address and hours are structured the way listing platforms take the
 - The old one-line address and free-text hours ("9:00 AM - 9:00 PM") are upgraded when read (migration 0017 only adds `email` and `website`).
 
 **Listing sync (planned):** Google Business Profile (regular and special hours, through Google's Business Profile API, which needs an approved Google Cloud project and each profile's owner connecting it) and Facebook/Instagram page hours (a Meta app; the page admin connects the page). Apple Business Connect's API is for approved partners and Yelp has no public way to update hours, so for those Drilld will show what changed and where to update it, unless a listings service (Yext, Uberall) is used.
+
+### Equipment and scheduled maintenance
+
+`db/migrations/0018_equipment_maintenance.sql` (the old `location.equipment` list moved into it), `shared/api/equipment.ts`.
+
+- **equipment** (per location): kind (drill press, ball spinner, resurfacer, plug spinner, vacuum pump, other), name, make, model, serial, purchase date, status (in service, out of service, retired), **volume** (low / standard / high: how hard it runs), `details` (a drill press's column, jig and readout direction), notes.
+- **maintenance_task** (per machine): title, how-to (why it matters, then the steps), checklist, video link, interval in days and/or balls (whichever comes first; ball counts once work orders are on the API), active, last done, **next due** (the location's date). A new drill press gets the standard tasks MD-01–MD-06 (plus MD-07 for a vacuum jig) with intervals by volume; changing the volume rescales them from when each was last done. Standard tasks can be turned off, not removed; a shop can add its own.
+- **maintenance_log**: DONE (a task, with the checklist as ticked and notes) or ISSUE (jam, snapped bit, other), who and when. A jam or snapped bit makes the alignment check (MD-06) due today.
+- **Due:** overdue, due today, due in the next 3 days, or OK, worked out for the location's date. The Maintenance section (main sidebar, with a count badge) lists them for the current location; techs (`write:workorders`) mark tasks done and report problems; managers, owners and admins (`manage:settings`) set up machines and tasks.
+- The drill press view still takes its readout direction from the company/location settings; picking the press (and its readout) when drilling comes with work orders.
 
 ### Customers
 

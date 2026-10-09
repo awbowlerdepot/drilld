@@ -97,21 +97,6 @@ export interface WorkOrder {
 // LOCATION TYPES
 // ==========================================
 
-export type EquipmentCondition = 'excellent' | 'good' | 'fair' | 'needs_repair';
-
-export interface EquipmentItem {
-    name: string;
-    model: string;
-    manufacturer?: string;
-    serialNumber?: string;
-    condition: EquipmentCondition;
-}
-
-export interface LocationEquipmentInfo {
-    equipment: EquipmentItem[];
-    lastUpdated?: string;
-}
-
 export interface Location {
     id: string;
     companyID: string;
@@ -122,7 +107,6 @@ export interface Location {
     website?: string;
     /** IANA time zone, e.g. America/Denver. */
     timezone?: string;
-    equipmentInfo?: LocationEquipmentInfo;
     /** Weekly hours, special dates and temporary closure (shared/api/locationHours.ts). */
     hours?: LocationHours;
     settingsOverrides?: LocationSettingsOverrides;

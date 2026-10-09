@@ -23,7 +23,6 @@ const toDto = (row: Selectable<Location>): LocationDto => ({
     website: row.website,
     timezone: row.timezone,
     hours: row.hours == null ? null : locationHoursSchema.safeParse(row.hours).data ?? null,
-    equipment: (row.equipment as LocationDto['equipment']) ?? [],
     settingsOverrides: (row.settings_overrides as Record<string, unknown>) ?? {},
     active: row.active,
     createdAt: new Date(row.created_at).toISOString(),
@@ -67,7 +66,6 @@ export const locations = new Hono<ApiEnv>()
                         website: input.website,
                         timezone: input.timezone,
                         hours: input.hours === null ? null : json(input.hours),
-                        equipment: json(input.equipment),
                         settings_overrides: json(input.settingsOverrides),
                         active: input.active
                     })
@@ -92,7 +90,6 @@ export const locations = new Hono<ApiEnv>()
             ...(input.website !== undefined && { website: input.website }),
             ...(input.timezone !== undefined && { timezone: input.timezone }),
             ...(input.hours !== undefined && { hours: input.hours === null ? null : json(input.hours) }),
-            ...(input.equipment !== undefined && { equipment: json(input.equipment) }),
             ...(input.settingsOverrides !== undefined && { settings_overrides: json(input.settingsOverrides) }),
             ...(input.active !== undefined && { active: input.active })
         };

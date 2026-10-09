@@ -19,7 +19,7 @@ The agreed backend design (Postgres schema, tenant isolation, ball registry, dri
 
 - `src/main.tsx` — configures Amplify from `amplify_outputs.json` and wraps the app in `AuthWrapper` (Cognito sign-in) when it has an `auth` section. Otherwise the app runs without sign-in on mock data.
 - `src/App.tsx` — tab-based navigation (no router). Permission checks per section (`ProtectedRoute`) are not implemented yet.
-- `src/components/<feature>/` — one folder per feature: customers, attachments, paperimport, drillsheets, balls, workorders, locations, employees, settings, auth, layout, leads (platform admins only)
+- `src/components/<feature>/` — one folder per feature: customers, attachments, paperimport, equipment, drillsheets, balls, workorders, locations, employees, settings, auth, layout, leads (platform admins only)
 - `src/components/drillsheets/editor/` — the drill sheet editor (canvas design D):
   - `HoleLayout` is the spatial sheet.
   - Hole cards, fit, delivery and notes panels sit below it.
@@ -161,6 +161,10 @@ Look for incorrect imports, circular dependencies, and unnecessary complexity.
   - paper import (AI reading of paper drill sheets; see `docs/data-model.md` Paper import):
     - `GET/POST /paper-imports`, `POST …/:id/complete` (starts the reading), `POST …/:id/retry`, `POST …/:id/import` (customer + attachment + draft revision 1), `DELETE …/:id` (discard).
     - The reader is its own Lambda (`api/readerHandler.ts`, `api/paperReader.ts`), invoked without waiting. Claude Opus 5.5 through Anthropic's API; the key is in Secrets Manager (`drilld/anthropic-api-key`). Customers → Import paper sheets is the screen.
+  - equipment and maintenance (`docs/data-model.md` Equipment and scheduled maintenance):
+    - `GET/POST /locations/:locationId/equipment` (a new drill press gets the standard tasks), `GET/PATCH /equipment/:id`, `POST /equipment/:id/tasks`, `POST /equipment/:id/issues` (jam / snapped bit: alignment check due today).
+    - `PATCH/DELETE /maintenance-tasks/:id`, `POST /maintenance-tasks/:id/complete` (logged; next due from the interval).
+    - The Maintenance section (main sidebar, due-count badge) and Settings → Locations → Equipment.
   - `GET /grip-catalog`: the shared catalog of inserts and thumb hardware (VISE, Turbo, JoPo), one entry per line with its sizes.
   - leads (early access signups from drilld.io):
     - `POST /public/leads`: no sign-in; only adds a new lead. It has a spam trap (a hidden field plus a minimum fill time) and emails `LEAD_NOTIFY_TO` through SES.
