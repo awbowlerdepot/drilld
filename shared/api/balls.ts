@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { BallLayoutDto } from './ballLayouts';
 
 /**
  * Balls API contract: the BowlerIQ catalog (Drilld's synced copy), and a
@@ -105,6 +106,8 @@ export const ballRegisterSchema = z.object({
 /** Body of PATCH /balls/:id. The ball itself (catalog ball, weight, serial) is fixed once registered. */
 export const ballUpdateSchema = z.object({
     pinDistance: inches,
+    /** Pin to MB (inches), measured on an asymmetric ball; null = 6¾″. */
+    psaDistance: z.number().positive().max(13.5).nullish().transform(value => value ?? null),
     topWeight: ounces,
     status: z.enum(['ACTIVE', 'RETIRED', 'DAMAGED']),
     purchaseDate: optionalDate,
@@ -127,8 +130,12 @@ export interface BallDto {
     weightLbs: number;
     serialNumber: string | null;
     pinDistance: number | null;
+    /** Pin to MB, inches, when measured; otherwise 6¾″ is used. */
+    psaDistance: number | null;
     topWeight: number | null;
     status: BallStatus;
+    /** The latest drilling's layout. */
+    layout: BallLayoutDto | null;
     purchaseDate: string | null;
     notes: string | null;
     owner: { customerId: string; name: string; since: string } | null;
@@ -138,6 +145,8 @@ export interface BallDto {
 
 /** GET /balls/:id: the ball, its owners over time, and its anonymous history. */
 export interface BallDetailDto extends BallDto {
+    /** Every drilling's layout, newest first. */
+    layouts: BallLayoutDto[];
     owners: { customerId: string; name: string; from: string; to: string | null }[];
     history: BallHistoryDto;
 }

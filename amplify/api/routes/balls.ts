@@ -12,7 +12,8 @@ import {
     type BallLookupDto,
     type CatalogBallDto
 } from '../../../shared/api/balls';
-import { uuid, withCompany, type Tx } from '../db/client';
+import { ballLayoutWriteSchema, type BallLayout, type BallLayoutDto } from '../../../shared/api/ballLayouts';
+import { json, uuid, withCompany, type Tx } from '../db/client';
 import { HttpError } from '../errors';
 import { loadAccess, requirePermission } from '../permissions';
 import type { ApiEnv } from '../app';
@@ -28,6 +29,11 @@ import { catalogBallDto, shopBallModelDto } from './catalog';
 
 const idParam = (value: string | undefined) => {
     if (!value || !/^[0-9a-f-]{36}$/i.test(value)) throw new HttpError(404, 'Ball not found');
+    return value;
+};
+
+const layoutParam = (value: string | undefined) => {
+    if (!value || !/^[0-9a-f-]{36}$/i.test(value)) throw new HttpError(404, 'Layout not found');
     return value;
 };
 
@@ -49,7 +55,7 @@ const selectBalls = (tx: Tx) => tx.selectFrom('company_ball as cb')
     .leftJoin('ball_ownership as o', join => join.onRef('o.company_ball_id', '=', 'cb.id').on('o.to_date', 'is', null))
     .leftJoin('customer as cu', 'cu.id', 'o.customer_id')
     .select([
-        'cb.id', 'cb.ball_id', 'cb.pin_distance', 'cb.top_weight', 'cb.status', 'cb.purchase_date', 'cb.notes', 'cb.created_at', 'cb.updated_at',
+        'cb.id', 'cb.ball_id', 'cb.pin_distance', 'cb.psa_distance', 'cb.top_weight', 'cb.status', 'cb.purchase_date', 'cb.notes', 'cb.created_at', 'cb.updated_at',
         'b.weight_lbs', 'b.serial_number',
         'cat.id as cat_id', 'cat.brand_id as cat_brand_id', 'cat.brand_name as cat_brand_name', 'cat.name as cat_name', 'cat.color as cat_color',
         'cat.status as cat_status', 'cat.data as cat_data', 'cat.content_changed_at as cat_content_changed_at', 'cat.removed_at as cat_removed_at', 'cat.synced_at as cat_synced_at',
@@ -72,13 +78,38 @@ const modelOf = (row: BallRow): CatalogBallDto => (row.cat_id
         coverstock: row.m_coverstock, core: row.m_core, created_at: row.m_created_at!
     }));
 
-const toDto = (row: BallRow): BallDto => ({
+/** A drilling's layout. */
+const layoutDto = (row: { id: string; company_ball_id: string; drilled_on: unknown; layout: unknown; notes: string | null; created_at: unknown; updated_at: unknown }): BallLayoutDto => ({
+    id: row.id,
+    companyBallId: row.company_ball_id,
+    drilledOn: dateOnly(row.drilled_on)!,
+    layout: row.layout as BallLayout,
+    notes: row.notes,
+    createdAt: new Date(row.created_at as string).toISOString(),
+    updatedAt: new Date(row.updated_at as string).toISOString()
+});
+
+/** Each ball's drillings, newest first. */
+const layoutsOf = async (tx: Tx, companyBallIds: string[]) => {
+    const byBall = new Map<string, BallLayoutDto[]>();
+    if (companyBallIds.length === 0) return byBall;
+    const rows = await tx.selectFrom('ball_layout').selectAll()
+        .where('company_ball_id', 'in', companyBallIds.map(uuid))
+        .orderBy('drilled_on', 'desc').orderBy('created_at', 'desc')
+        .execute();
+    for (const row of rows) byBall.set(row.company_ball_id, [...(byBall.get(row.company_ball_id) ?? []), layoutDto(row)]);
+    return byBall;
+};
+
+const toDto = (row: BallRow, layouts: BallLayoutDto[] = []): BallDto => ({
     id: row.id,
     ballId: row.ball_id,
     catalogBall: modelOf(row),
     weightLbs: row.weight_lbs,
     serialNumber: row.serial_number,
     pinDistance: num(row.pin_distance),
+    psaDistance: num(row.psa_distance),
+    layout: layouts[0] ?? null,
     topWeight: num(row.top_weight),
     status: row.status as BallDto['status'],
     purchaseDate: dateOnly(row.purchase_date),
@@ -103,8 +134,10 @@ const detail = async (tx: Tx, id: string): Promise<BallDetailDto> => {
         .where('o.company_ball_id', '=', uuid(id))
         .orderBy('o.from_date', 'desc')
         .execute();
+    const layouts = (await layoutsOf(tx, [id])).get(id) ?? [];
     return {
-        ...toDto(row),
+        ...toDto(row, layouts),
+        layouts,
         owners: owners.map(o => ({ customerId: o.customer_id, name: o.name, from: dateOnly(o.from_date)!, to: dateOnly(o.to_date) })),
         history: await historyOf(tx, row.ball_id)
     };
@@ -166,7 +199,8 @@ export const balls = new Hono<ApiEnv>()
         if (status) query = query.where('cb.status', '=', status);
         const rows = await query.orderBy('cb.status')
             .orderBy(sql`coalesce(cat.brand_name, m.brand_name)`).orderBy(sql`coalesce(cat.name, m.name)`).limit(2000).execute();
-        return c.json(rows.map(toDto));
+        const layouts = await layoutsOf(tx, rows.map(r => r.id));
+        return c.json(rows.map(row => toDto(row, layouts.get(row.id))));
     }))
 
     /** What's known about a serial: registered somewhere? Its anonymous history; this company's record. */
@@ -263,6 +297,7 @@ export const balls = new Hono<ApiEnv>()
         const input = ballUpdateSchema.parse(await c.req.json());
         const changes = {
             ...(input.pinDistance !== undefined && { pin_distance: input.pinDistance }),
+            ...(input.psaDistance !== undefined && { psa_distance: input.psaDistance }),
             ...(input.topWeight !== undefined && { top_weight: input.topWeight }),
             ...(input.status !== undefined && { status: input.status }),
             ...(input.purchaseDate !== undefined && { purchase_date: dateParam(input.purchaseDate) }),
@@ -274,6 +309,22 @@ export const balls = new Hono<ApiEnv>()
             const result = await tx.updateTable('company_ball').set(changes).where('id', '=', uuid(id)).executeTakeFirst();
             if (Number(result.numUpdatedRows) === 0) throw new HttpError(404, 'Ball not found');
             return c.json(await detail(tx, id));
+        });
+    })
+
+    /** Records a drilling's layout (the first drilling, or a plug and redrill). */
+    .post('/:id/layouts', async c => {
+        const id = idParam(c.req.param('id'));
+        const input = ballLayoutWriteSchema.parse(await c.req.json());
+        return withCompany(c.var.db, c.var.user.companyId, async tx => {
+            requirePermission(await loadAccess(tx, c.var.user), 'write:balls');
+            const ball = await tx.selectFrom('company_ball').select('id').where('id', '=', uuid(id)).executeTakeFirst();
+            if (!ball) throw new HttpError(404, 'Ball not found');
+            await tx.insertInto('ball_layout').values({
+                company_id: uuid(c.var.user.companyId), company_ball_id: uuid(id), drilled_on: dateParam(input.drilledOn)!,
+                layout: json(input.layout), notes: input.notes, created_by_user_id: uuid(c.var.user.userId)
+            }).execute();
+            return c.json(await detail(tx, id), 201);
         });
     })
 
@@ -297,3 +348,24 @@ export const balls = new Hono<ApiEnv>()
             return c.json(await detail(tx, id));
         });
     });
+
+/** A drilling's layout: correct it, or remove one entered by mistake. Both return the ball. */
+export const ballLayouts = new Hono<ApiEnv>()
+    .patch('/:id', async c => {
+        const id = layoutParam(c.req.param('id'));
+        const input = ballLayoutWriteSchema.parse(await c.req.json());
+        return withCompany(c.var.db, c.var.user.companyId, async tx => {
+            requirePermission(await loadAccess(tx, c.var.user), 'write:balls');
+            const row = await tx.updateTable('ball_layout')
+                .set({ drilled_on: dateParam(input.drilledOn)!, layout: json(input.layout), notes: input.notes })
+                .where('id', '=', uuid(id)).returning('company_ball_id').executeTakeFirst();
+            if (!row) throw new HttpError(404, 'Layout not found');
+            return c.json(await detail(tx, row.company_ball_id));
+        });
+    })
+    .delete('/:id', c => withCompany(c.var.db, c.var.user.companyId, async tx => {
+        requirePermission(await loadAccess(tx, c.var.user), 'write:balls');
+        const row = await tx.deleteFrom('ball_layout').where('id', '=', uuid(layoutParam(c.req.param('id')))).returning('company_ball_id').executeTakeFirst();
+        if (!row) throw new HttpError(404, 'Layout not found');
+        return c.json(await detail(tx, row.company_ball_id));
+    }));

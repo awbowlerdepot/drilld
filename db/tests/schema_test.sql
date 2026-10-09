@@ -163,6 +163,13 @@ insert into company_ball_model (company_id, brand_name, name, color) values
 select test.fails($$insert into company_ball_model (company_id, brand_name, name, color) values
     ('00000000-0000-0000-0000-00000000000a', 'storm', 'HY-ROAD', 'classic')$$, '23505', 'a typed-in ball is kept once per company');
 
+-- Ball layouts (0021)
+insert into ball_layout (company_id, company_ball_id, drilled_on, layout) values
+    ('00000000-0000-0000-0000-00000000000a', '50000000-0000-0000-0000-0000000000a1', current_date, '{"system": "PIN_BUFFER"}');
+select test.fails($$insert into ball_layout (company_id, company_ball_id, drilled_on, layout) values
+    ('00000000-0000-0000-0000-00000000000a', '50000000-0000-0000-0000-0000000000b1', current_date, '{}')$$, '23503', 'a layout cannot be on another company''s ball');
+select test.fails($$update company_ball set psa_distance = 0$$, '23514', 'the pin to MB distance is more than zero');
+
 -- Equipment and maintenance (0018)
 insert into equipment (id, company_id, location_id, kind, name) values
     ('e0000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-0000000000a1', 'DRILL_PRESS', 'Main press');
@@ -406,6 +413,7 @@ select test.ok((select count(*) from customer_attachment) = 0, 'company B does n
 select test.ok((select count(*) from paper_import) = 0, 'company B does not see company A''s paper imports');
 select test.ok((select count(*) from equipment) + (select count(*) from maintenance_task) + (select count(*) from maintenance_log) = 0, 'company B does not see company A''s equipment or maintenance');
 select test.ok((select count(*) from company_ball_model) = 0, 'company B does not see company A''s typed-in balls');
+select test.ok((select count(*) from ball_layout) = 0, 'company B does not see company A''s layouts');
 select test.ok((select notes from customer where first_name = 'Bob') is null, 'company B''s customer was not modified by company A');
 select test.ok((select count(*) from location) = 1, 'company B does not see company A''s locations');
 select test.ok((select count(*) from layout_template) = 0, 'company B does not see company A''s layout templates');
