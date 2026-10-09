@@ -137,5 +137,11 @@ export const mockBallsApi: BallsApi = {
     }
 }
 
-// A ball for the first mock customer.
-void mockBallsApi.register({ catalogBallId: mockCatalog[0].id, weightLbs: 15, serialNumber: 'SP1234567', customerId: '1', pinDistance: 4.5, topWeight: 2.5 })
+// A ball for the first mock customer, drilled 5 x 4 x 2.
+void mockBallsApi.register({ catalogBallId: mockCatalog[0].id, weightLbs: 15, serialNumber: 'SP1234567', customerId: '1', pinDistance: 4.5, topWeight: 2.5 }).then(ball => mockBallsApi.addLayout(ball.id, {
+    drilledOn: today(),
+    layout: {
+        system: 'PIN_BUFFER', pinToPap32: 160, psaToPap32: 128, pinBuffer32: 64,
+        pap: { over32: 172, up32: 16 }, hand: 'RIGHT', psaDistance32: 216, layoutSchemaVersion: 1
+    }
+}))

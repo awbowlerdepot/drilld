@@ -6,18 +6,19 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import {
-    ballLayoutWriteSchema, layoutSystems, papReference, solveBallLayout,
+    ballLayoutWriteSchema, solveBallLayout,
     type BallLayout, type BallLayoutDto, type BallLayoutWrite, type LayoutSystem
 } from '../../../../shared/api/ballLayouts'
 import { LayoutError, QUARTER_ROUND, fromReference } from '../../../../shared/layout/ballLayout'
 import type { Customer } from '../../../types'
-import { LAYOUT_SYSTEM_LABELS, describeNumbers, layoutDegrees, layoutInches, otherSystems } from '../../../utils/BallLayoutFormat'
+import { LAYOUT_SYSTEM_LABELS, describeNumbers, layoutDegrees, layoutInches, otherSystems, systemsFor } from '../../../utils/BallLayoutFormat'
 import { format32 } from '../../../utils/Fractions'
 import { DetailRow } from '../../pickers/DetailRow'
 import { LengthPickerDialog } from '../../pickers/LengthPickerDialog'
 import { NumberPickerDialog } from '../../pickers/NumberPickerDialog'
 import type { LengthPickerRequest, NumberPickerRequest } from '../../pickers/pickerRequests'
-import { LayoutDiagram } from './LayoutDiagram'
+import { useBallGrip } from '../../../hooks/useBallGrip'
+import { BallView3D } from '../three/BallView3D'
 
 interface LayoutDialogProps {
     /** The ball's pin to MB (inches), when measured. */
@@ -69,6 +70,7 @@ export const LayoutDialog = ({ psaDistance, symmetric, owner, existing, previous
     const [drilledOn, setDrilledOn] = useState(existing?.drilledOn ?? today())
     const [notes, setNotes] = useState(existing?.notes ?? '')
     const [picker, setPicker] = useState<Picker | null>(null)
+    const { grip } = useBallGrip(owner, hand)
     const [saving, setSaving] = useState(false)
     const [formError, setFormError] = useState<string | null>(null)
 
@@ -148,7 +150,7 @@ export const LayoutDialog = ({ psaDistance, symmetric, owner, existing, previous
                     </DialogHeader>
 
                     <div role="radiogroup" aria-label="Layout system" className="flex flex-wrap gap-1.5">
-                        {layoutSystems.map(s => (
+                        {systemsFor(owner?.usesThumb ?? true, was?.system).map(s => (
                             <button key={s} type="button" role="radio" aria-checked={system === s} onClick={() => setSystem(s)}
                                 className={cn('rounded-full border px-3 py-1 text-sm transition-colors',
                                     system === s ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-white hover:bg-muted')}>
@@ -166,8 +168,8 @@ export const LayoutDialog = ({ psaDistance, symmetric, owner, existing, previous
                                     {angle('VAL angle', valAngle, setValAngle, 90)}
                                 </> : system === 'TWO_LS' ? <>
                                     {length('Pin to PAP', pinToPap32, setPinToPap32, [0, 1, 2, 3, 4, 5, 6])}
-                                    {length('Pin to COG', pinToCog32, setPinToCog32, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], 'Pin to the center of grip (the center of the bridge)')}
                                     {length('PSA to PAP', psaToPap32, setPsaToPap32, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9])}
+                                    {length('Pin to COG', pinToCog32, setPinToCog32, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], 'Pin to the center of grip (the center of the bridge)')}
                                 </> : <>
                                     {length('Pin to PAP', pinToPap32, setPinToPap32, [0, 1, 2, 3, 4, 5, 6])}
                                     {length('PSA to PAP', psaToPap32, setPsaToPap32, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9])}
@@ -234,7 +236,7 @@ export const LayoutDialog = ({ psaDistance, symmetric, owner, existing, previous
 
                             {result.solved && (
                                 <section aria-label="In every system" className="grid gap-1.5 rounded-lg bg-gray-50 px-3 py-2.5 text-sm">
-                                    {otherSystems(system).map(other => (
+                                    {otherSystems(system, owner?.usesThumb ?? true).map(other => (
                                         <p key={other}><span className="text-gray-500">{LAYOUT_SYSTEM_LABELS[other]}:</span> <span className="font-mono">{describeNumbers(other, result.solved!)}</span></p>
                                     ))}
                                     <p className="font-mono text-xs text-gray-500">
@@ -253,7 +255,7 @@ export const LayoutDialog = ({ psaDistance, symmetric, owner, existing, previous
 
                         <div className="grid content-start">
                             {result.solved
-                                ? <LayoutDiagram solved={result.solved} hand={hand} reference={papReference(system)} className="w-full" />
+                                ? <BallView3D className="aspect-square w-full" solved={result.solved} hand={hand} grip={grip} polished={false} systems={[system]} />
                                 : <div className="flex aspect-square items-center justify-center rounded-full border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500">The layout shows here once the numbers and the PAP are in.</div>}
                         </div>
                     </div>

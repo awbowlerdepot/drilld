@@ -38,26 +38,26 @@ export const QUARTER_ROUND = BALL_CIRCUMFERENCE / 4;
 export type Vec = readonly [number, number, number];
 
 const R = BALL_RADIUS;
-const dot = (a: Vec, b: Vec) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-const cross = (a: Vec, b: Vec): Vec => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
-const scale = (a: Vec, k: number): Vec => [a[0] * k, a[1] * k, a[2] * k];
-const add = (a: Vec, b: Vec): Vec => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
-const unit = (a: Vec): Vec => scale(a, 1 / Math.hypot(a[0], a[1], a[2]));
+export const dot = (a: Vec, b: Vec) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+export const cross = (a: Vec, b: Vec): Vec => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+export const scale = (a: Vec, k: number): Vec => [a[0] * k, a[1] * k, a[2] * k];
+export const add = (a: Vec, b: Vec): Vec => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+export const unit = (a: Vec): Vec => scale(a, 1 / Math.hypot(a[0], a[1], a[2]));
 const clamp1 = (x: number) => Math.max(-1, Math.min(1, x));
 const rad = (deg: number) => (deg * Math.PI) / 180;
 const deg = (r: number) => (r * 180) / Math.PI;
 
-const UP: Vec = [0, 1, 0];
+export const UP: Vec = [0, 1, 0];
 export const REFERENCE: Vec = [0, 0, 1];
 
 /** Surface distance between two points, inches. */
 export const arc = (a: Vec, b: Vec) => R * Math.acos(clamp1(dot(a, b)));
 /** The direction along the surface at `from` toward `to`. */
-const toward = (from: Vec, to: Vec): Vec => unit(add(to, scale(from, -dot(to, from))));
+export const toward = (from: Vec, to: Vec): Vec => unit(add(to, scale(from, -dot(to, from))));
 /** The point `inches` along the surface from `from` in direction `dir`. */
-const move = (from: Vec, dir: Vec, inches: number): Vec => add(scale(from, Math.cos(inches / R)), scale(dir, Math.sin(inches / R)));
+export const move = (from: Vec, dir: Vec, inches: number): Vec => add(scale(from, Math.cos(inches / R)), scale(dir, Math.sin(inches / R)));
 /** Turns a surface direction at `at` counterclockwise (seen from outside the ball) by `degrees`. */
-const turn = (dir: Vec, at: Vec, degrees: number): Vec => add(scale(dir, Math.cos(rad(degrees))), scale(cross(at, dir), Math.sin(rad(degrees))));
+export const turn = (dir: Vec, at: Vec, degrees: number): Vec => add(scale(dir, Math.cos(rad(degrees))), scale(cross(at, dir), Math.sin(rad(degrees))));
 /** The counterclockwise angle (seen from outside) at `at` from direction `a` to direction `b`, −180 to 180. */
 const angleBetween = (at: Vec, a: Vec, b: Vec) => deg(Math.atan2(dot(cross(a, b), at), dot(a, b)));
 
@@ -204,6 +204,23 @@ export const gripPoint = papPoint;
 export const valPoints = (pap: Vec, inches: number, steps = 24): Vec[] => {
     const { up } = valDirections(pap);
     return Array.from({ length: steps + 1 }, (_, i) => move(pap, up, -inches + (2 * inches * i) / steps));
+};
+
+/**
+ * Part of the circle `radius` inches (along the surface) around `center`: the
+ * stretch `halfAngle` degrees either side of the direction toward `near`, as a
+ * compass would draw it on the ball.
+ */
+export const circleArcPoints = (center: Vec, radius: number, near: Vec, halfAngle: number, steps = 32): Vec[] => {
+    const d0 = toward(center, near);
+    return Array.from({ length: steps + 1 }, (_, i) => move(center, turn(d0, center, -halfAngle + (2 * halfAngle * i) / steps), radius));
+};
+
+/** The arc at `vertex`, `radius` inches out, from the direction toward `a` to the direction toward `b` (an angle's mark). */
+export const angleArcPoints = (vertex: Vec, a: Vec, b: Vec, radius: number, steps = 24): Vec[] => {
+    const from = toward(vertex, a);
+    const angle = angleBetween(vertex, from, toward(vertex, b));
+    return Array.from({ length: steps + 1 }, (_, i) => move(vertex, turn(from, vertex, (angle * i) / steps), radius));
 };
 
 /** Azimuthal equidistant projection centered on `center`: distances and angles from it are true. Inches, y up. */

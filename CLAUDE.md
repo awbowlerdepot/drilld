@@ -45,6 +45,8 @@ The agreed backend design (Postgres schema, tenant isolation, ball registry, dri
   - `DrillSheetChanges.ts` — describes a spec as labelled values and diffs two revisions (the History dialog)
   - `DrillBits.ts` — the bits a shop has: 1/2–1-1/8 in 64ths, 1-1/4, 1-3/8, 1-1/2, and the interchangeable-hardware collar bits
 - `shared/layout/ballLayout.ts` — ball layout geometry on the sphere: places the pin, PSA and PAP, converts between VLS / pin buffer, Dual Angle and 2LS
+- `shared/layout/gripPlacement.ts` — places a drill sheet's holes on the ball (for drawing only; spans other than center-to-center get the facing edges' radii added, never stored)
+- `src/components/balls/three/` — the ball's 3D view (Three.js via react-three-fiber and drei, loaded only when opened): the ball in the app's blue, the drill sheet's holes, the layout drawn on the surface
 - `docs/data-model.md` — backend data model design and open questions
 - `db/` — PostgreSQL migrations (plain SQL, dbmate format) and schema tests; see `db/README.md`. `db/seed/grip_catalog.py` generates the grip catalog rows for a migration. The migrations are the source of truth for the schema; never generate migrations from an ORM.
 - `src/services/` — the frontend's API layer:
@@ -172,7 +174,7 @@ Look for incorrect imports, circular dependencies, and unnecessary complexity.
   - balls and the BowlerIQ catalog (`docs/data-model.md` Ball catalog, Balls):
     - `GET /catalog/balls?q=&brandId=`, `GET /catalog/brands`, `GET /catalog/status`: Drilld's synced copy, refreshed every 30 minutes by the catalog sync Lambda (`api/catalogSyncHandler.ts`; partner key in Secrets Manager `drilld/bowleriq-partner-key`).
     - `GET/POST /balls`, `GET/PATCH /balls/:id`, `POST /balls/:id/transfer` (API only), `GET /balls/lookup?brandId=&serial=`: a company's balls (registry + company record + owners); another shop's history of a serial is anonymous.
-    - layouts per drilling: `POST /balls/:id/layouts`, `PATCH/DELETE /ball-layouts/:id`. Entered as VLS / pin buffer, Dual Angle or 2LS (pin to PAP × pin to COG × PSA to PAP, from the bridge); the other systems, the pin and PSA from the grip, and the diagram are calculated on the sphere (`shared/layout/ballLayout.ts`, `docs/data-model.md` Ball layouts).
+    - layouts per drilling: `POST /balls/:id/layouts`, `PATCH/DELETE /ball-layouts/:id`. Entered as VLS / pin buffer, Dual Angle or 2LS (pin to PAP × PSA to PAP × pin to COG, from the bridge); the other systems, the pin and PSA from the grip, and the diagram are calculated on the sphere (`shared/layout/ballLayout.ts`, `docs/data-model.md` Ball layouts).
     - A ball the catalog doesn't have is typed in ("Not in the catalog? Type it in") and kept in the company's own list (`company_ball_model`), found by the same search.
     - The Bowling Balls section and the customer's Bowling Balls tab use it; work orders still use the old mock balls.
   - `GET /grip-catalog`: the shared catalog of inserts and thumb hardware (VISE, Turbo, JoPo), one entry per line with its sizes.

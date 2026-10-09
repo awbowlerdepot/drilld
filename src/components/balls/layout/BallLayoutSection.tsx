@@ -1,12 +1,14 @@
 import { useState } from 'react'
-import { Pencil, Plus, Trash2 } from 'lucide-react'
+import { Box, Pencil, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { BallDetailDto } from '../../../../shared/api/balls'
-import { papReference, solveBallLayout, type BallLayoutDto, type BallLayoutWrite } from '../../../../shared/api/ballLayouts'
+import { solveBallLayout, type BallLayoutDto, type BallLayoutWrite } from '../../../../shared/api/ballLayouts'
 import type { Customer } from '../../../types'
 import { LAYOUT_SYSTEM_LABELS, describeLayout, describeNumbers, otherSystems } from '../../../utils/BallLayoutFormat'
+import { useBallGrip } from '../../../hooks/useBallGrip'
+import { Ball3DDialog } from '../three/Ball3DDialog'
+import { BallView3D } from '../three/BallView3D'
 import { LayoutDialog } from './LayoutDialog'
-import { LayoutDiagram } from './LayoutDiagram'
 
 interface BallLayoutSectionProps {
     ball: BallDetailDto
@@ -24,6 +26,8 @@ const day = (date: string) => new Date(`${date}T12:00:00Z`).toLocaleDateString(u
 /** The ball's layout: the current drilling's (with the other systems' numbers and the diagram), and earlier drillings. */
 export const BallLayoutSection = ({ ball, owner, canEdit, onAdd, onUpdate, onDelete, onSaveBowlerPap }: BallLayoutSectionProps) => {
     const [editing, setEditing] = useState<BallLayoutDto | 'new' | null>(null)
+    const [showing3d, setShowing3d] = useState(false)
+    const { grip } = useBallGrip(owner, ball.layouts[0]?.layout.hand ?? owner?.dominantHand ?? 'RIGHT')
     const current = ball.layouts[0] ?? null
     const solved = current ? solveBallLayout(current.layout) : null
 
@@ -46,17 +50,19 @@ export const BallLayoutSection = ({ ball, owner, canEdit, onAdd, onUpdate, onDel
                             <span className="font-mono text-base font-medium text-gray-900">{describeLayout(current.layout)}</span>
                             <span className="ml-2 text-gray-500">{LAYOUT_SYSTEM_LABELS[current.layout.system]}</span>
                         </p>
-                        {otherSystems(current.layout.system).map(other => (
+                        {otherSystems(current.layout.system, owner?.usesThumb ?? true).map(other => (
                             <p key={other} className="text-gray-600">= <span className="font-mono">{describeNumbers(other, solved)}</span> {LAYOUT_SYSTEM_LABELS[other]}</p>
                         ))}
                         <p className="text-xs text-gray-500">Drilled {day(current.drilledOn)}{current.notes ? ` · ${current.notes}` : ''}</p>
-                        {canEdit && (
-                            <div className="flex gap-1">
-                                <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(current)}><Pencil data-icon="inline-start" /> Edit</Button>
-                            </div>
-                        )}
+                        <div className="flex gap-1">
+                            <Button type="button" variant="outline" size="sm" onClick={() => setShowing3d(true)}><Box data-icon="inline-start" /> 3D view</Button>
+                            {canEdit && <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(current)}><Pencil data-icon="inline-start" /> Edit</Button>}
+                        </div>
                     </div>
-                    <LayoutDiagram solved={solved} hand={current.layout.hand} reference={papReference(current.layout.system)} className="w-40 justify-self-center" />
+                    <button type="button" aria-label="Open the 3D view" onClick={() => setShowing3d(true)}
+                        className="justify-self-center rounded-xl outline-offset-2 transition hover:ring-2 hover:ring-primary focus-visible:outline-2 focus-visible:outline-primary">
+                        <BallView3D compact className="size-40" solved={solved} hand={current.layout.hand} grip={grip} polished={false} systems={[current.layout.system]} />
+                    </button>
                 </div>
             )}
             {ball.layouts.length > 1 && (
@@ -77,6 +83,9 @@ export const BallLayoutSection = ({ ball, owner, canEdit, onAdd, onUpdate, onDel
             {canEdit && current && ball.layouts.length === 1 && (
                 <button type="button" className="justify-self-start text-xs text-gray-500 hover:text-red-700 hover:underline"
                     onClick={() => { if (window.confirm('Delete this layout? It was entered by mistake.')) void onDelete(current.id) }}>Delete this layout</button>
+            )}
+            {showing3d && current && solved && (
+                <Ball3DDialog ball={ball.catalogBall} solved={solved} hand={current.layout.hand} system={current.layout.system} owner={owner} onClose={() => setShowing3d(false)} />
             )}
             {editing && (
                 <LayoutDialog psaDistance={ball.psaDistance} symmetric={ball.catalogBall.core?.type === 'symmetric'} owner={owner}

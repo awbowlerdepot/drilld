@@ -9,7 +9,7 @@ import { LayoutError, QUARTER_ROUND, solveLayout, type LayoutInput, type SolvedL
  *
  * - PIN_BUFFER: Storm's pin buffer / VLS numbers, pin to PAP × PSA to PAP × pin buffer ("5 x 4 x 2").
  * - DUAL_ANGLE: MoRich's Dual Angle, drilling angle × pin to PAP × VAL angle ("50° x 5 x 30°").
- * - TWO_LS: Storm's 2LS for two-handed bowlers, pin to PAP × pin to COG × PSA to PAP ("5 x 4 x 3-1/2"); the
+ * - TWO_LS: Storm's 2LS for two-handed bowlers, pin to PAP × PSA to PAP × pin to COG ("5 x 3-1/2 x 4"); the
  *   center of grip is the center of the bridge, and the PAP is measured from it.
  */
 
@@ -59,9 +59,6 @@ export const ballLayoutSchema = z.discriminatedUnion('system', [
 });
 
 export type BallLayout = z.infer<typeof ballLayoutSchema>;
-
-/** Where the layout's PAP is measured from: the center of grip, or the center of the bridge (2LS). */
-export const papReference = (system: LayoutSystem) => (system === 'TWO_LS' ? 'BRIDGE_CENTER' : 'GRIP_CENTER');
 
 /** The layout placed on the ball, with its numbers in every system (inches, degrees). */
 export const solveBallLayout = (layout: BallLayout): SolvedLayout => {
