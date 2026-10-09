@@ -7,8 +7,8 @@ export const MAX_HOLES = 5
 export const BALL_COLOR = '#1d4ed8'
 
 interface BallMeshProps {
-    /** The openings cut in the surface: direction (unit) and angular radius (radians). */
-    openings: { direction: [number, number, number]; angle: number }[]
+    /** The openings cut in the surface: a slot from `a` to `b` (unit vectors; the same for a round hole) of angular radius `angle` (radians). */
+    openings: { a: [number, number, number]; b: [number, number, number]; angle: number }[]
     /** Polished: a soft shine. Otherwise satin, like a sanded cover: soft highlights, no gloss. */
     polished: boolean
 }
@@ -16,11 +16,12 @@ interface BallMeshProps {
 /**
  * The ball: a unit sphere in one solid color with a clear coat, with the hole
  * openings cut out of the surface by its shader (each fragment within an
- * opening's angle of its direction is discarded), so the holes can be seen into.
+ * opening's angle of its slot is discarded), so the holes can be seen into.
  */
 export const BallMesh = forwardRef<Mesh, BallMeshProps>(({ openings, polished }, ref) => {
     const uniforms = useMemo(() => ({
-        holeDir: { value: Array.from({ length: MAX_HOLES }, () => new Vector3(0, 0, 1)) },
+        holeA: { value: Array.from({ length: MAX_HOLES }, () => new Vector3(0, 0, 1)) },
+        holeB: { value: Array.from({ length: MAX_HOLES }, () => new Vector3(0, 0, 1)) },
         holeCos: { value: Array.from({ length: MAX_HOLES }, () => 2) }
     }), [])
 
@@ -34,25 +35,32 @@ export const BallMesh = forwardRef<Mesh, BallMeshProps>(({ openings, polished },
             sheenRoughness: 0.7
         })
         m.onBeforeCompile = shader => {
-            shader.uniforms.holeDir = uniforms.holeDir
+            shader.uniforms.holeA = uniforms.holeA
+            shader.uniforms.holeB = uniforms.holeB
             shader.uniforms.holeCos = uniforms.holeCos
             shader.vertexShader = shader.vertexShader
                 .replace('#include <common>', '#include <common>\nvarying vec3 vBallDir;')
                 .replace('#include <begin_vertex>', '#include <begin_vertex>\nvBallDir = normalize(position);')
             shader.fragmentShader = shader.fragmentShader
-                .replace('#include <common>', `#include <common>\nvarying vec3 vBallDir;\nuniform vec3 holeDir[${MAX_HOLES}];\nuniform float holeCos[${MAX_HOLES}];`)
+                .replace('#include <common>', `#include <common>\nvarying vec3 vBallDir;\nuniform vec3 holeA[${MAX_HOLES}];\nuniform vec3 holeB[${MAX_HOLES}];\nuniform float holeCos[${MAX_HOLES}];`)
                 .replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>
+                    vec3 ballDir = normalize(vBallDir);
                     for (int i = 0; i < ${MAX_HOLES}; i++) {
-                        if (dot(normalize(vBallDir), holeDir[i]) > holeCos[i]) discard;
+                        // The nearest point of the slot (its chord, back on the sphere).
+                        vec3 ab = holeB[i] - holeA[i];
+                        float len2 = dot(ab, ab);
+                        float t = len2 > 0.0 ? clamp(dot(ballDir - holeA[i], ab) / len2, 0.0, 1.0) : 0.0;
+                        if (dot(ballDir, normalize(holeA[i] + ab * t)) > holeCos[i]) discard;
                     }`)
         }
         return m
     }, [polished, uniforms])
 
     useEffect(() => {
-        uniforms.holeDir.value.forEach((v, i) => {
-            const o = openings[i]
-            if (o) v.set(...o.direction)
+        openings.forEach((o, i) => {
+            if (i >= MAX_HOLES) return
+            uniforms.holeA.value[i].set(...o.a)
+            uniforms.holeB.value[i].set(...o.b)
         })
         uniforms.holeCos.value = uniforms.holeCos.value.map((_, i) => (openings[i] ? Math.cos(openings[i].angle) : 2))
     }, [openings, uniforms])

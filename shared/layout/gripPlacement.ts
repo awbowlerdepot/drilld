@@ -17,6 +17,10 @@
  * - Holes are aimed by their pitch: the hole's axis passes the ball's center
  *   offset by the pitch (thumb: forward is toward the fingers; fingers:
  *   forward is toward the palm; lateral right is to the right as seen).
+ * - Ovals are the slot the bit leaves as it's moved: a thumb oval stretches
+ *   evenly both ways from the pilot along its angle from horizontal (a
+ *   right-hander's tilts up-left to down-right, a left-hander's mirrored); a
+ *   finger oval only widens, away from the bridge.
  */
 import { BALL_RADIUS, REFERENCE, UP, add, arc, cross, dot, move, scale, toward, turn, unit, type Vec } from './ballLayout.ts';
 
@@ -36,6 +40,8 @@ export interface HoleInput {
     /** Inches: forward (negative = reverse), lateral (right positive, as seen). */
     forward?: number | null;
     lateral?: number | null;
+    /** Oval: how much wider than the pilot (`size`), inches; and for a thumb, its angle from horizontal (degrees). */
+    oval?: { elongation: number; angle?: number } | null;
 }
 
 export interface GripInput {
@@ -59,6 +65,8 @@ export interface PlacedHole {
     radius: number;
     outsideRadius: number;
     depth: number;
+    /** An oval: the bit's center moves along `direction` (a surface direction at the center) from `from` to `to` inches. */
+    oval: { direction: Vec; from: number; to: number } | null;
 }
 
 export interface PlacedGrip {
@@ -98,6 +106,21 @@ const aim = (center: Vec, hole: HoleInput, thumb: boolean, flip: number): Vec =>
     const lateral = (hole.lateral ?? 0) * flip;
     const target = add(scale(right, lateral / R), scale(up, forward / R));
     return unit(add(scale(center, -1), target));
+};
+
+/** The oval's slot at a hole's center (see the file comment). */
+const ovalOf = (center: Vec, h: HoleInput, thumb: boolean, flip: number): PlacedHole['oval'] => {
+    if (!h.oval || h.oval.elongation <= 0) return null;
+    const up = toward(center, UP);
+    const right = unit(cross(up, center));
+    if (thumb) {
+        const a = ((h.oval.angle ?? 0) * Math.PI) / 180;
+        // Right-hander: up-left to down-right; left-hander: up-right to down-left.
+        const direction = unit(add(scale(right, Math.cos(a)), scale(up, -flip * Math.sin(a))));
+        return { direction, from: -h.oval.elongation / 2, to: h.oval.elongation / 2 };
+    }
+    // A finger widens away from the bridge: the left hole to the left, the right hole to the right.
+    return { direction: scale(right, center[0] < 0 ? -1 : 1), from: 0, to: h.oval.elongation };
 };
 
 /** Places the thumb and finger holes from a drill sheet (see the file comment). */
@@ -148,7 +171,8 @@ export const placeGrip = (input: GripInput): PlacedGrip => {
         return {
             name, center, axis: aim(center, h, isThumb, 1),
             radius: h.size / 2, outsideRadius: (h.outside ?? h.size) / 2,
-            depth: h.depth ?? (isThumb ? 2.75 : 2)
+            depth: h.depth ?? (isThumb ? 2.75 : 2),
+            oval: ovalOf(center, h, isThumb, flip)
         };
     };
     const holes = [hole('middle', middleAt, input.middle, false), hole('ring', ringAt, input.ring, false)];

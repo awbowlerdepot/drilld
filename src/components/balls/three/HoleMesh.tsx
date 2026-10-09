@@ -1,53 +1,83 @@
 import { useMemo } from 'react'
-import { BackSide, Quaternion, Vector3 } from 'three'
-import { BALL_RADIUS } from '../../../../shared/layout/ballLayout'
+import { BufferGeometry, DoubleSide, Float32BufferAttribute, Matrix4, Path, Shape, ShapeGeometry, Vector2, Vector3 } from 'three'
+import { BALL_RADIUS, UP, cross, dot, scale, toward, unit } from '../../../../shared/layout/ballLayout'
 import type { PlacedHole } from '../../../../shared/layout/gripPlacement'
 
 interface HoleMeshProps {
     hole: PlacedHole
-    /** The insert's color, when the hole holds one. */
+    /** The insert's or hardware's color, when the hole holds one. */
     insertColor?: string
 }
 
 const R = BALL_RADIUS
+const SEGMENTS = 24
+
+/** The hole's outline across it: a circle, or the slot an oval's bit leaves (2D, ball radii). */
+const outline = (radius: number, oval: { x: number; y: number; from: number; to: number } | null): Vector2[] => {
+    if (!oval) return Array.from({ length: SEGMENTS * 2 }, (_, i) => new Vector2(radius * Math.cos((i / SEGMENTS) * Math.PI), radius * Math.sin((i / SEGMENTS) * Math.PI)))
+    const along = Math.atan2(oval.y, oval.x)
+    const end = (t: number, start: number) => Array.from({ length: SEGMENTS + 1 }, (_, i) => {
+        const a = start + (i / SEGMENTS) * Math.PI
+        return new Vector2(oval.x * t + radius * Math.cos(a), oval.y * t + radius * Math.sin(a))
+    })
+    // Around the far end, then back around the near end.
+    return [...end(oval.to, along - Math.PI / 2), ...end(oval.from, along + Math.PI / 2)]
+}
+
+/** The hole's wall: its outline swept from the surface down the hole. */
+const wallGeometry = (points: Vector2[], top: number, depth: number) => {
+    const positions: number[] = []
+    for (let i = 0; i < points.length; i++) {
+        const p = points[i], q = points[(i + 1) % points.length]
+        positions.push(p.x, p.y, top, q.x, q.y, top, q.x, q.y, -depth, p.x, p.y, top, q.x, q.y, -depth, p.x, p.y, -depth)
+    }
+    const geometry = new BufferGeometry()
+    geometry.setAttribute('position', new Float32BufferAttribute(positions, 3))
+    geometry.computeVertexNormals()
+    return geometry
+}
 
 /**
- * A drilled hole: its wall and bottom, along its pitched axis. A hole with an
- * insert or hardware shows the insert's face around the grip hole.
+ * A drilled hole along its pitched axis: its wall and bottom, round or the
+ * oval's slot, and the insert's or hardware's face around the grip hole.
  */
-export const HoleMesh = ({ hole, insertColor = '#1c1c22' }: HoleMeshProps) => {
-    const { position, quaternion, bottom, faceQuaternion } = useMemo(() => {
-        const center = new Vector3(...hole.center)
-        const axis = new Vector3(...hole.axis)
-        const depth = hole.depth / R
-        // The cylinder runs along +Y by default: point it out of the hole (against the axis).
-        const q = new Quaternion().setFromUnitVectors(new Vector3(0, 1, 0), axis.clone().negate())
-        const face = new Quaternion().setFromUnitVectors(new Vector3(0, 0, 1), center.clone())
+export const HoleMesh = ({ hole, insertColor = '#cbd5e1' }: HoleMeshProps) => {
+    const { matrix, wall, bottom, face } = useMemo(() => {
+        // The hole's own frame: z out of the hole (against its axis), y toward the fingers, x across.
+        const out = scale(hole.axis, -1)
+        const y = unit(toward(out, UP))
+        const x = unit(cross(y, out))
+        const radius = hole.radius / R, outside = hole.outsideRadius / R, depth = hole.depth / R
+        const oval = hole.oval ? { x: dot(hole.oval.direction, x), y: dot(hole.oval.direction, y), from: hole.oval.from / R, to: hole.oval.to / R } : null
+        const points = outline(radius, oval)
+        // Start just inside the cover at the hole's rim.
+        const reach = Math.max(outside, radius + (oval ? Math.max(Math.abs(oval.from), Math.abs(oval.to)) : 0))
+        const top = -(reach * reach) / 2
+        const insertFace = outside > reach - 1e-6 && outside > radius + 1e-6
+            ? (() => {
+                const shape = new Shape().absarc(0, 0, outside, 0, Math.PI * 2, false)
+                shape.holes.push(new Path(points.slice().reverse()))
+                return new ShapeGeometry(shape, 48)
+            })()
+            : null
         return {
-            position: center.clone().addScaledVector(axis, depth / 2 - 0.004),
-            quaternion: q,
-            bottom: center.clone().addScaledVector(axis, depth),
-            faceQuaternion: face
+            matrix: new Matrix4().makeBasis(new Vector3(...x), new Vector3(...y), new Vector3(...out)).setPosition(new Vector3(...hole.center)),
+            wall: wallGeometry(points, top, depth),
+            bottom: new ShapeGeometry(new Shape(points), 1),
+            face: insertFace
         }
     }, [hole])
-    const depth = hole.depth / R
-    const radius = hole.radius / R
-    const outside = hole.outsideRadius / R
-    const insert = outside > radius + 1e-6
 
     return (
-        <group>
-            <mesh position={position} quaternion={quaternion} receiveShadow>
-                <cylinderGeometry args={[radius, radius, depth + 0.008, 48, 1, true]} />
-                <meshStandardMaterial color="#2a2a30" roughness={0.9} side={BackSide} />
+        <group matrixAutoUpdate={false} matrix={matrix}>
+            <mesh geometry={wall} receiveShadow>
+                <meshStandardMaterial color="#2a2a30" roughness={0.9} side={DoubleSide} />
             </mesh>
-            <mesh position={bottom} quaternion={quaternion}>
-                <circleGeometry args={[radius, 48]} />
-                <meshStandardMaterial color="#141418" roughness={1} side={BackSide} />
+            <mesh geometry={bottom} position={[0, 0, -hole.depth / R]}>
+                <meshStandardMaterial color="#141418" roughness={1} />
             </mesh>
-            {insert && (
-                <mesh position={new Vector3(...hole.center).multiplyScalar(0.999)} quaternion={faceQuaternion}>
-                    <ringGeometry args={[radius, outside, 64]} />
+            {face && (
+                <mesh geometry={face} position={[0, 0, -0.002]}>
                     <meshStandardMaterial color={insertColor} roughness={0.7} />
                 </mesh>
             )}

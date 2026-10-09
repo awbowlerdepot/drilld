@@ -3,7 +3,7 @@ import { Canvas } from '@react-three/fiber'
 import { Environment, Lightformer, OrbitControls } from '@react-three/drei'
 import type { Mesh } from 'three'
 import type { LayoutSystem } from '../../../../shared/api/ballLayouts'
-import { BALL_RADIUS, REFERENCE, add, gripPoint, unit, valPoints, type SolvedLayout, type Vec } from '../../../../shared/layout/ballLayout'
+import { BALL_RADIUS, REFERENCE, add, gripPoint, move, unit, valPoints, type SolvedLayout, type Vec } from '../../../../shared/layout/ballLayout'
 import type { PlacedGrip } from '../../../../shared/layout/gripPlacement'
 import { BallMesh, MAX_HOLES } from './BallMesh'
 import { HoleMesh } from './HoleMesh'
@@ -50,7 +50,12 @@ const BallScene = ({ solved, hand, grip, polished, systems, compact = false }: B
     }, [drawings, pin, psa, pap])  // eslint-disable-line react-hooks/exhaustive-deps
     const labelElements = useRef(new Map<string, HTMLElement>())
     const projected: SceneLabel[] = labels.map(l => ({ id: l.id, at: l.at as [number, number, number] }))
-    const openings = grip.holes.slice(0, MAX_HOLES).map(h => ({ direction: h.center as [number, number, number], angle: h.outsideRadius / BALL_RADIUS }))
+    // The cover's cut-outs: a slot for an oval (unless it's inside hardware, whose round face fills the cut).
+    const openings = grip.holes.slice(0, MAX_HOLES).map(h => {
+        const slot = h.oval && h.outsideRadius <= h.radius + 1e-6
+        const end = (t: number) => (slot ? move(h.center, h.oval!.direction, t) : h.center) as [number, number, number]
+        return { a: end(h.oval?.from ?? 0), b: end(h.oval?.to ?? 0), angle: (slot ? h.radius : h.outsideRadius) / BALL_RADIUS }
+    })
 
     return (
         <div className="relative size-full">
@@ -77,7 +82,7 @@ const BallScene = ({ solved, hand, grip, polished, systems, compact = false }: B
             <SurfaceMarker at={psa} kind="psa" />
             <SurfaceMarker at={pap} kind="pap" />
 
-            {!compact && <OrbitControls enablePan={false} minDistance={1.8} maxDistance={6} rotateSpeed={0.8} />}
+            {!compact && <OrbitControls enablePan={false} minDistance={1.25} maxDistance={6} rotateSpeed={0.8} />}
             {!compact && <LabelProjector labels={projected} elements={labelElements} />}
         </Canvas>
         {!compact && <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
