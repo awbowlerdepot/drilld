@@ -4,8 +4,10 @@ import { Environment, Lightformer, OrbitControls } from '@react-three/drei'
 import type { Mesh } from 'three'
 import type { LayoutSystem } from '../../../../shared/api/ballLayouts'
 import { BALL_RADIUS, REFERENCE, add, gripPoint, move, unit, valPoints, type SolvedLayout, type Vec } from '../../../../shared/layout/ballLayout'
-import type { PlacedGrip } from '../../../../shared/layout/gripPlacement'
-import { BallMesh, MAX_HOLES } from './BallMesh'
+import type { PlacedGrip, PlacedHole } from '../../../../shared/layout/gripPlacement'
+import { BallMesh } from './BallMesh'
+import { GripFaces, type GripFace } from './GripFaces'
+import { MAX_HOLES, type SurfaceSlot } from './holeShader'
 import { HoleMesh } from './HoleMesh'
 import { SurfaceLine } from './SurfaceLine'
 import { layoutDrawing } from '../../../utils/LayoutDrawing'
@@ -50,12 +52,18 @@ const BallScene = ({ solved, hand, grip, polished, systems, compact = false }: B
     }, [drawings, pin, psa, pap])  // eslint-disable-line react-hooks/exhaustive-deps
     const labelElements = useRef(new Map<string, HTMLElement>())
     const projected: SceneLabel[] = labels.map(l => ({ id: l.id, at: l.at as [number, number, number] }))
-    // The cover's cut-outs: a slot for an oval (unless it's inside hardware, whose round face fills the cut).
-    const openings = grip.holes.slice(0, MAX_HOLES).map(h => {
-        const slot = h.oval && h.outsideRadius <= h.radius + 1e-6
-        const end = (t: number) => (slot ? move(h.center, h.oval!.direction, t) : h.center) as [number, number, number]
-        return { a: end(h.oval?.from ?? 0), b: end(h.oval?.to ?? 0), angle: (slot ? h.radius : h.outsideRadius) / BALL_RADIUS }
-    })
+    // Each hole's grip hole (round, or its oval's slot) on the surface; the cover is cut out to the drilled
+    // hole (an insert's or hardware's O.D.), and the insert's or hardware's face fills between, flush.
+    const gripSlot = (h: PlacedHole): SurfaceSlot => {
+        const end = (t: number) => (h.oval ? move(h.center, h.oval.direction, t) : h.center) as [number, number, number]
+        return { a: end(h.oval?.from ?? 0), b: end(h.oval?.to ?? 0), angle: h.radius / BALL_RADIUS }
+    }
+    const holes = grip.holes.slice(0, MAX_HOLES)
+    const withFace = (h: PlacedHole) => h.outsideRadius > h.radius + 1e-6
+    const openings: SurfaceSlot[] = holes.map(h => (withFace(h)
+        ? { a: h.center as [number, number, number], b: h.center as [number, number, number], angle: h.outsideRadius / BALL_RADIUS }
+        : gripSlot(h)))
+    const faces: GripFace[] = holes.filter(withFace).map(h => ({ center: h.center as [number, number, number], outsideAngle: h.outsideRadius / BALL_RADIUS, hole: gripSlot(h) }))
 
     return (
         <div className="relative size-full">
@@ -69,6 +77,7 @@ const BallScene = ({ solved, hand, grip, polished, systems, compact = false }: B
             </Environment>
 
             <BallMesh ref={ball} openings={openings} polished={polished} />
+            <GripFaces faces={faces} />
             {grip.holes.map(h => <HoleMesh key={h.name} hole={h} />)}
 
             <SurfaceLine points={range(-3, 9, 0.25).map(o => m(gripPoint(o, 0)))} color="#e5e7eb" width={1.25} />
