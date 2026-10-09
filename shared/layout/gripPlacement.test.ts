@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { REFERENCE, arc, fromReference } from './ballLayout.ts';
+import { REFERENCE, arc, fromReference, move } from './ballLayout.ts';
 import { holeDistance, pitchOf, placeGrip, type GripInput } from './gripPlacement.ts';
 
 const near = (actual: number, expected: number, tolerance: number, label: string) =>
@@ -61,4 +61,20 @@ test('no thumb: the fingers straddle the center of grip', () => {
     assert.equal(g.holes.length, 2);
     near(fromReference(g.holes[0].center).over, -0.5, 1e-9, 'middle');
     near(fromReference(g.holes[1].center).over, 0.5, 1e-9, 'ring');
+});
+
+test('ovals: the thumb stretches both ways along its angle (mirrored by hand); a finger widens away from the bridge', () => {
+    const oval = { ...base, thumb: { ...base.thumb!, oval: { elongation: 0.1, angle: 20 } }, middle: { ...base.middle, oval: { elongation: 0.0625 } }, ring: { ...base.ring, oval: { elongation: 0.0625 } } };
+    const [thumb, middle, ring] = placeGrip(oval).holes;
+    near(thumb.oval!.from, -0.05, 1e-12, 'thumb from');
+    near(thumb.oval!.to, 0.05, 1e-12, 'thumb to');
+    // The oval's higher end: to the left for a right-hander, to the right for a left-hander.
+    const topEnd = (h: typeof thumb) => [h.oval!.from, h.oval!.to].map(t => fromReference(move(h.center, h.oval!.direction, t))).sort((x, y) => y.up - x.up)[0];
+    assert.ok(topEnd(thumb).over < fromReference(thumb.center).over, 'right-hander: up-left to down-right');
+    const lefty = placeGrip({ ...oval, hand: 'LEFT' }).holes[0];
+    assert.ok(topEnd(lefty).over > fromReference(lefty.center).over, 'left-hander: up-right to down-left');
+    // Fingers: the right-hander's middle (left hole) widens left, the ring (right hole) right.
+    assert.ok(fromReference(move(middle.center, middle.oval!.direction, middle.oval!.to)).over < fromReference(middle.center).over, 'middle widens left');
+    assert.ok(fromReference(move(ring.center, ring.oval!.direction, ring.oval!.to)).over > fromReference(ring.center).over, 'ring widens right');
+    assert.equal(placeGrip(base).holes[0].oval, null);
 });
