@@ -40,6 +40,7 @@ const api = defineApi(backend.createStack('api'), {
     userPoolClient: backend.auth.resources.userPoolClient,
     cluster: database.cluster,
     apiSecret: database.apiSecret,
+    catalogSyncSecret: database.catalogSyncSecret,
     databaseName: database.databaseName,
     filesBucket: storage.bucket,
     // New-signup emails: set on the Amplify app (and locally for a sandbox). See .env.example.

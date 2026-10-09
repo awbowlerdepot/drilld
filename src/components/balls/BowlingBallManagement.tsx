@@ -1,154 +1,69 @@
-import React, { useState } from 'react';
-import { Plus } from 'lucide-react';
-import { BowlingBall } from '../../types';
-import { useBalls } from '../../hooks/useBalls';
-import { useCustomers } from '../../hooks/useCustomers';
-import { Button } from '../common/Button';
-import { BallForm } from './BallForm';
-import { BallList } from './BallList';
-import { BallFilters } from './BallFilters';
-import { BallStats } from './BallStats';
+import { useEffect, useState } from 'react'
+import { Plus } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import type { BallStatus, CatalogStatusDto } from '../../../shared/api/balls'
+import { ballsApi, useCompanyBalls } from '../../hooks/useCompanyBalls'
+import { useCustomers } from '../../hooks/useCustomers'
+import { BallDetailDialog } from './BallDetailDialog'
+import { BallTable } from './BallTable'
+import { RegisterBallDialog } from './RegisterBallDialog'
 
 interface BowlingBallManagementProps {
-    searchTerm: string;
+    searchTerm: string
 }
 
-export const BowlingBallManagement: React.FC<BowlingBallManagementProps> = ({
-                                                                                searchTerm
-                                                                            }) => {
-    const { balls, loading, addBall, updateBall, deleteBall } = useBalls();
-    const { customers } = useCustomers();
-    const [showForm, setShowForm] = useState(false);
-    const [editingBall, setEditingBall] = useState<BowlingBall | null>(null);
+type Filter = BallStatus | 'ALL'
 
-    const [filters, setFilters] = useState({
-        customerID: '',
-        manufacturer: '',
-        status: '',
-        weight: ''
-    });
+/** Every ball the company has on record, with their owners; search, filter by status, add one. */
+export const BowlingBallManagement = ({ searchTerm }: BowlingBallManagementProps) => {
+    const balls = useCompanyBalls()
+    const { customers } = useCustomers()
+    const [filter, setFilter] = useState<Filter>('ACTIVE')
+    const [openId, setOpenId] = useState<string | null>(null)
+    const [adding, setAdding] = useState(false)
+    const [catalog, setCatalog] = useState<CatalogStatusDto | null>(null)
 
-    // Apply search and filters
-    const filteredBalls = balls.filter(ball => {
-        const customer = customers.find(c => c.id === ball.customerID);
-        const customerName = customer ? `${customer.firstName} ${customer.lastName}` : '';
+    useEffect(() => { ballsApi.catalogStatus().then(setCatalog).catch(() => undefined) }, [])
 
-        const matchesSearch =
-            ball.manufacturer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            ball.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            ball.serialNumber?.toLowerCase().includes(searchTerm.toLowerCase());
+    const term = searchTerm.trim().toLowerCase()
+    const shown = balls.balls
+        .filter(b => filter === 'ALL' || b.status === filter)
+        .filter(b => !term || [b.catalogBall.brandName, b.catalogBall.name, b.catalogBall.color, b.serialNumber, b.owner?.name]
+            .some(v => v?.toLowerCase().includes(term)))
 
-        const matchesFilters =
-            (!filters.customerID || ball.customerID === filters.customerID) &&
-            (!filters.manufacturer || ball.manufacturer === filters.manufacturer) &&
-            (!filters.status || ball.status === filters.status) &&
-            (!filters.weight || ball.weight.toString() === filters.weight);
-
-        return matchesSearch && matchesFilters;
-    });
-
-    const handleSave = (ballData: Omit<BowlingBall, 'id'>) => {
-        if (editingBall) {
-            updateBall(editingBall.id, ballData);
-        } else {
-            addBall(ballData);
-        }
-        setShowForm(false);
-        setEditingBall(null);
-    };
-
-    const handleEdit = (ball: BowlingBall) => {
-        setEditingBall(ball);
-        setShowForm(true);
-    };
-
-    const handleView = (ball: BowlingBall) => {
-        // TODO: Implement view modal/page
-        console.log('View ball:', ball);
-    };
-
-    const handleCreateWorkOrder = (ball: BowlingBall) => {
-        // TODO: Navigate to work order creation with pre-filled ball
-        console.log('Create work order for ball:', ball);
-    };
-
-    const handleDelete = (ball: BowlingBall) => {
-        const customer = customers.find(c => c.id === ball.customerID);
-        const customerName = customer ? `${customer.firstName} ${customer.lastName}` : 'Unknown';
-
-        if (window.confirm(
-            `Are you sure you want to delete the ${ball.manufacturer} ${ball.model} for ${customerName}?`
-        )) {
-            deleteBall(ball.id);
-        }
-    };
-
-    const handleCancel = () => {
-        setShowForm(false);
-        setEditingBall(null);
-    };
-
-    const clearFilters = () => {
-        setFilters({
-            customerID: '',
-            manufacturer: '',
-            status: '',
-            weight: ''
-        });
-    };
-
-    if (loading) {
-        return <div className="flex justify-center py-8">Loading bowling balls...</div>;
-    }
+    const chip = (key: Filter, label: string) => (
+        <button key={key} type="button" aria-pressed={filter === key} onClick={() => setFilter(key)}
+            className={cn('min-h-9 rounded-full border px-3 text-sm font-medium transition-colors',
+                filter === key ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-white text-gray-700 hover:bg-muted')}>
+            {label} <span className={filter === key ? 'opacity-80' : 'text-gray-500'}>{key === 'ALL' ? balls.balls.length : balls.balls.filter(b => b.status === key).length}</span>
+        </button>
+    )
 
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-gray-900">Bowling Balls</h2>
-                <Button icon={Plus} onClick={() => setShowForm(true)}>
-                    Add Bowling Ball
-                </Button>
-            </div>
-
-            {/* Stats Overview */}
-            <BallStats balls={balls} />
-
-            {/* Filters */}
-            <BallFilters
-                balls={balls}
-                customers={customers}
-                filters={filters}
-                onFilterChange={setFilters}
-                onClearFilters={clearFilters}
-            />
-
-            {/* Form Modal */}
-            {showForm && (
-                <BallForm
-                    ball={editingBall || undefined}
-                    customer={editingBall ? customers.find(c => c.id === editingBall.customerID) : undefined}
-                    onSave={handleSave}
-                    onCancel={handleCancel}
-                />
-            )}
-
-            {/* Results Summary */}
-            {filteredBalls.length !== balls.length && (
-                <div className="text-sm text-gray-600">
-                    Showing {filteredBalls.length} of {balls.length} bowling balls
+        <div className="grid gap-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900">Bowling Balls</h1>
+                    <p className="text-gray-600">
+                        Every bowler's balls on record.
+                        {catalog && ` Catalog: ${catalog.ballCount.toLocaleString()} balls from BowlerIQ${catalog.lastRunAt ? `, updated ${new Date(catalog.lastRunAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}` : ''}.`}
+                    </p>
                 </div>
-            )}
-
-            {/* Ball List */}
-            <BallList
-                balls={filteredBalls}
-                customers={customers}
-                onEdit={handleEdit}
-                onView={handleView}
-                onCreateWorkOrder={handleCreateWorkOrder}
-                onDelete={handleDelete}
-            />
+                <Button onClick={() => setAdding(true)}><Plus data-icon="inline-start" /> Add ball</Button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+                {chip('ACTIVE', 'Active')}
+                {chip('RETIRED', 'Retired')}
+                {chip('DAMAGED', 'Damaged')}
+                {chip('ALL', 'All')}
+            </div>
+            {balls.error && <p role="alert" className="text-sm text-red-700">{balls.error}</p>}
+            {balls.loading ? <p className="py-8 text-center text-gray-500">Loading balls…</p>
+                : shown.length === 0 ? <p className="py-8 text-center text-gray-500">{balls.balls.length === 0 ? 'No balls on record yet.' : 'No balls match.'}</p>
+                    : <BallTable balls={shown} showOwner onOpen={ball => setOpenId(ball.id)} />}
+            {adding && <RegisterBallDialog customer={null} customers={customers} onClose={() => setAdding(false)} onRegister={async input => { await balls.register(input) }} />}
+            {openId && <BallDetailDialog ballId={openId} customers={customers} canEdit onChange={balls.replace} onClose={() => setOpenId(null)} />}
         </div>
-    );
-};
+    )
+}

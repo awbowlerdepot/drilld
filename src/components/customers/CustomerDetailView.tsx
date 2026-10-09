@@ -1,16 +1,16 @@
 // src/components/customers/CustomerDetailView.tsx
 import React, { useState } from 'react';
-import { ArrowLeft, Plus, FileText, Target, Edit, Eye, Paperclip } from 'lucide-react';
-import { Customer, BowlingBall } from '../../types';
+import { ArrowLeft, FileText, Target, Edit, Eye, Paperclip } from 'lucide-react';
+import { Customer } from '../../types';
 import { useCustomerAttachments } from '../../hooks/useCustomerAttachments';
 import { useCustomerDrillSheets } from '../../hooks/useCustomerDrillSheets';
-import { useBalls } from '../../hooks/useBalls';
+import { useCompanyBalls } from '../../hooks/useCompanyBalls';
+import { useCustomers } from '../../hooks/useCustomers';
 import { Button } from '../common/Button';
 import { CustomerFiles } from '../attachments/CustomerFiles';
 import { CustomerDrillSheets } from '../drillsheets/CustomerDrillSheets';
 import { DrillSheetEditor } from '../drillsheets/editor/DrillSheetEditor';
-import { BallCard } from '../balls/BallCard';
-import { BallForm } from '../balls/BallForm';
+import { CustomerBalls } from '../balls/CustomerBalls';
 import { CustomerOverview } from './CustomerOverview';
 
 interface CustomerDetailViewProps {
@@ -30,7 +30,8 @@ export const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({
                                                                           currentLocationID,
                                                                           initialDrillSheetId
                                                                       }) => {
-    const { addBall, updateBall, deleteBall, getBallsByCustomer } = useBalls();
+    const ballList = useCompanyBalls({ customerId: customer.id });
+    const { customers } = useCustomers();
 
     const [activeTab, setActiveTab] = useState<'overview' | 'drillsheets' | 'files' | 'balls'>('overview');
     const [includeArchivedSheets, setIncludeArchivedSheets] = useState(false);
@@ -38,52 +39,8 @@ export const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({
     const [openDrillSheetId, setOpenDrillSheetId] = useState<string | null>(initialDrillSheetId ?? null);
     const drillSheets = useCustomerDrillSheets(customer.id, { includeArchived: includeArchivedSheets });
     const files = useCustomerAttachments(customer.id);
-    const [showBallForm, setShowBallForm] = useState(false);
-    const [editingBall, setEditingBall] = useState<BowlingBall | null>(null);
-
-    const customerBalls = getBallsByCustomer(customer.id);
-
-    // Ball Handlers
-    const handleSaveBall = (ballData: Omit<BowlingBall, 'id'>) => {
-        if (editingBall) {
-            updateBall(editingBall.id, ballData);
-        } else {
-            addBall({
-                ...ballData,
-                customerID: customer.id
-            });
-        }
-        setShowBallForm(false);
-        setEditingBall(null);
-    };
-
-    const handleEditBall = (ball: BowlingBall) => {
-        setEditingBall(ball);
-        setShowBallForm(true);
-    };
-
-    const handleViewBall = (ball: BowlingBall) => {
-        // TODO: Implement ball detail modal
-        console.log('View ball:', ball);
-        alert(`Viewing ball: ${ball.manufacturer} ${ball.model}\nWeight: ${ball.weight}lbs\nStatus: ${ball.status}`);
-    };
-
-    const handleCreateWorkOrder = (ball: BowlingBall) => {
-        // TODO: Navigate to work order creation with pre-filled ball
-        console.log('Create work order for ball:', ball);
-        alert(`Creating work order for: ${ball.manufacturer} ${ball.model}`);
-    };
-
-    const handleDeleteBall = (ball: BowlingBall) => {
-        if (window.confirm(`Are you sure you want to delete the ${ball.manufacturer} ${ball.model}?`)) {
-            deleteBall(ball.id);
-        }
-    };
-
-    const handleCancelBallForm = () => {
-        setShowBallForm(false);
-        setEditingBall(null);
-    };
+    const [addingBall, setAddingBall] = useState(false);
+    const customerBalls = ballList.balls;
 
     if (openDrillSheetId) {
         return (
@@ -225,7 +182,7 @@ export const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({
                             }}
                             onAddBall={() => {
                                 setActiveTab('balls');
-                                setShowBallForm(true);
+                                setAddingBall(true);
                             }}
                         />
                     )}
@@ -245,63 +202,7 @@ export const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({
                     {activeTab === 'files' && <CustomerFiles customer={customer} files={files} />}
 
                     {activeTab === 'balls' && (
-                        <div className="space-y-6">
-                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-                                <h3 className="text-lg font-medium text-gray-900">
-                                    Bowling Balls for {customer.firstName}
-                                </h3>
-                                <Button
-                                    onClick={() => setShowBallForm(true)}
-                                    icon={Plus}
-                                >
-                                    Add Bowling Ball
-                                </Button>
-                            </div>
-
-                            {showBallForm && (
-                                <div className="animate-fade-in">
-                                    <BallForm
-                                        ball={editingBall || undefined}
-                                        customer={customer}
-                                        onSave={handleSaveBall}
-                                        onCancel={handleCancelBallForm}
-                                    />
-                                </div>
-                            )}
-
-                            {customerBalls.length === 0 && !showBallForm ? (
-                                <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
-                                    <Target className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                                    <h4 className="text-lg font-medium text-gray-900 mb-2">No bowling balls yet</h4>
-                                    <p className="text-gray-500 mb-6">
-                                        Add the first bowling ball for {customer.firstName} to track their equipment.
-                                    </p>
-                                    <div className="mt-6">
-                                        <Button
-                                            onClick={() => setShowBallForm(true)}
-                                            icon={Plus}
-                                        >
-                                            Add First Ball
-                                        </Button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                                    {customerBalls.map((ball) => (
-                                        <BallCard
-                                            key={ball.id}
-                                            ball={ball}
-                                            customer={customer}
-                                            onEdit={handleEditBall}
-                                            onView={handleViewBall}
-                                            onCreateWorkOrder={handleCreateWorkOrder}
-                                            onDelete={handleDeleteBall}
-                                            showCustomerName={false} // Don't show customer name since we're in customer context
-                                        />
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                        <CustomerBalls customer={customer} customers={customers} balls={ballList} adding={addingBall} onAddingChange={setAddingBall} />
                     )}
                 </div>
             </div>

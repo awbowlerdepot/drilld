@@ -8,7 +8,7 @@
 import type { DrillSheetSpecInput } from '../../shared/api/drillSheetSpec'
 import type { SpanTypeKey } from '../../shared/api/paperImports'
 import type { PaperSheetReading } from '../../shared/api/paperReading'
-import { format32, format64 } from './Fractions'
+import { format32, format64, parseInches } from './Fractions'
 
 export type Hand = 'LEFT' | 'RIGHT'
 export type GripStyle = 'FINGERTIP' | 'CONVENTIONAL' | 'TWO_HANDED_NO_THUMB'
@@ -36,29 +36,6 @@ export interface ImportRow {
 
 /** "X" (crossed out) means zero. */
 const isCrossed = (raw: string) => /^[xX×]$/.test(raw.trim())
-
-/**
- * Inches from what a shop writes: "4 11/16", "4-3/16", "3/8", "4", ".060",
- * "096" (thousandths without the point), "4 12/32″". Null if it isn't a number.
- */
-export const parseInches = (raw: string | null): number | null => {
-    if (raw == null) return null
-    const text = raw.trim().replace(/["″”'°]/g, '').replace(/\s+/g, ' ')
-    if (!text) return null
-    if (isCrossed(text)) return 0
-    let match = /^(\d+)\s*[- ]\s*(\d+)\/(\d+)$/.exec(text)
-    if (match) return Number(match[1]) + Number(match[2]) / Number(match[3])
-    match = /^(\d+)\/(\d+)$/.exec(text)
-    if (match) return Number(match[1]) / Number(match[2])
-    match = /^0?\.(\d+)$/.exec(text)
-    if (match) return Number(`0.${match[1]}`)
-    // Thousandths written without the point, as on oval widths: "060", "096".
-    match = /^0(\d{2})$/.exec(text)
-    if (match) return Number(match[1]) / 1000
-    match = /^\d+(\.\d+)?$/.exec(text)
-    if (match) return Number(text)
-    return null
-}
 
 const isFraction = (text: string) => /^\d+\s*[- ]?\s*\d*\/\d+$/.test(text.trim()) || /^\d+\/\d+$/.test(text.trim())
 

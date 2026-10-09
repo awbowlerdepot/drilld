@@ -58,6 +58,7 @@ The agreed backend design (Postgres schema, tenant isolation, ball registry, dri
   - `api/`: the REST API.
     - `resource.ts`: infrastructure.
     - `app.ts`: the Hono app. Every request resolves the user (linking on first sign-in), then runs in one transaction with `app.company_id` set (`db/client.ts` `withCompany`).
+    - `catalogSyncHandler.ts`: the BowlerIQ ball catalog sync Lambda (every 30 minutes).
     - `readerHandler.ts` + `paperReader.ts`: the paper sheet reader Lambda (AI transcription; the browser turns it into values, `src/utils/PaperSheetImport.ts`).
     - `routes/`, `permissions.ts`, `logins.ts` (employee Cognito logins: invite, disable, remove), `platform.ts` (platform admins: the `platform-admin` Cognito group plus TOTP), `notify.ts` (new-lead emails through SES).
     - `/public/*` is the only route without sign-in: API Gateway has no authorizer on it and throttles it. It serves the drilld.io early access form.
@@ -124,7 +125,7 @@ Look for incorrect imports, circular dependencies, and unnecessary complexity.
 
 ## Status and next up
 
-- Customers, drill sheets, locations and employees use the API when signed in. Everything else, and all of it without sign-in, runs on mock data; mock hooks simulate API calls with `setTimeout`.
+- Customers, drill sheets, locations, employees, equipment and balls use the API when signed in. Everything else, and all of it without sign-in, runs on mock data; mock hooks simulate API calls with `setTimeout`.
 - The PostgreSQL schema exists in `db/migrations/` and is covered by `db/test.sh`:
   - tenancy
   - customers
@@ -165,6 +166,10 @@ Look for incorrect imports, circular dependencies, and unnecessary complexity.
     - `GET/POST /locations/:locationId/equipment` (a new drill press gets the standard tasks), `GET/PATCH /equipment/:id`, `POST /equipment/:id/tasks`, `POST /equipment/:id/issues` (jam / snapped bit: alignment check due today).
     - `PATCH/DELETE /maintenance-tasks/:id`, `POST /maintenance-tasks/:id/complete` (logged; next due from the interval).
     - The Maintenance section (main sidebar, due-count badge) and Settings → Locations → Equipment.
+  - balls and the BowlerIQ catalog (`docs/data-model.md` Ball catalog, Balls):
+    - `GET /catalog/balls?q=&brandId=`, `GET /catalog/brands`, `GET /catalog/status`: Drilld's synced copy, refreshed every 30 minutes by the catalog sync Lambda (`api/catalogSyncHandler.ts`; partner key in Secrets Manager `drilld/bowleriq-partner-key`).
+    - `GET/POST /balls`, `GET/PATCH /balls/:id`, `POST /balls/:id/transfer`, `GET /balls/lookup?brandId=&serial=`: a company's balls (registry + company record + owners); another shop's history of a serial is anonymous.
+    - The Bowling Balls section and the customer's Bowling Balls tab use it; work orders still use the old mock balls.
   - `GET /grip-catalog`: the shared catalog of inserts and thumb hardware (VISE, Turbo, JoPo), one entry per line with its sizes.
   - leads (early access signups from drilld.io):
     - `POST /public/leads`: no sign-in; only adds a new lead. It has a spam trap (a hidden field plus a minimum fill time) and emails `LEAD_NOTIFY_TO` through SES.
@@ -185,9 +190,8 @@ Look for incorrect imports, circular dependencies, and unnecessary complexity.
   - layout moved from drill sheets to work orders
   - the ball registry and BowlerIQ catalog
 - Next:
-  1. Stand up the rest of the backend:
-     - the BowlerIQ catalog sync job
-  2. Bevel, depth and step drilling in the editor. Then replace the remaining mock data (balls, work orders).
-  3. Complete work order management, using `resolveLocationSettings` for labor rate and tax.
+  1. Work orders on the API, using `resolveLocationSettings` for labor rate and tax (they still use the old mock balls and drill sheets).
+  2. Company settings on the API (standard depths, bevel, readout direction, labor rate, tax).
+  3. Listing sync (Google Business Profile hours): designed, tabled until the Google API access is set up.
   4. Resolve the remaining open item in `docs/data-model.md` (customer sharing across locations).
   5. Clear the pre-existing lint errors.

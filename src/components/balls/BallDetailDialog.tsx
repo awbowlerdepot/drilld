@@ -1,0 +1,155 @@
+import { useEffect, useState } from 'react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Field, FieldError, FieldLabel } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import type { BallDetailDto, BallDto, BallStatus } from '../../../shared/api/balls'
+import { ballsApi } from '../../hooks/useCompanyBalls'
+import type { Customer } from '../../types'
+import { describeConstruction, describeWeightSpecs, formatInches } from '../../utils/BallFormat'
+import { parseInches } from '../../utils/Fractions'
+import { CustomerSelect } from './CustomerSelect'
+
+interface BallDetailDialogProps {
+    ballId: string
+    customers: Customer[]
+    canEdit: boolean
+    onChange: (ball: BallDto) => void
+    onClose: () => void
+}
+
+const STATUSES: { value: BallStatus; label: string }[] = [
+    { value: 'ACTIVE', label: 'Active' },
+    { value: 'RETIRED', label: 'Retired' },
+    { value: 'DAMAGED', label: 'Damaged' }
+]
+const day = (date: string) => new Date(`${date}T12:00:00Z`).toLocaleDateString(undefined, { dateStyle: 'medium', timeZone: 'UTC' })
+const month = (date: string) => new Date(`${date}T12:00:00Z`).toLocaleDateString(undefined, { month: 'short', year: 'numeric', timeZone: 'UTC' })
+
+/** One ball: what it is (catalog specs at its weight), the shop's measurements, its owners, and its anonymous history. */
+export const BallDetailDialog = ({ ballId, customers, canEdit, onChange, onClose }: BallDetailDialogProps) => {
+    const [ball, setBall] = useState<BallDetailDto | null>(null)
+    const [error, setError] = useState<string | null>(null)
+    const [pin, setPin] = useState('')
+    const [topWeight, setTopWeight] = useState('')
+    const [notes, setNotes] = useState('')
+    const [status, setStatus] = useState<BallStatus>('ACTIVE')
+    const [transferTo, setTransferTo] = useState<string | null>(null)
+    const [saving, setSaving] = useState(false)
+
+    useEffect(() => {
+        let cancelled = false
+        ballsApi.get(ballId).then(b => {
+            if (cancelled) return
+            setBall(b)
+            setPin(b.pinDistance != null ? String(b.pinDistance) : '')
+            setTopWeight(b.topWeight != null ? String(b.topWeight) : '')
+            setNotes(b.notes ?? '')
+            setStatus(b.status)
+        }).catch((err: Error) => { if (!cancelled) setError(err.message) })
+        return () => { cancelled = true }
+    }, [ballId])
+
+    const run = async (work: () => Promise<BallDetailDto>) => {
+        setSaving(true)
+        setError(null)
+        try {
+            const updated = await work()
+            setBall(updated)
+            onChange(updated)
+            return updated
+        } catch (err) {
+            setError((err as Error).message)
+            return null
+        } finally {
+            setSaving(false)
+        }
+    }
+
+    const save = async () => {
+        const pinInches = pin.trim() ? parseInches(pin) : null
+        if (pin.trim() && pinInches == null) {
+            setError('Pin to CG: use inches, like 4 1/2 or 4.5')
+            return
+        }
+        const updated = await run(() => ballsApi.update(ballId, { pinDistance: pinInches, topWeight: topWeight.trim() ? Number(topWeight) : null, notes, status }))
+        if (updated) onClose()
+    }
+
+    const cat = ball?.catalogBall
+    return (
+        <Dialog open onOpenChange={open => { if (!open) onClose() }}>
+            <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-xl">
+                <DialogHeader>
+                    <DialogTitle>{cat ? `${cat.brandName} ${cat.name}` : 'Ball'}</DialogTitle>
+                    <DialogDescription>{cat ? [cat.color, ball && `${ball.weightLbs} lb`, ball?.serialNumber && `S/N ${ball.serialNumber}`].filter(Boolean).join(' · ') : 'Loading…'}</DialogDescription>
+                </DialogHeader>
+                {ball && cat && (
+                    <div className="grid gap-4">
+                        <section className="grid gap-1 text-sm text-gray-700">
+                            {describeConstruction(cat) && <p>{describeConstruction(cat)}</p>}
+                            {describeWeightSpecs(cat, ball.weightLbs) && <p className="font-mono text-xs text-gray-600">{ball.weightLbs} lb: {describeWeightSpecs(cat, ball.weightLbs)}</p>}
+                            {cat.status === 'retired' && <Badge variant="outline" className="justify-self-start font-normal">Retired by the maker</Badge>}
+                        </section>
+
+                        <section className="grid gap-3 sm:grid-cols-3">
+                            <Field>
+                                <FieldLabel htmlFor="detail-pin">Pin to CG (in)</FieldLabel>
+                                {canEdit ? <Input id="detail-pin" value={pin} className="font-mono" onChange={event => setPin(event.target.value)} /> : <p className="font-mono text-sm">{formatInches(ball.pinDistance)}</p>}
+                            </Field>
+                            <Field>
+                                <FieldLabel htmlFor="detail-top">Top weight (oz)</FieldLabel>
+                                {canEdit ? <Input id="detail-top" type="number" step="0.25" min={0} value={topWeight} className="font-mono" onChange={event => setTopWeight(event.target.value)} /> : <p className="font-mono text-sm">{ball.topWeight ?? '—'}</p>}
+                            </Field>
+                            <Field>
+                                <FieldLabel htmlFor="detail-status">Status</FieldLabel>
+                                <Select value={status} disabled={!canEdit} onValueChange={v => setStatus(v as BallStatus)}>
+                                    <SelectTrigger id="detail-status"><SelectValue /></SelectTrigger>
+                                    <SelectContent>{STATUSES.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent>
+                                </Select>
+                            </Field>
+                        </section>
+                        <Field>
+                            <FieldLabel htmlFor="detail-notes">Notes</FieldLabel>
+                            {canEdit ? <Input id="detail-notes" value={notes} onChange={event => setNotes(event.target.value)} /> : <p className="text-sm">{ball.notes || '—'}</p>}
+                        </Field>
+
+                        <section className="grid gap-1.5">
+                            <h3 className="text-sm font-semibold">Owners</h3>
+                            <ul className="grid gap-0.5 text-sm">
+                                {ball.owners.map(o => (
+                                    <li key={`${o.customerId}-${o.from}`} className="text-gray-700">
+                                        {o.name} <span className="text-gray-500">· {day(o.from)}{o.to ? ` – ${day(o.to)}` : ' – now'}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                            {canEdit && (
+                                <div className="flex flex-wrap items-end gap-2">
+                                    <Field className="min-w-56 flex-1">
+                                        <FieldLabel htmlFor="detail-transfer">Transfer to</FieldLabel>
+                                        <CustomerSelect id="detail-transfer" customers={customers} value={transferTo} onChange={setTransferTo} exclude={ball.owner?.customerId} />
+                                    </Field>
+                                    <Button type="button" variant="outline" disabled={!transferTo || saving}
+                                        onClick={() => void run(() => ballsApi.transfer(ballId, transferTo!)).then(() => setTransferTo(null))}>Transfer</Button>
+                                </div>
+                            )}
+                        </section>
+
+                        <section className="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                            {ball.history.drillCount + ball.history.plugCount === 0
+                                ? 'No drilling or plug work recorded yet, here or at another shop.'
+                                : `Drilled ${ball.history.drillCount}×, plugged ${ball.history.plugCount}×${ball.history.lastWorkedMonth ? `, last worked ${month(ball.history.lastWorkedMonth)}` : ''} (all shops).`}
+                        </section>
+                    </div>
+                )}
+                {error && <FieldError>{error}</FieldError>}
+                <DialogFooter>
+                    <Button type="button" variant="outline" onClick={onClose}>{canEdit ? 'Cancel' : 'Close'}</Button>
+                    {canEdit && <Button type="button" disabled={!ball || saving} onClick={() => void save()}>{saving ? 'Saving…' : 'Save'}</Button>}
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}
