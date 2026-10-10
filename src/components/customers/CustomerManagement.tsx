@@ -24,7 +24,9 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({
     const [actionError, setActionError] = useState<string | null>(null);
     const [showForm, setShowForm] = useState(false);
     const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-    const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+    // The open customer, read from the list so an edit shows straight away.
+    const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+    const selectedCustomer = selectedCustomerId ? customers.find(c => c.id === selectedCustomerId) ?? null : null;
     const [importing, setImporting] = useState(false);
     // A drill sheet to open straight away (with its paper sheet), after a paper import.
     const [openSheetId, setOpenSheetId] = useState<string | null>(null);
@@ -34,23 +36,62 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({
     useEffect(() => {
         const customer = pendingCustomerId ? customers.find(c => c.id === pendingCustomerId) : undefined;
         if (!customer) return;
-        setSelectedCustomer(customer);
+        setSelectedCustomerId(customer.id);
         setPendingCustomerId(null);
     }, [pendingCustomerId, customers]);
+
+    const handleSave = async (customerData: Omit<Customer, 'id' | 'createdAt'>) => {
+        try {
+            if (editingCustomer) {
+                await updateCustomer(editingCustomer.id, customerData);
+            } else {
+                await addCustomer(customerData);
+            }
+            setActionError(null);
+            setShowForm(false);
+            setEditingCustomer(null);
+        } catch (err) {
+            setActionError(`Could not save the customer: ${(err as Error).message}`);
+        }
+    };
+
+    const handleEdit = (customer: Customer) => {
+        setEditingCustomer(customer);
+        setShowForm(true);
+    };
+
+    const handleCancel = () => {
+        setShowForm(false);
+        setEditingCustomer(null);
+    };
+
+    // Adding or editing a customer: from the list, or from a customer's details.
+    const form = showForm && (
+        <CustomerForm
+            customer={editingCustomer || undefined}
+            onSave={handleSave}
+            onCancel={handleCancel}
+        />
+    );
 
     // If a customer is selected, show the detail view
     if (selectedCustomer) {
         return (
+            <>
+            {actionError && (
+                <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+                    {actionError}
+                </div>
+            )}
             <CustomerDetailView
                 customer={selectedCustomer}
                 currentLocationID={currentLocationID}
                 initialDrillSheetId={openSheetId}
-                onBack={() => { setSelectedCustomer(null); setOpenSheetId(null); }}
-                onEditCustomer={(customer) => {
-                    setEditingCustomer(customer);
-                    setShowForm(true);
-                }}
+                onBack={() => { setSelectedCustomerId(null); setOpenSheetId(null); }}
+                onEditCustomer={handleEdit}
             />
+            {form}
+            </>
         );
     }
 
@@ -90,28 +131,8 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({
         customer.email?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const handleSave = async (customerData: Omit<Customer, 'id' | 'createdAt'>) => {
-        try {
-            if (editingCustomer) {
-                await updateCustomer(editingCustomer.id, customerData);
-            } else {
-                await addCustomer(customerData);
-            }
-            setActionError(null);
-            setShowForm(false);
-            setEditingCustomer(null);
-        } catch (err) {
-            setActionError(`Could not save the customer: ${(err as Error).message}`);
-        }
-    };
-
-    const handleEdit = (customer: Customer) => {
-        setEditingCustomer(customer);
-        setShowForm(true);
-    };
-
     const handleView = (customer: Customer) => {
-        setSelectedCustomer(customer);
+        setSelectedCustomerId(customer.id);
     };
 
     const handleDelete = async (customer: Customer) => {
@@ -122,11 +143,6 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({
         } catch (err) {
             setActionError(`Could not delete the customer: ${(err as Error).message}`);
         }
-    };
-
-    const handleCancel = () => {
-        setShowForm(false);
-        setEditingCustomer(null);
     };
 
     if (loading) {
@@ -165,13 +181,7 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({
                 </div>
             </div>
 
-            {showForm && (
-                <CustomerForm
-                    customer={editingCustomer || undefined}
-                    onSave={handleSave}
-                    onCancel={handleCancel}
-                />
-            )}
+            {form}
 
             <CustomerList
                 customers={filteredCustomers}
