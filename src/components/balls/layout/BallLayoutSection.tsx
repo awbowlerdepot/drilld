@@ -27,7 +27,7 @@ const day = (date: string) => new Date(`${date}T12:00:00Z`).toLocaleDateString(u
 export const BallLayoutSection = ({ ball, owner, canEdit, onAdd, onUpdate, onDelete, onSaveBowlerPap }: BallLayoutSectionProps) => {
     const [editing, setEditing] = useState<BallLayoutDto | 'new' | null>(null)
     const [showing3d, setShowing3d] = useState(false)
-    const { grip } = useBallGrip(owner, ball.layouts[0]?.layout.hand ?? owner?.dominantHand ?? 'RIGHT', ball.layouts[0]?.drillSheet ?? null)
+    const { grip, usesThumb } = useBallGrip(owner, ball.layouts[0]?.layout.hand ?? owner?.dominantHand ?? 'RIGHT', ball.layouts[0]?.drillSheet ?? null)
     const current = ball.layouts[0] ?? null
     const solved = current ? solveBallLayout(current.layout) : null
 
@@ -50,7 +50,7 @@ export const BallLayoutSection = ({ ball, owner, canEdit, onAdd, onUpdate, onDel
                             <span className="font-mono text-base font-medium text-gray-900">{describeLayout(current.layout)}</span>
                             <span className="ml-2 text-gray-500">{LAYOUT_SYSTEM_LABELS[current.layout.system]}</span>
                         </p>
-                        {otherSystems(current.layout.system, owner?.usesThumb ?? true).map(other => (
+                        {otherSystems(current.layout.system, usesThumb).map(other => (
                             <p key={other} className="text-gray-600">= <span className="font-mono">{describeNumbers(other, solved)}</span> {LAYOUT_SYSTEM_LABELS[other]}</p>
                         ))}
                         <p className="text-xs text-gray-500">Drilled {day(current.drilledOn)}{current.notes ? ` · ${current.notes}` : ''}</p>

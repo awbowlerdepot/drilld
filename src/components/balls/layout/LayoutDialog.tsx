@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field'
@@ -73,6 +73,15 @@ export const LayoutDialog = ({ psaDistance, symmetric, owner, existing, previous
     // The drill sheet drilled: the one this drilling recorded, else the last drilling's sheet, else the most recent.
     const holes = useBallGrip(owner, hand, existing?.drillSheet ?? null, previous?.drillSheet?.sheetId)
     const { grip } = holes
+
+    // The sheet decides the systems: a no-thumb sheet starts in 2LS; a sheet with a thumb has no 2LS.
+    useEffect(() => {
+        setSystem(current => {
+            if (holes.usesThumb && current === 'TWO_LS' && was?.system !== 'TWO_LS') return 'PIN_BUFFER'
+            if (!holes.usesThumb && current === 'PIN_BUFFER' && !was) return 'TWO_LS'
+            return current
+        })
+    }, [holes.usesThumb, was])
     const [saving, setSaving] = useState(false)
     const [formError, setFormError] = useState<string | null>(null)
 
@@ -152,7 +161,7 @@ export const LayoutDialog = ({ psaDistance, symmetric, owner, existing, previous
                     </DialogHeader>
 
                     <div role="radiogroup" aria-label="Layout system" className="flex flex-wrap gap-1.5">
-                        {systemsFor(owner?.usesThumb ?? true, was?.system).map(s => (
+                        {systemsFor(holes.usesThumb, was?.system).map(s => (
                             <button key={s} type="button" role="radio" aria-checked={system === s} onClick={() => setSystem(s)}
                                 className={cn('rounded-full border px-3 py-1 text-sm transition-colors',
                                     system === s ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-white hover:bg-muted')}>
@@ -251,7 +260,7 @@ export const LayoutDialog = ({ psaDistance, symmetric, owner, existing, previous
 
                             {result.solved && (
                                 <section aria-label="In every system" className="grid gap-1.5 rounded-lg bg-gray-50 px-3 py-2.5 text-sm">
-                                    {otherSystems(system, owner?.usesThumb ?? true).map(other => (
+                                    {otherSystems(system, holes.usesThumb).map(other => (
                                         <p key={other}><span className="text-gray-500">{LAYOUT_SYSTEM_LABELS[other]}:</span> <span className="font-mono">{describeNumbers(other, result.solved!)}</span></p>
                                     ))}
                                     <p className="font-mono text-xs text-gray-500">
