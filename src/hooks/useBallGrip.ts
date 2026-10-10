@@ -60,5 +60,8 @@ export const useBallGrip = (owner: Customer | null, hand: 'RIGHT' | 'LEFT', dril
 
     /** The revision a drilling saved now would name: the drilled one, or the chosen sheet's current one. */
     const revisionId = selection === DRILLED ? drilled?.revisionId ?? null : sheet?.currentRevision?.id ?? null
-    return { choices, selection, setSelection: setPicked, sheet, revisionId, grip }
+    /** Whether the chosen holes have a thumb: the sheet's grip style decides (no sheet: the bowler's profile). */
+    const gripStyle = selection === DRILLED ? drilled?.gripStyle ?? null : sheet?.gripStyle ?? null
+    const usesThumb = gripStyle ? gripStyle !== 'TWO_HANDED_NO_THUMB' : owner?.usesThumb ?? true
+    return { choices, selection, setSelection: setPicked, sheet, revisionId, grip, usesThumb }
 }
