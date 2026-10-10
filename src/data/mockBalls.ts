@@ -1,6 +1,7 @@
 import { ballRegisterSchema, ballUpdateSchema, type BallDetailDto, type CatalogBallDto, type ShopBallModel } from '../../shared/api/balls'
 import { ballLayoutWriteSchema, type BallLayoutDto } from '../../shared/api/ballLayouts'
 import type { BallsApi } from '../services/ballsService'
+import { markMockRevisionDrilled, mockDrillSheetsApi } from './mockDrillSheets'
 import { mockCustomers } from './mockData'
 
 // The ball catalog and a company's balls without sign-in: a few catalog balls
@@ -119,14 +120,18 @@ export const mockBallsApi: BallsApi = {
         await pause()
         const parsed = ballLayoutWriteSchema.parse(input)
         const now = new Date().toISOString()
-        layouts.push({ id: crypto.randomUUID(), companyBallId: ballId, ...parsed, createdAt: now, updatedAt: now })
+        const { drillSheetRevisionId, ...rest } = parsed
+        const drillSheet = drillSheetRevisionId ? markMockRevisionDrilled(drillSheetRevisionId) : null
+        layouts.push({ id: crypto.randomUUID(), companyBallId: ballId, ...rest, drillSheet, createdAt: now, updatedAt: now })
         return detail(ballId)
     },
     async updateLayout(layoutId, input) {
         await pause()
         const parsed = ballLayoutWriteSchema.parse(input)
         const i = layouts.findIndex(l => l.id === layoutId)
-        layouts[i] = { ...layouts[i], ...parsed, updatedAt: new Date().toISOString() }
+        const { drillSheetRevisionId, ...rest } = parsed
+        const drillSheet = drillSheetRevisionId ? markMockRevisionDrilled(drillSheetRevisionId) : null
+        layouts[i] = { ...layouts[i], ...rest, drillSheet, updatedAt: new Date().toISOString() }
         return detail(layouts[i].companyBallId)
     },
     async deleteLayout(layoutId) {
@@ -138,8 +143,9 @@ export const mockBallsApi: BallsApi = {
 }
 
 // A ball for the first mock customer, drilled 5 x 4 x 2.
-void mockBallsApi.register({ catalogBallId: mockCatalog[0].id, weightLbs: 15, serialNumber: 'SP1234567', customerId: '1', pinDistance: 4.5, topWeight: 2.5 }).then(ball => mockBallsApi.addLayout(ball.id, {
+void mockBallsApi.register({ catalogBallId: mockCatalog[0].id, weightLbs: 15, serialNumber: 'SP1234567', customerId: '1', pinDistance: 4.5, topWeight: 2.5 }).then(async ball => mockBallsApi.addLayout(ball.id, {
     drilledOn: today(),
+    drillSheetRevisionId: (await mockDrillSheetsApi.list('1')).find(s => s.currentRevision)?.currentRevision?.id ?? null,
     layout: {
         system: 'PIN_BUFFER', pinToPap32: 160, psaToPap32: 128, pinBuffer32: 64,
         pap: { over32: 172, up32: 16 }, hand: 'RIGHT', psaDistance32: 216, layoutSchemaVersion: 1

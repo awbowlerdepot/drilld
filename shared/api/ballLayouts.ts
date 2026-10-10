@@ -74,18 +74,30 @@ export const solveBallLayout = (layout: BallLayout): SolvedLayout => {
 export const ballLayoutWriteSchema = z.object({
     drilledOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Pick a date'),
     layout: ballLayoutSchema,
+    /** The drill sheet revision drilled (its holes); a draft locks once drilled. */
+    drillSheetRevisionId: z.string().uuid().nullish().transform(value => value ?? null),
     notes: z.string().trim().max(2000).nullish().transform(value => value || null)
 }).strict();
 
 export type BallLayoutWrite = z.input<typeof ballLayoutWriteSchema>;
 
 /** One drilling's layout of a company's ball. */
+/** The drill sheet revision a drilling was drilled to. */
+export interface DrilledSheetDto {
+    sheetId: string;
+    name: string;
+    gripStyle: 'CONVENTIONAL' | 'FINGERTIP' | 'TWO_HANDED_NO_THUMB';
+    revisionId: string;
+    version: number;
+}
+
 export interface BallLayoutDto {
     id: string;
     /** The company's ball. */
     companyBallId: string;
     drilledOn: string;
     layout: BallLayout;
+    drillSheet: DrilledSheetDto | null;
     notes: string | null;
     createdAt: string;
     updatedAt: string;

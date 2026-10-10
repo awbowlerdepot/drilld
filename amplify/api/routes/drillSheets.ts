@@ -96,15 +96,15 @@ const readSpec = (row: RevisionRow): DrillSheetSpec => {
     return drillSheetSpecSchema.parse(row.spec);
 };
 
-/** The ids, among these revisions, used on a work order (and so locked). */
+/** The ids, among these revisions, drilled (used on a work order or a ball's drilling, and so locked). */
 const drilledRevisionIds = async (tx: Tx, revisionIds: string[]): Promise<Set<string>> => {
     if (revisionIds.length === 0) return new Set();
-    const rows = await tx.selectFrom('work_order')
-        .select('drill_sheet_revision_id')
-        .distinct()
-        .where('drill_sheet_revision_id', 'in', revisionIds.map(uuid))
-        .execute();
-    return new Set(rows.map(row => row.drill_sheet_revision_id).filter((id): id is string => id !== null));
+    const ids = revisionIds.map(uuid);
+    const [orders, drillings] = await Promise.all([
+        tx.selectFrom('work_order').select('drill_sheet_revision_id').distinct().where('drill_sheet_revision_id', 'in', ids).execute(),
+        tx.selectFrom('ball_layout').select('drill_sheet_revision_id').distinct().where('drill_sheet_revision_id', 'in', ids).execute()
+    ]);
+    return new Set([...orders, ...drillings].map(row => row.drill_sheet_revision_id).filter((id): id is string => id !== null));
 };
 
 /** What a revision's summary needs besides its row: which are drilled, people's names, and the sheet's current revision. */
@@ -225,6 +225,8 @@ export const createSheetWithDraft = async (tx: Tx, user: CurrentUser, customerId
     await checkInsertsAgainstCatalog(tx, input.spec);
     const spec: DrillSheetSpec = {
         ...input.spec,
+        // A two-handed (no thumb) sheet has no thumb hole.
+        holes: input.gripStyle === 'TWO_HANDED_NO_THUMB' ? { ...input.spec.holes, thumb: { ...input.spec.holes.thumb, enabled: false } } : input.spec.holes,
         delivery: input.spec.delivery ?? {
             axisTiltDegrees: customer.axis_tilt_degrees === null ? null : Number(customer.axis_tilt_degrees),
             axisRotationDegrees: customer.axis_rotation_degrees === null ? null : Number(customer.axis_rotation_degrees),
@@ -411,7 +413,8 @@ export const drillSheets = new Hono<ApiEnv>()
             .where('version', '<', current.version)
             .where(eb => eb.or([
                 eb('approved_at', 'is not', null),
-                eb.exists(eb.selectFrom('work_order').select('id').whereRef('work_order.drill_sheet_revision_id', '=', 'drill_sheet_revision.id'))
+                eb.exists(eb.selectFrom('work_order').select('id').whereRef('work_order.drill_sheet_revision_id', '=', 'drill_sheet_revision.id')),
+                eb.exists(eb.selectFrom('ball_layout').select('id').whereRef('ball_layout.drill_sheet_revision_id', '=', 'drill_sheet_revision.id'))
             ]))
             .orderBy('version', 'desc')
             .executeTakeFirst();

@@ -12,19 +12,24 @@ import { SPAN_TYPES, defaultSpanType, fingerName, fingersBySide, spanKey, spanTy
 // The drill sheet the way shops draw it (canvas design D): finger holes side
 // by side with their pitches outside them, bridge between, spans below, and
 // the thumb at the bottom. Every value is tappable. Positions are on an
-// 820 × 920 canvas that scales down on small screens.
+// 820 × 920 canvas that scales down on small screens. A sheet without a thumb
+// (two-handed) is just the fingers and the bridge: the top of the canvas.
 
 // Fit first, then the edge measurements.
 const SPAN_COLUMN = [...SPAN_TYPES.filter(t => t.key === 'fit32'), ...SPAN_TYPES.filter(t => t.key !== 'fit32')]
 
 const WIDTH = 820
 const HEIGHT = 920
+const HEIGHT_NO_THUMB = 410
 const PITCH_WHOLES = [0, 1]
 
-const ARROWS: [number, number, number, number][] = [
-    [266, 402, 252, 320], [567, 402, 580, 320], [296, 512, 356, 664], [537, 512, 476, 664],
+// The finger pitch arrows, then the spans' and the thumb's.
+const FINGER_ARROWS: [number, number, number, number][] = [
     [66, 110, 66, 84], [66, 368, 66, 394], [60, 239, 34, 239],
-    [754, 110, 754, 84], [754, 368, 754, 394], [760, 239, 786, 239],
+    [754, 110, 754, 84], [754, 368, 754, 394], [760, 239, 786, 239]
+]
+const THUMB_ARROWS: [number, number, number, number][] = [
+    [266, 402, 252, 320], [567, 402, 580, 320], [296, 512, 356, 664], [537, 512, 476, 664],
     [416, 565, 416, 540], [416, 900, 416, 916], [205, 731, 181, 731], [626, 731, 650, 731]
 ]
 
@@ -36,7 +41,12 @@ const caption = (left: number, top: number, text: string) => (
     <span className="absolute text-sm text-gray-700" style={{ left, top }}>{text}</span>
 )
 
-export const HoleLayout = ({ spec, edit, readOnly, hand, locationId }: SheetEditProps) => {
+interface HoleLayoutProps extends SheetEditProps {
+    /** A sheet without a thumb (two-handed): no thumb, spans or flexibility. */
+    noThumb?: boolean
+}
+
+export const HoleLayout = ({ spec, edit, readOnly, hand, locationId, noThumb = false }: HoleLayoutProps) => {
     const open = usePicker()
     // Follows the sheet (hardware, inserts, what's recorded) until a type is picked.
     const [pickedSpanType, setSpanType] = useState<SpanType | null>(null)
@@ -164,15 +174,15 @@ export const HoleLayout = ({ spec, edit, readOnly, hand, locationId }: SheetEdit
     const thumbForward = thumb.pitch.forward32 ?? 0
 
     return (
-        <ScaledCanvas width={WIDTH} height={HEIGHT}>
-            <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} width={WIDTH} height={HEIGHT} aria-hidden="true" className="absolute inset-0">
+        <ScaledCanvas width={WIDTH} height={noThumb ? HEIGHT_NO_THUMB : HEIGHT}>
+            <svg viewBox={`0 0 ${WIDTH} ${noThumb ? HEIGHT_NO_THUMB : HEIGHT}`} width={WIDTH} height={noThumb ? HEIGHT_NO_THUMB : HEIGHT} aria-hidden="true" className="absolute inset-0">
                 <defs>
                     <marker id="drill-sheet-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
                         <path d="M0 0 L10 5 L0 10 z" fill="#1F2937" />
                     </marker>
                 </defs>
                 <g stroke="#1F2937" strokeWidth="2" fill="none" markerEnd="url(#drill-sheet-arrow)">
-                    {ARROWS.map(([x1, y1, x2, y2]) => <line key={`${x1}-${y1}`} x1={x1} y1={y1} x2={x2} y2={y2} />)}
+                    {[...FINGER_ARROWS, ...(noThumb ? [] : THUMB_ARROWS)].map(([x1, y1, x2, y2]) => <line key={`${x1}-${y1}`} x1={x1} y1={y1} x2={x2} y2={y2} />)}
                 </g>
             </svg>
 
@@ -190,6 +200,7 @@ export const HoleLayout = ({ spec, edit, readOnly, hand, locationId }: SheetEdit
                 })} />
             {caption(392, 278, 'Bridge')}
 
+            {!noThumb && <>
             {/* Span type: a column down the middle, Fit on top. */}
             <div role="radiogroup" aria-label="Span type shown" className="absolute flex flex-col items-center gap-1.5" style={{ left: 396, top: 308 }}>
                 {SPAN_COLUMN.map(type => {
@@ -259,6 +270,7 @@ export const HoleLayout = ({ spec, edit, readOnly, hand, locationId }: SheetEdit
             <ValueBox label="Thumb reverse pitch" readOnly={readOnly} className="h-[70px] w-28" style={at(360, 830)}
                 value={thumbForward < 0 ? format32(-thumbForward) : null}
                 onClick={() => pickPitch('Thumb pitch', 'thumb', 'forward32', 0)} />
+            </>}
         </ScaledCanvas>
     )
 }

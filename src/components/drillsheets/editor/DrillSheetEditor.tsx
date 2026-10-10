@@ -19,6 +19,7 @@ import { PickerHost } from './PickerHost'
 import { RevisionHistoryDialog } from './RevisionHistoryDialog'
 import { ThumbHoleCard } from './ThumbHoleCard'
 import { fingersBySide, type SheetEditProps } from './editorTypes'
+import { sheetHasThumb } from '../../../../shared/api/drillSheets'
 
 interface DrillSheetEditorProps {
     sheetId: string
@@ -68,6 +69,8 @@ export const DrillSheetEditor = ({ sheetId, customer, locationID, initialPaperOp
     const hand = customer.dominantHand
     const sides = fingersBySide(hand)
     const editProps: SheetEditProps = { spec, edit, readOnly: sheet.archived, hand, locationId: locationID }
+    // A two-handed (no thumb) sheet: no thumb hole, no spans.
+    const noThumb = !sheetHasThumb(sheet.gripStyle, spec)
     const status = !revision ? null
         : revision.drilled ? { label: `Drilled · Revision ${revision.version}`, className: 'bg-gray-100 text-gray-700' }
             : revision.approvedAt ? { label: `Approved · Revision ${revision.version}`, className: 'bg-green-100 text-green-800' }
@@ -135,20 +138,22 @@ export const DrillSheetEditor = ({ sheetId, customer, locationID, initialPaperOp
                 {error && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-800">{error}</p>}
 
                 <section aria-label="Drill sheet" className="rounded-xl border border-border bg-white p-6">
-                    <HoleLayout {...editProps} />
+                    <HoleLayout {...editProps} noThumb={noThumb} />
                 </section>
 
                 <section aria-label="Hole details" className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] items-start gap-4">
                     <FingerHoleCard {...editProps} finger={sides.left} side="LEFT" press={drillSheetSettings}
                         standardBevel={drillSheetSettings.standardBevel} gripStyle={sheet.gripStyle} holeDepths={drillSheetSettings.holeDepths} />
-                    <ThumbHoleCard {...editProps} press={drillSheetSettings}
-                        standardBevel={drillSheetSettings.standardBevel} holeDepths={drillSheetSettings.holeDepths} />
+                    {!noThumb && (
+                        <ThumbHoleCard {...editProps} press={drillSheetSettings}
+                            standardBevel={drillSheetSettings.standardBevel} holeDepths={drillSheetSettings.holeDepths} />
+                    )}
                     <FingerHoleCard {...editProps} finger={sides.right} side="RIGHT" press={drillSheetSettings}
                         standardBevel={drillSheetSettings.standardBevel} gripStyle={sheet.gripStyle} holeDepths={drillSheetSettings.holeDepths} />
                 </section>
 
                 <section aria-label="Fit and delivery" className="grid grid-cols-[repeat(auto-fit,minmax(360px,1fr))] items-start gap-4">
-                    <FitPanel {...editProps} showClt={drillSheetSettings.enableClt} />
+                    <FitPanel {...editProps} showClt={drillSheetSettings.enableClt} noThumb={noThumb} />
                     <DeliveryPanel {...editProps} customerName={customer.firstName} customerDelivery={customer.delivery} />
                 </section>
 

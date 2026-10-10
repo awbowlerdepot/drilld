@@ -12,7 +12,7 @@ import {
     type BallLookupDto,
     type CatalogBallDto
 } from '../../../shared/api/balls';
-import { ballLayoutWriteSchema, type BallLayout, type BallLayoutDto } from '../../../shared/api/ballLayouts';
+import { ballLayoutWriteSchema, type BallLayout, type BallLayoutDto, type DrilledSheetDto } from '../../../shared/api/ballLayouts';
 import { json, uuid, withCompany, type Tx } from '../db/client';
 import { HttpError } from '../errors';
 import { loadAccess, requirePermission } from '../permissions';
@@ -78,24 +78,43 @@ const modelOf = (row: BallRow): CatalogBallDto => (row.cat_id
         coverstock: row.m_coverstock, core: row.m_core, created_at: row.m_created_at!
     }));
 
-/** A drilling's layout. */
-const layoutDto = (row: { id: string; company_ball_id: string; drilled_on: unknown; layout: unknown; notes: string | null; created_at: unknown; updated_at: unknown }): BallLayoutDto => ({
+interface LayoutRow {
+    id: string; company_ball_id: string; drilled_on: unknown; layout: unknown; notes: string | null; created_at: unknown; updated_at: unknown;
+    drill_sheet_revision_id: string | null; sheet_id: string | null; sheet_name: string | null; grip_style: string | null; version: number | null;
+}
+
+/** A drilling's layout, and the drill sheet revision it was drilled to. */
+const layoutDto = (row: LayoutRow): BallLayoutDto => ({
     id: row.id,
     companyBallId: row.company_ball_id,
     drilledOn: dateOnly(row.drilled_on)!,
     layout: row.layout as BallLayout,
+    drillSheet: row.drill_sheet_revision_id && row.sheet_id
+        ? { sheetId: row.sheet_id, name: row.sheet_name ?? '', gripStyle: row.grip_style as DrilledSheetDto['gripStyle'], revisionId: row.drill_sheet_revision_id, version: row.version ?? 0 }
+        : null,
     notes: row.notes,
     createdAt: new Date(row.created_at as string).toISOString(),
     updatedAt: new Date(row.updated_at as string).toISOString()
 });
 
+/** A drill sheet revision named on a drilling must be this company's. */
+const checkRevision = async (tx: Tx, revisionId: string | null) => {
+    if (!revisionId) return;
+    const found = await tx.selectFrom('drill_sheet_revision').select('id').where('id', '=', uuid(revisionId)).executeTakeFirst();
+    if (!found) throw new HttpError(404, 'Drill sheet revision not found');
+};
+
 /** Each ball's drillings, newest first. */
 const layoutsOf = async (tx: Tx, companyBallIds: string[]) => {
     const byBall = new Map<string, BallLayoutDto[]>();
     if (companyBallIds.length === 0) return byBall;
-    const rows = await tx.selectFrom('ball_layout').selectAll()
-        .where('company_ball_id', 'in', companyBallIds.map(uuid))
-        .orderBy('drilled_on', 'desc').orderBy('created_at', 'desc')
+    const rows = await tx.selectFrom('ball_layout as l')
+        .leftJoin('drill_sheet_revision as r', 'r.id', 'l.drill_sheet_revision_id')
+        .leftJoin('drill_sheet as s', 's.id', 'r.drill_sheet_id')
+        .select(['l.id', 'l.company_ball_id', 'l.drilled_on', 'l.layout', 'l.notes', 'l.created_at', 'l.updated_at', 'l.drill_sheet_revision_id',
+            's.id as sheet_id', 's.name as sheet_name', 's.grip_style', 'r.version'])
+        .where('l.company_ball_id', 'in', companyBallIds.map(uuid))
+        .orderBy('l.drilled_on', 'desc').orderBy('l.created_at', 'desc')
         .execute();
     for (const row of rows) byBall.set(row.company_ball_id, [...(byBall.get(row.company_ball_id) ?? []), layoutDto(row)]);
     return byBall;
@@ -320,9 +339,11 @@ export const balls = new Hono<ApiEnv>()
             requirePermission(await loadAccess(tx, c.var.user), 'write:balls');
             const ball = await tx.selectFrom('company_ball').select('id').where('id', '=', uuid(id)).executeTakeFirst();
             if (!ball) throw new HttpError(404, 'Ball not found');
+            await checkRevision(tx, input.drillSheetRevisionId);
             await tx.insertInto('ball_layout').values({
                 company_id: uuid(c.var.user.companyId), company_ball_id: uuid(id), drilled_on: dateParam(input.drilledOn)!,
-                layout: json(input.layout), notes: input.notes, created_by_user_id: uuid(c.var.user.userId)
+                layout: json(input.layout), notes: input.notes, created_by_user_id: uuid(c.var.user.userId),
+                drill_sheet_revision_id: input.drillSheetRevisionId ? uuid(input.drillSheetRevisionId) : null
             }).execute();
             return c.json(await detail(tx, id), 201);
         });
@@ -356,8 +377,12 @@ export const ballLayouts = new Hono<ApiEnv>()
         const input = ballLayoutWriteSchema.parse(await c.req.json());
         return withCompany(c.var.db, c.var.user.companyId, async tx => {
             requirePermission(await loadAccess(tx, c.var.user), 'write:balls');
+            await checkRevision(tx, input.drillSheetRevisionId);
             const row = await tx.updateTable('ball_layout')
-                .set({ drilled_on: dateParam(input.drilledOn)!, layout: json(input.layout), notes: input.notes })
+                .set({
+                    drilled_on: dateParam(input.drilledOn)!, layout: json(input.layout), notes: input.notes,
+                    drill_sheet_revision_id: input.drillSheetRevisionId ? uuid(input.drillSheetRevisionId) : null
+                })
                 .where('id', '=', uuid(id)).returning('company_ball_id').executeTakeFirst();
             if (!row) throw new HttpError(404, 'Layout not found');
             return c.json(await detail(tx, row.company_ball_id));

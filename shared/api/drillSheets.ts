@@ -89,3 +89,11 @@ export interface DrillSheetDto {
     createdAt: string;
     updatedAt: string;
 }
+
+/**
+ * Whether a sheet has a thumb hole. A "Two-handed (no thumb)" sheet never
+ * does (no thumb, no thumb spans), whatever its spec says; a bowler can have
+ * one alongside a sheet with a thumb for a spare ball.
+ */
+export const sheetHasThumb = (gripStyle: z.infer<typeof gripStyleSchema>, spec: { holes: { thumb: { enabled: boolean } } }) =>
+    gripStyle !== 'TWO_HANDED_NO_THUMB' && spec.holes.thumb.enabled;

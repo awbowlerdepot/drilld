@@ -62,6 +62,7 @@ export interface BallLayout {
   company_id: string;
   created_at: Generated<Timestamp>;
   created_by_user_id: string | null;
+  drill_sheet_revision_id: string | null;
   drilled_on: Timestamp;
   id: Generated<string>;
   layout: Json;

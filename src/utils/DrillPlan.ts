@@ -214,7 +214,7 @@ export const buildDrillPlan = (spec: DrillSheetSpec, hand: Hand, options: DrillP
     return [
         fingerHole(spec, leftFinger, 'LEFT', gripStyle, holeDepths),
         fingerHole(spec, rightFinger, 'RIGHT', gripStyle, holeDepths),
-        thumbHole(spec, hand, holeDepths)
+        gripStyle === 'TWO_HANDED_NO_THUMB' ? null : thumbHole(spec, hand, holeDepths)
     ]
         .filter((hole): hole is PlannedHole => hole !== null)
         .map(hole => ({ ...hole, finishing: [{ label: 'Bevel', value: describeBevel(bevelOf[hole.key], standardBevel) }] }))

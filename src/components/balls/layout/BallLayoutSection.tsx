@@ -27,7 +27,7 @@ const day = (date: string) => new Date(`${date}T12:00:00Z`).toLocaleDateString(u
 export const BallLayoutSection = ({ ball, owner, canEdit, onAdd, onUpdate, onDelete, onSaveBowlerPap }: BallLayoutSectionProps) => {
     const [editing, setEditing] = useState<BallLayoutDto | 'new' | null>(null)
     const [showing3d, setShowing3d] = useState(false)
-    const { grip } = useBallGrip(owner, ball.layouts[0]?.layout.hand ?? owner?.dominantHand ?? 'RIGHT')
+    const { grip } = useBallGrip(owner, ball.layouts[0]?.layout.hand ?? owner?.dominantHand ?? 'RIGHT', ball.layouts[0]?.drillSheet ?? null)
     const current = ball.layouts[0] ?? null
     const solved = current ? solveBallLayout(current.layout) : null
 
@@ -54,6 +54,9 @@ export const BallLayoutSection = ({ ball, owner, canEdit, onAdd, onUpdate, onDel
                             <p key={other} className="text-gray-600">= <span className="font-mono">{describeNumbers(other, solved)}</span> {LAYOUT_SYSTEM_LABELS[other]}</p>
                         ))}
                         <p className="text-xs text-gray-500">Drilled {day(current.drilledOn)}{current.notes ? ` · ${current.notes}` : ''}</p>
+                        <p className="text-xs text-gray-500">
+                            {current.drillSheet ? `Drill sheet: ${current.drillSheet.name}, revision ${current.drillSheet.version}` : 'No drill sheet recorded'}
+                        </p>
                         <div className="flex gap-1">
                             <Button type="button" variant="outline" size="sm" onClick={() => setShowing3d(true)}><Box data-icon="inline-start" /> 3D view</Button>
                             {canEdit && <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(current)}><Pencil data-icon="inline-start" /> Edit</Button>}
@@ -85,7 +88,7 @@ export const BallLayoutSection = ({ ball, owner, canEdit, onAdd, onUpdate, onDel
                     onClick={() => { if (window.confirm('Delete this layout? It was entered by mistake.')) void onDelete(current.id) }}>Delete this layout</button>
             )}
             {showing3d && current && solved && (
-                <Ball3DDialog ball={ball.catalogBall} solved={solved} hand={current.layout.hand} system={current.layout.system} owner={owner} onClose={() => setShowing3d(false)} />
+                <Ball3DDialog ball={ball.catalogBall} solved={solved} hand={current.layout.hand} system={current.layout.system} drilled={current.drillSheet} owner={owner} onClose={() => setShowing3d(false)} />
             )}
             {editing && (
                 <LayoutDialog psaDistance={ball.psaDistance} symmetric={ball.catalogBall.core?.type === 'symmetric'} owner={owner}
