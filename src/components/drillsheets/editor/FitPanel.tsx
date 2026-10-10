@@ -9,12 +9,14 @@ import { SPAN_TYPES, fingerName, spanKey, type Finger, type SheetEditProps } fro
 interface FitPanelProps extends SheetEditProps {
     /** Company setting drillSheets.enableClt. */
     showClt: boolean
+    /** A sheet without a thumb (two-handed): no spans. */
+    noThumb?: boolean
 }
 
 const FINGERS: Finger[] = ['middle', 'ring']
 
 /** Every span type for both spans, Pro Fit, and (when enabled) CLT with its Auto-CLT suggestion. */
-export const FitPanel = ({ spec, edit, readOnly, hand, showClt }: FitPanelProps) => {
+export const FitPanel = ({ spec, edit, readOnly, hand, showClt, noThumb = false }: FitPanelProps) => {
     const open = usePicker()
     const clt = spec.fitting.cltDegrees
     const suggestion = showClt && clt != null ? autoClt(clt, hand) : null
@@ -26,10 +28,10 @@ export const FitPanel = ({ spec, edit, readOnly, hand, showClt }: FitPanelProps)
         <article aria-label="Fit" className="flex min-w-0 flex-col gap-3.5 rounded-xl border border-border bg-white p-5">
             <header>
                 <h2 className="text-[17px] font-semibold">Fit</h2>
-                <p className="text-sm text-gray-600">Each span type is measured on its own, never converted.</p>
+                <p className="text-sm text-gray-600">{noThumb ? 'Two-handed, no thumb: no spans; the fingers and the bridge are the fit.' : 'Each span type is measured on its own, never converted.'}</p>
             </header>
 
-            <table className="w-full border-collapse text-sm">
+            {!noThumb && <table className="w-full border-collapse text-sm">
                 <thead>
                     <tr className="text-left text-gray-500">
                         <th className="px-2.5 py-1.5 font-medium">Span</th>
@@ -64,7 +66,7 @@ export const FitPanel = ({ spec, edit, readOnly, hand, showClt }: FitPanelProps)
                         </tr>
                     ))}
                 </tbody>
-            </table>
+            </table>}
 
             <div className="flex items-center justify-between gap-4 rounded-lg bg-gray-50 p-3">
                 <label htmlFor="pro-fit" className="flex flex-col gap-0.5">

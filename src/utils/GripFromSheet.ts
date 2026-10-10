@@ -1,4 +1,6 @@
 import type { DrillSheetSpec } from '../../shared/api/drillSheetSpec'
+import { sheetHasThumb } from '../../shared/api/drillSheets'
+import type { GripStyle } from './HoleDepth'
 import type { GripInput, HoleInput, RecordedSpan } from '../../shared/layout/gripPlacement'
 
 const DEFAULT_THUMB = 1
@@ -29,7 +31,8 @@ const fingerOval = (h: DrillSheetSpec['holes']['middle']): HoleInput['oval'] =>
     h.fingerOval && h.size64 ? { elongation: (h.fingerOval.width64 - h.size64) / 64 } : null
 
 /** A drill sheet's grip for drawing on the ball (shared/layout/gripPlacement.ts); a standard grip without one. */
-export const gripFromSheet = (spec: DrillSheetSpec | null, hand: 'RIGHT' | 'LEFT', usesThumb: boolean): GripInput => {
+export const gripFromSheet = (sheet: { gripStyle: GripStyle; spec: DrillSheetSpec } | null, hand: 'RIGHT' | 'LEFT', usesThumb: boolean): GripInput => {
+    const spec = sheet?.spec ?? null
     if (!spec) {
         return {
             hand, thumb: usesThumb ? { size: DEFAULT_THUMB } : null,
@@ -40,7 +43,7 @@ export const gripFromSheet = (spec: DrillSheetSpec | null, hand: 'RIGHT' | 'LEFT
     const { thumb, middle, ring } = spec.holes
     return {
         hand,
-        thumb: thumb.enabled
+        thumb: sheetHasThumb(sheet!.gripStyle, spec)
             ? hole(thumb, DEFAULT_THUMB, thumb.hardware?.od64,
                 thumb.oval ? { elongation: (thumb.oval.width64 - thumb.oval.pilotHole64) / 64, angle: thumb.oval.angleDegrees } : null, thumb.oval?.pilotHole64)
             : null,

@@ -149,6 +149,7 @@ Look for incorrect imports, circular dependencies, and unnecessary complexity.
     - `/drill-sheets/:id`: get, rename/archive (PATCH), save the draft (`PUT …/draft`), and discard the draft (`POST …/draft/discard`: the revision it started from becomes current again; the draft stays in the history)
     - `/drill-sheets/:id/revisions`: the history, one revision by version, and `POST …/approve`
     - The spec is validated by `shared/api/drillSheetSpec.ts` (spec v1).
+    - A sheet's grip style decides the thumb: a "Two-handed (no thumb)" sheet has no thumb hole and no spans (`sheetHasThumb`), in the editor, the drill press plan and the 3D view.
   - locations:
     - `GET /locations`: list.
     - `POST /locations`: add one; company owners and admins only; the plan limit of 4 active locations returns 409.
@@ -174,7 +175,7 @@ Look for incorrect imports, circular dependencies, and unnecessary complexity.
   - balls and the BowlerIQ catalog (`docs/data-model.md` Ball catalog, Balls):
     - `GET /catalog/balls?q=&brandId=`, `GET /catalog/brands`, `GET /catalog/status`: Drilld's synced copy, refreshed every 30 minutes by the catalog sync Lambda (`api/catalogSyncHandler.ts`; partner key in Secrets Manager `drilld/bowleriq-partner-key`).
     - `GET/POST /balls`, `GET/PATCH /balls/:id`, `POST /balls/:id/transfer` (API only), `GET /balls/lookup?brandId=&serial=`: a company's balls (registry + company record + owners); another shop's history of a serial is anonymous.
-    - layouts per drilling: `POST /balls/:id/layouts`, `PATCH/DELETE /ball-layouts/:id`. Entered as VLS / pin buffer, Dual Angle or 2LS (pin to PAP × PSA to PAP × pin to COG, from the bridge); the other systems, the pin and PSA from the grip, and the diagram are calculated on the sphere (`shared/layout/ballLayout.ts`, `docs/data-model.md` Ball layouts).
+    - layouts per drilling: `POST /balls/:id/layouts`, `PATCH/DELETE /ball-layouts/:id`, each recording the drill sheet revision drilled (which locks it). Entered as VLS / pin buffer, Dual Angle or 2LS (pin to PAP × PSA to PAP × pin to COG, from the bridge); the other systems, the pin and PSA from the grip, and the diagram are calculated on the sphere (`shared/layout/ballLayout.ts`, `docs/data-model.md` Ball layouts).
     - A ball the catalog doesn't have is typed in ("Not in the catalog? Type it in") and kept in the company's own list (`company_ball_model`), found by the same search.
     - The Bowling Balls section and the customer's Bowling Balls tab use it; work orders still use the old mock balls.
   - `GET /grip-catalog`: the shared catalog of inserts and thumb hardware (VISE, Turbo, JoPo), one entry per line with its sizes.

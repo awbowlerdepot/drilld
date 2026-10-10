@@ -7,12 +7,14 @@ import {
     type DrillSheetRevisionDto,
     type DrillSheetRevisionSummaryDto
 } from '../../shared/api/drillSheets'
+import type { DrilledSheetDto } from '../../shared/api/ballLayouts'
 import type { DrillSheetsApi } from '../services/drillSheetsService'
 
 // An in-memory stand-in for the drill sheets API, for running without sign-in.
 // Follows the same revision rules: drafts are edited in place; once approved,
-// saving starts a new draft revision. (There are no work orders here, so
-// nothing is ever "drilled".)
+// saving starts a new draft revision. A revision is "drilled" once a mock
+// ball's drilling names it (markMockRevisionDrilled).
+
 
 const MOCK_USER_ID = 'mock-user'
 
@@ -115,6 +117,17 @@ const findRevision = (id: string, version: number): DrillSheetRevisionDto => {
     const found = find(id).revisions.find(r => r.version === version)
     if (!found) throw new Error('Revision not found')
     return found
+}
+
+/** A mock ball's drilling names this revision: it's drilled now (locked). Returns the sheet it belongs to. */
+export const markMockRevisionDrilled = (revisionId: string): DrilledSheetDto | null => {
+    for (const entry of store.values()) {
+        const found = entry.revisions.find(r => r.id === revisionId)
+        if (!found) continue
+        Object.assign(found, { drilled: true, editable: false })
+        return { sheetId: entry.sheet.id, name: entry.sheet.name, gripStyle: entry.sheet.gripStyle, revisionId, version: found.version }
+    }
+    return null
 }
 
 export const mockDrillSheetsApi: DrillSheetsApi = {

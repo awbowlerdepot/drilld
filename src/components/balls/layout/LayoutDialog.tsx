@@ -70,7 +70,9 @@ export const LayoutDialog = ({ psaDistance, symmetric, owner, existing, previous
     const [drilledOn, setDrilledOn] = useState(existing?.drilledOn ?? today())
     const [notes, setNotes] = useState(existing?.notes ?? '')
     const [picker, setPicker] = useState<Picker | null>(null)
-    const { grip } = useBallGrip(owner, hand)
+    // The drill sheet drilled: the one this drilling recorded, else the last drilling's sheet, else the most recent.
+    const holes = useBallGrip(owner, hand, existing?.drillSheet ?? null, previous?.drillSheet?.sheetId)
+    const { grip } = holes
     const [saving, setSaving] = useState(false)
     const [formError, setFormError] = useState<string | null>(null)
 
@@ -104,7 +106,7 @@ export const LayoutDialog = ({ psaDistance, symmetric, owner, existing, previous
     const save = async (event: React.FormEvent) => {
         event.preventDefault()
         if (!result.layout) { setFormError('Enter the layout and the PAP'); return }
-        const input: BallLayoutWrite = { drilledOn, layout: result.layout, notes }
+        const input: BallLayoutWrite = { drilledOn, layout: result.layout, notes, drillSheetRevisionId: holes.revisionId }
         const parsed = ballLayoutWriteSchema.safeParse(input)
         if (!parsed.success) { setFormError(parsed.error.issues[0]?.message ?? 'Check the layout'); return }
         setSaving(true)
@@ -213,6 +215,19 @@ export const LayoutDialog = ({ psaDistance, symmetric, owner, existing, previous
                                     ? <DetailRow stacked readOnly label="Pin to PSA" value="6-3/4″" onClick={() => undefined} />
                                     : length('Pin to MB', psaDistance32, setPsaDistance32, [4, 5, 6, 7], 'Measured on this ball; not set uses 6¾″')}
                             </div>
+
+                            <Field>
+                                <FieldLabel>Drill sheet</FieldLabel>
+                                <Select value={holes.selection} onValueChange={holes.setSelection}>
+                                    <SelectTrigger aria-label="Drill sheet"><SelectValue /></SelectTrigger>
+                                    <SelectContent>{holes.choices.map(c => <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>)}</SelectContent>
+                                </Select>
+                                <FieldDescription>
+                                    {holes.sheet?.currentRevision?.editable
+                                        ? `Revision ${holes.sheet.currentRevision.version} is a draft: recording this drilling locks it, and later changes start a new revision.`
+                                        : 'The holes drilled in this ball, and the ones shown on it.'}
+                                </FieldDescription>
+                            </Field>
 
                             <div className="grid grid-cols-2 gap-3">
                                 <Field>

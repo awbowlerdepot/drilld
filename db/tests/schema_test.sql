@@ -170,6 +170,16 @@ select test.fails($$insert into ball_layout (company_id, company_ball_id, drille
     ('00000000-0000-0000-0000-00000000000a', '50000000-0000-0000-0000-0000000000b1', current_date, '{}')$$, '23503', 'a layout cannot be on another company''s ball');
 select test.fails($$update company_ball set psa_distance = 0$$, '23514', 'the pin to MB distance is more than zero');
 
+-- A drilling records the drill sheet revision drilled, which locks it (0022)
+insert into drill_sheet_revision (id, company_id, drill_sheet_id, version, created_by_user_id, updated_by_user_id, spec, spec_schema_version)
+    select 'd2000000-0000-0000-0000-0000000000a9', company_id, drill_sheet_id, 99, created_by_user_id, created_by_user_id, spec, 1
+    from drill_sheet_revision where company_id = '00000000-0000-0000-0000-00000000000a' limit 1;
+update drill_sheet_revision set revision_notes = 'still a draft' where id = 'd2000000-0000-0000-0000-0000000000a9';
+insert into ball_layout (company_id, company_ball_id, drilled_on, layout, drill_sheet_revision_id) values
+    ('00000000-0000-0000-0000-00000000000a', '50000000-0000-0000-0000-0000000000a1', current_date, '{}', 'd2000000-0000-0000-0000-0000000000a9');
+select test.fails($$update drill_sheet_revision set revision_notes = 'changed' where id = 'd2000000-0000-0000-0000-0000000000a9'$$,
+    '23001', 'a revision a ball was drilled to cannot change');
+
 -- Equipment and maintenance (0018)
 insert into equipment (id, company_id, location_id, kind, name) values
     ('e0000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-0000000000a1', 'DRILL_PRESS', 'Main press');
@@ -188,7 +198,7 @@ select test.fails($$insert into maintenance_log (company_id, equipment_id, kind,
     ('00000000-0000-0000-0000-00000000000a', 'e0000000-0000-0000-0000-0000000000a1', 'ISSUE', 'Something')$$, '23514', 'a problem report says what kind');
 select test.ok((select count(*) from company_ball) = 1, 'company A sees only its record of the shared ball');
 select test.ok((select count(*) from work_order) = 1, 'company A sees only its work orders');
-select test.ok((select count(*) from drill_sheet_revision) = 1, 'company A sees only its drill sheet revisions');
+select test.ok((select count(*) from drill_sheet_revision) = 2, 'company A sees only its drill sheet revisions (its one, and the one a ball was drilled to)');
 select test.ok((select count(*) from location_membership) = 1, 'company A sees only its memberships');
 select test.ok((select count(*) from ball) = 1, 'ball registry is readable');
 select test.ok((select count(*) from catalog_ball) = 1, 'ball catalog is readable');

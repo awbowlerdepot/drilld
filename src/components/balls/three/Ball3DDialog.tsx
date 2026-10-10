@@ -3,9 +3,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { cn } from '@/lib/utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { CatalogBallDto } from '../../../../shared/api/balls'
-import type { LayoutSystem } from '../../../../shared/api/ballLayouts'
+import type { DrilledSheetDto, LayoutSystem } from '../../../../shared/api/ballLayouts'
 import type { SolvedLayout } from '../../../../shared/layout/ballLayout'
-import { NO_SHEET, useBallGrip } from '../../../hooks/useBallGrip'
+import { useBallGrip } from '../../../hooks/useBallGrip'
 import type { Customer } from '../../../types'
 import { LAYOUT_SYSTEM_LABELS, describeNumbers, systemsFor } from '../../../utils/BallLayoutFormat'
 import { BallView3D } from './BallView3D'
@@ -17,13 +17,15 @@ interface Ball3DDialogProps {
     hand: 'RIGHT' | 'LEFT'
     /** The system the layout was entered in: shown first. */
     system: LayoutSystem
+    /** The drill sheet revision the drilling was drilled to: its holes are shown first. */
+    drilled: DrilledSheetDto | null
     owner: Customer | null
     onClose: () => void
 }
 
 /** The ball in 3D with its layout and the bowler's drill sheet holes. */
-export const Ball3DDialog = ({ ball, solved, hand, system, owner, onClose }: Ball3DDialogProps) => {
-    const { sheets, sheetId, setSheetId, grip } = useBallGrip(owner, hand)
+export const Ball3DDialog = ({ ball, solved, hand, system, drilled, owner, onClose }: Ball3DDialogProps) => {
+    const { choices, selection, setSelection, grip } = useBallGrip(owner, hand, drilled)
     const [polished, setPolished] = useState(false)
     const [systems, setSystems] = useState<LayoutSystem[]>([system])
     const toggle = (s: LayoutSystem) => setSystems(prev => (prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]))
@@ -37,11 +39,10 @@ export const Ball3DDialog = ({ ball, solved, hand, system, owner, onClose }: Bal
                 </DialogHeader>
                 <div className="flex flex-wrap items-center gap-2 text-sm">
                     <span className="text-gray-600">Drill sheet</span>
-                    <Select value={sheetId} onValueChange={setSheetId}>
-                        <SelectTrigger aria-label="Drill sheet" className="w-64"><SelectValue /></SelectTrigger>
+                    <Select value={selection} onValueChange={setSelection}>
+                        <SelectTrigger aria-label="Drill sheet" className="w-80"><SelectValue /></SelectTrigger>
                         <SelectContent>
-                            {sheets.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                            <SelectItem value={NO_SHEET}>None (a standard grip)</SelectItem>
+                            {choices.map(c => <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>)}
                         </SelectContent>
                     </Select>
                     <div role="radiogroup" aria-label="Finish" className="ml-auto flex gap-1">
