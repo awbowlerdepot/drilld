@@ -65,7 +65,8 @@ export const LayoutDialog = ({ psaDistance, symmetric, owner, existing, previous
     const [papEditing, setPapEditing] = useState(!startPap || (!!was && (!profilePap || was.pap.over32 !== profilePap.over32 || was.pap.up32 !== profilePap.up32)))
     const [savePapToProfile, setSavePapToProfile] = useState(!profilePap && !!owner && !!onSaveBowlerPap)
     const usingProfilePap = !!profilePap && papOver32 === profilePap.over32 && (papUp32 ?? 0) === profilePap.up32
-    const [psaDistance32, setPsaDistance32] = useState<number | null>(was?.psaDistance32 ?? (psaDistance != null ? Math.round(psaDistance * 32) : null))
+    // Pin to MB: as drilled, else as measured on this ball, else the standard 6¾″ (changeable).
+    const [psaDistance32, setPsaDistance32] = useState<number | null>(was?.psaDistance32 ?? (psaDistance != null ? Math.round(psaDistance * 32) : SYMMETRIC_PSA_32))
     const [hand, setHand] = useState<'RIGHT' | 'LEFT'>(was?.hand ?? owner?.dominantHand ?? 'RIGHT')
     const [drilledOn, setDrilledOn] = useState(existing?.drilledOn ?? today())
     const [notes, setNotes] = useState(existing?.notes ?? '')
@@ -222,7 +223,7 @@ export const LayoutDialog = ({ psaDistance, symmetric, owner, existing, previous
                             <div className="grid grid-cols-3 gap-2">
                                 {symmetric
                                     ? <DetailRow stacked readOnly label="Pin to PSA" value="6-3/4″" onClick={() => undefined} />
-                                    : length('Pin to MB', psaDistance32, setPsaDistance32, [4, 5, 6, 7], 'Measured on this ball; not set uses 6¾″')}
+                                    : length('Pin to MB', psaDistance32, setPsaDistance32, [4, 5, 6, 7], 'Usually 6¾″; change it if this ball measures differently')}
                             </div>
 
                             <Field>
@@ -252,7 +253,7 @@ export const LayoutDialog = ({ psaDistance, symmetric, owner, existing, previous
                                 </Field>
                             </div>
                             <FieldDescription>
-                                {symmetric ? 'Symmetric ball: the PSA mark is 6¾″ from the pin, through the CG.' : 'Pin to MB as measured on this ball; not set uses 6¾″.'}
+                                {symmetric ? 'Symmetric ball: the PSA mark is 6¾″ from the pin, through the CG.' : 'Pin to MB starts at 6¾″; tap it if this ball measures differently.'}
                                 {' '}{system === 'TWO_LS' ? '2LS: the center of grip is the center of the bridge; the PAP and pin to COG are measured from it.' : 'The PAP is measured from the center of the grip.'}
                             </FieldDescription>
 
